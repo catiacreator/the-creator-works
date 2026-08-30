@@ -1,0 +1,173 @@
+/* ── as fontes da marca ──────────────────────────────── */
+@font-face {
+  font-family: 'Advercase';
+  src: url('/fonts/Advercase-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Advercase';
+  src: url('/fonts/Advercase-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ramdone';
+  src: url('/fonts/Ramdone-400.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+}
+
+::selection {
+  @apply bg-rosa/25;
+}
+
+/* ── superfícies ─────────────────────────────────────── */
+.card {
+  @apply rounded-[1.25rem] border border-sand bg-white p-5 shadow-soft;
+}
+
+.card-escuro {
+  @apply rounded-[1.25rem] bg-ink p-5 text-paper shadow-soft;
+}
+
+/* ── botões ──────────────────────────────────────────── */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rosa/50 focus-visible:ring-offset-2
+         focus-visible:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-45;
+}
+
+.btn-primary {
+  @apply btn bg-rosa text-white shadow-lift hover:bg-[#DC3F7C] active:translate-y-px;
+}
+
+.btn-escuro {
+  @apply btn bg-ink text-paper hover:bg-carvao active:translate-y-px;
+}
+
+.btn-ghost {
+  @apply btn border border-sand bg-white text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
+}
+
+/* ── formulários ─────────────────────────────────────── */
+.input {
+  @apply w-full rounded-xl border border-sand bg-white px-3.5 py-2.5 text-sm outline-none
+         transition placeholder:text-muted/70 focus:border-rosa focus:ring-4 focus:ring-rosa/20;
+}
+
+.label {
+  @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  @apply accent-rosa;
+}
+
+/* ── etiquetas ───────────────────────────────────────── */
+.pill {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+/* ── chips de pasta / filtro ─────────────────────────── */
+.chip {
+  @apply inline-flex cursor-pointer items-center gap-1 rounded-full px-3.5 py-1.5 text-sm transition;
+}
+
+.chip-on {
+  @apply chip bg-rosa text-white;
+}
+
+.chip-off {
+  @apply chip border border-sand bg-white text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
+}
+
+/* ── editor visual ────────────────────────────────────────
+   Vive em preto: a tela ganha destaque e o rosa marca a seleção. */
+.btn-primario {
+  @apply btn bg-rosa text-white hover:bg-brand-dark;
+}
+
+.btn-secundario {
+  @apply btn border border-edLinha bg-edSuperficie text-edTexto hover:border-rosa/60;
+}
+
+.btn-fantasma {
+  @apply btn text-edSuave hover:bg-edSuperficie hover:text-edTexto;
+}
+
+.cartao {
+  @apply rounded-2xl border border-edLinha bg-edSuperficie;
+}
+
+.campo {
+  @apply w-full rounded-xl border border-edLinha bg-edFundo px-4 py-2.5 text-sm text-edTexto
+         outline-none transition placeholder:text-edSuave/60 focus:border-rosa;
+}
+
+.etiqueta {
+  @apply mb-1.5 block text-xs font-medium text-edSuave;
+}
+
+.chip-ativo {
+  @apply border-rosa bg-rosa/15 text-brand-soft;
+}
+
+.editor-escuro ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.editor-escuro ::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-edLinha;
+}
+
+/* ── temas do editor ──────────────────────────────────────
+   Escuro por defeito. A tela é antracite pontilhada, para a folha
+   se ver mesmo quando o slide é preto. */
+.editor-tema {
+  --ed-fundo: 26 23 22;
+  --ed-superficie: 38 33 32;
+  --ed-linha: 58 50 48;
+  --ed-texto: 253 247 228;
+  --ed-suave: 150 138 122;
+  --ed-tela: 43 38 36;
+  --ed-ponto: 255 255 255;
+  --ed-ponto-op: 0.12;
+}
+
+.editor-tema[data-tema='claro'] {
+  --ed-fundo: 253 247 228;
+  --ed-superficie: 255 255 255;
+  --ed-linha: 235 222 187;
+  --ed-texto: 20 16 16;
+  --ed-suave: 138 124 99;
+  --ed-tela: 244 235 213;
+  --ed-ponto: 20 16 16;
+  --ed-ponto-op: 0.14;
+}
+
+.tela-pontilhada {
+  background-color: rgb(var(--ed-tela));
+  background-image: radial-gradient(
+    rgb(var(--ed-ponto) / var(--ed-ponto-op)) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 22px 22px;
+  background-position: -11px -11px;
+}
