@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Ajuda } from './ajuda';
-import { BotaoDeTema } from './tema';
 import {
   Sparkles,
   Library,
@@ -119,34 +118,16 @@ export function Nav({ email }: { email?: string | null }) {
   return (
     <aside
       className={clsx(
-        'flex shrink-0 flex-col border-r border-sand bg-superficie transition-all',
+        'flex shrink-0 flex-col border-r border-sand bg-white transition-all',
         fechada ? 'w-[68px]' : 'w-64',
       )}
     >
       {/* ── marca ──────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-5">
         <Link href="/" className="min-w-0 leading-none">
-          {fechada ? (
-            // fechada, só cabe a marca reduzida
-            <span className="block text-[17px] font-semibold tracking-tight">
-              T<span className="text-rosa">W</span>
-            </span>
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/the-creator-works.png"
-                alt="The Creator Works"
-                className="h-[26px] w-auto dark:hidden"
-              />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/the-creator-works-escuro.png"
-                alt="The Creator Works"
-                className="hidden h-[26px] w-auto dark:block"
-              />
-            </>
-          )}
+          <span className="block text-[17px] font-semibold tracking-tight">
+            The Creator<span className="text-rosa">Works</span>
+          </span>
         </Link>
         <button
           onClick={alternar}
@@ -245,7 +226,6 @@ export function Nav({ email }: { email?: string | null }) {
 
       {/* ── ajuda e sair ───────────────────────────── */}
       <div className={clsx('space-y-0.5 border-t border-sand p-3', fechada && 'text-center')}>
-        <BotaoDeTema fechada={fechada} />
         <Ajuda fechada={fechada} />
         <button
           onClick={signOut}
