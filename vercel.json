@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/jobs/run?limit=5",
-      "schedule": "*/5 * * * *"
+      "path": "/api/jobs/run?limit=20",
+      "schedule": "0 4 * * *"
     }
   ]
 }
