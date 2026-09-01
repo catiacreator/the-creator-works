@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
+import { guiaoDoTema } from '@/components/tema';
 import '@fontsource/poppins/400.css';
 import '@fontsource/poppins/700.css';
 import '@fontsource/playfair-display/400.css';
@@ -39,7 +40,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-PT" className={poppins.variable}>
+    <html lang="pt-PT" className={poppins.variable} suppressHydrationWarning>
+      <head>
+        {/* põe o tema antes de a página desenhar, para não haver clarão */}
+        <script dangerouslySetInnerHTML={{ __html: guiaoDoTema }} />
+      </head>
       <body>{children}</body>
     </html>
   );

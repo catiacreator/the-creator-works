@@ -115,7 +115,7 @@ export default function PerfilPage() {
               key={s.id}
               onClick={() => setAba(s.id)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm transition ${
-                aba === s.id ? 'bg-white font-medium text-ink shadow-soft' : 'text-muted hover:text-ink'
+                aba === s.id ? 'bg-superficie font-medium text-ink shadow-soft' : 'text-muted hover:text-ink'
               }`}
             >
               <Icone className="h-4 w-4" />

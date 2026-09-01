@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Save } from 'lucide-react';
+import Link from 'next/link';
+import { KeyRound, Save } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
 
 /**
@@ -81,6 +82,17 @@ export default function DefinicoesClient() {
           <Save className="h-4 w-4" />
           {saved ? 'Guardado' : busy ? 'A guardar…' : 'Guardar definições'}
         </button>
+
+        <Card>
+          <h2 className="mb-1 font-medium">Palavra-passe</h2>
+          <p className="mb-3 text-sm text-muted">
+            Para entrares com email e palavra-passe, sem esperar pelo link do email.
+          </p>
+          <Link href="/palavra-passe" className="btn-ghost w-full">
+            <KeyRound className="h-4 w-4" />
+            Definir palavra-passe
+          </Link>
+        </Card>
       </div>
     </>
   );

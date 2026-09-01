@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseConfigured } from '@/lib/env';
+import { RECADO_SEM_ACESSO, podeEntrar } from '@/lib/acesso';
 
 /** Mantém a sessão do Supabase fresca em cada pedido. */
 export async function middleware(request: NextRequest) {
@@ -40,7 +41,24 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // A app é privada. Sessão de alguém que não está na lista fecha-se aqui,
+  // antes de chegar a qualquer página ou API.
+  if (user && !podeEntrar(user.email)) {
+    await supabase.auth.signOut();
+    const { pathname } = request.nextUrl;
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: RECADO_SEM_ACESSO }, { status: 403 });
+    }
+    if (pathname === '/login') return response;
+    return NextResponse.redirect(
+      new URL(`/login?erro=${encodeURIComponent(RECADO_SEM_ACESSO)}`, request.url),
+    );
+  }
+
   return response;
 }
 

@@ -138,7 +138,7 @@ export default function ChatPage() {
 
       <div>
         <div>
-          <div className="mb-4 min-h-[380px] space-y-4 rounded-2xl border border-sand bg-white p-5">
+          <div className="mb-4 min-h-[380px] space-y-4 rounded-2xl border border-sand bg-superficie p-5">
             {messages.length === 0 && (
               <div className="space-y-2 text-sm text-muted">
                 <p>Diz-me o que precisas. Por exemplo:</p>

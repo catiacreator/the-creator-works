@@ -180,14 +180,14 @@ export default function BibliotecaPage() {
                 target="_blank"
                 rel="noreferrer"
                 title="Transferir"
-                className="ml-auto rounded-full bg-white/10 p-2 transition hover:bg-white/20"
+                className="ml-auto rounded-full bg-superficie/10 p-2 transition hover:bg-superficie/20"
               >
                 <Download className="h-4 w-4" />
               </a>
               <button
                 onClick={() => setAVer(null)}
                 title="Fechar"
-                className="rounded-full bg-white/10 p-2 transition hover:bg-white/20"
+                className="rounded-full bg-superficie/10 p-2 transition hover:bg-superficie/20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -329,7 +329,7 @@ export default function BibliotecaPage() {
 
       {/* ── ações em lote ──────────────────────────────── */}
       {escolhidas.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/20 bg-white px-4 py-3 text-sm">
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/20 bg-superficie px-4 py-3 text-sm">
           <strong>{escolhidas.length} escolhidas</strong>
           <select
             className="input !w-auto !py-1 text-sm"
@@ -366,7 +366,7 @@ export default function BibliotecaPage() {
             return (
               <figure
                 key={p.id}
-                className={`group overflow-hidden rounded-2xl border bg-white transition ${
+                className={`group overflow-hidden rounded-2xl border bg-superficie transition ${
                   on ? 'border-rosa ring-2 ring-rosa/20' : 'border-sand hover:border-rosa/40'
                 }`}
               >

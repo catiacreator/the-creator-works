@@ -470,7 +470,7 @@ export default function EstudioPage() {
       {/* ── 2. os carrosséis encontrados ──────────────── */}
       {passo === 2 && (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-sand bg-white px-4 py-3 text-sm">
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-sand bg-superficie px-4 py-3 text-sm">
             <strong>
               {escolhidos.length} de {carrosseis.length} escolhidos
             </strong>
@@ -492,7 +492,7 @@ export default function EstudioPage() {
             {carrosseis.map((c, i) => (
               <div
                 key={i}
-                className={`flex flex-col rounded-2xl border bg-white p-4 transition ${
+                className={`flex flex-col rounded-2xl border bg-superficie p-4 transition ${
                   marcados[i] ? 'border-ink' : 'border-sand'
                 }`}
               >
@@ -714,7 +714,7 @@ export default function EstudioPage() {
                 <button
                   key={i}
                   onClick={() => setAEditar(i)}
-                  className="overflow-hidden rounded-2xl border border-sand bg-white text-left transition hover:border-ink/40 hover:shadow-soft"
+                  className="overflow-hidden rounded-2xl border border-sand bg-superficie text-left transition hover:border-ink/40 hover:shadow-soft"
                 >
                   <SlidePreview
                     estilo={estiloDe(i)}
@@ -968,7 +968,7 @@ export default function EstudioPage() {
             {escolhidos.map((i) => {
               const c = carrosseis[i];
               return (
-                <div key={i} className="overflow-hidden rounded-2xl border border-sand bg-white">
+                <div key={i} className="overflow-hidden rounded-2xl border border-sand bg-superficie">
                   <button onClick={() => setAVer(i)} className="block w-full text-left">
                     <SlidePreview
                       estilo={estiloDe(i)}

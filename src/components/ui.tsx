@@ -56,7 +56,7 @@ export function Separador<T extends string>({
           onClick={() => set(o.id)}
           className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm transition ${
             valor === o.id
-              ? 'bg-white font-medium text-ink shadow-soft'
+              ? 'bg-superficie font-medium text-ink shadow-soft'
               : 'text-muted hover:text-ink'
           }`}
         >
@@ -115,7 +115,7 @@ export function StatusPill({ status }: { status: string }) {
 
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[1.25rem] border border-dashed border-sand bg-white/50 p-12 text-center text-sm text-muted">
+    <div className="rounded-[1.25rem] border border-dashed border-sand bg-superficie/50 p-12 text-center text-sm text-muted">
       {children}
     </div>
   );

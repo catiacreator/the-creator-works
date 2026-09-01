@@ -47,7 +47,7 @@ export function Ajuda({ fechada }: { fechada?: boolean }) {
   return (
     <>
       {aberto && (
-        <div className="fixed bottom-20 left-4 z-50 w-80 rounded-[1.25rem] border border-sand bg-white p-5 shadow-lift">
+        <div className="fixed bottom-20 left-4 z-50 w-80 rounded-[1.25rem] border border-sand bg-superficie p-5 shadow-lift">
           <div className="mb-3 flex items-center gap-2">
             <h2 className="text-sm font-semibold">Como isto funciona</h2>
             <button

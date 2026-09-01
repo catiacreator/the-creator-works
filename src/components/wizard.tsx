@@ -44,7 +44,7 @@ export function Wizard({ destaque }: { destaque?: string }) {
         <span className="text-xs text-muted">
           {feitos} de {passos.length} feitos
         </span>
-        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white">
+        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-superficie">
           <div
             className="h-full rounded-full bg-rosa transition-all"
             style={{ width: `${(feitos / passos.length) * 100}%` }}
@@ -55,7 +55,7 @@ export function Wizard({ destaque }: { destaque?: string }) {
             window.localStorage.setItem('wizard-fechado', 'sim');
             setFechado(true);
           }}
-          className="ml-auto rounded-full p-1.5 text-muted transition hover:bg-white hover:text-ink"
+          className="ml-auto rounded-full p-1.5 text-muted transition hover:bg-superficie hover:text-ink"
           title="Esconder"
         >
           <X className="h-4 w-4" />
@@ -72,10 +72,10 @@ export function Wizard({ destaque }: { destaque?: string }) {
               title={p.texto}
               className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs transition ${
                 p.feito
-                  ? 'border-sand bg-white text-muted'
+                  ? 'border-sand bg-superficie text-muted'
                   : agora
                     ? 'border-rosa bg-rosa text-white'
-                    : 'border-sand bg-white text-ink hover:border-rosa/50'
+                    : 'border-sand bg-superficie text-ink hover:border-rosa/50'
               }`}
             >
               {p.feito ? (
@@ -95,7 +95,7 @@ export function Wizard({ destaque }: { destaque?: string }) {
       </div>
 
       {aSeguir && (
-        <p className="border-t border-sand bg-white/60 px-5 py-2.5 text-xs text-muted">
+        <p className="border-t border-sand bg-superficie/60 px-5 py-2.5 text-xs text-muted">
           <strong className="text-ink">A seguir:</strong> {aSeguir.texto}
         </p>
       )}
