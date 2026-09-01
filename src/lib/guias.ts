@@ -100,6 +100,14 @@ export const GUIAS: Record<string, Guia> = {
       'Quando escrever um carrossel, aparece o botão para o abrir no editor.',
     ],
   },
+  '/memoria': {
+    titulo: 'Como funciona esta página',
+    passos: [
+      'As regras são ordens: passam à frente do método e de tudo o resto.',
+      'As campanhas dizem-lhe o que andas a vender; as histórias dão-lhe o que contar.',
+      'Tudo o que está aqui viaja com cada pedido — no chat e nos carrosséis.',
+    ],
+  },
   '/ultima-hora': {
     titulo: 'Como funciona esta página',
     passos: [

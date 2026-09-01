@@ -12,6 +12,7 @@ import {
   UserRound,
   UserSearch,
   PenTool,
+  Brain,
   Crown,
   Settings,
   LogOut,
@@ -48,6 +49,7 @@ const GRUPOS: Array<{
   {
     itens: [
       { href: '/chat', label: 'Agente Cát.IA', icone: Crown },
+      { href: '/memoria', label: 'Memória da Cát.IA', icone: Brain },
       { href: '/ultima-hora', label: 'Última hora', icone: Radio },
       { href: '/analise', label: 'Análise de perfil', icone: UserSearch },
     ],
