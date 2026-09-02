@@ -69,7 +69,14 @@ interface Conversa {
   created_at: string;
 }
 
-export function Nav({ email }: { email?: string | null }) {
+export function Nav({
+  email,
+  bloqueado,
+}: {
+  email?: string | null;
+  /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
+  bloqueado?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -173,18 +180,32 @@ export function Nav({ email }: { email?: string | null }) {
             {grupo.itens.map((link) => {
               const ativo =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
+              // no primeiro dia só o Sobre mim está aberto
+              const fechado = bloqueado && link.href !== '/perfil';
               return (
                 <Link
                   key={link.href}
-                  href={link.href}
-                  title={fechada ? link.label : undefined}
+                  href={fechado ? '/perfil' : link.href}
+                  title={
+                    fechado
+                      ? 'Responde ao Sobre mim para abrir'
+                      : fechada
+                        ? link.label
+                        : undefined
+                  }
+                  aria-disabled={fechado || undefined}
                   className={clsx(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition',
-                    ativo
-                      ? 'bg-rosa font-medium text-white shadow-lift'
-                      : 'text-ink/75 hover:bg-creme hover:text-ink',
+                    fechado
+                      ? 'cursor-not-allowed text-muted/50'
+                      : ativo
+                        ? 'bg-rosa font-medium text-white shadow-lift'
+                        : 'text-ink/75 hover:bg-creme hover:text-ink',
                     fechada && 'justify-center px-0',
                   )}
+                  onClick={(e) => {
+                    if (fechado) e.preventDefault();
+                  }}
                 >
                   <link.icone
                     className="h-[18px] w-[18px] shrink-0"

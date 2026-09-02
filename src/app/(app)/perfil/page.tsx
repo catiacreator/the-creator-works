@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Target, Users, Compass, Trophy, Save, Sparkles, X } from 'lucide-react';
 import { Card, PageHeader, Spinner } from '@/components/ui';
 import { TextoRico } from '@/components/texto-rico';
 import { Wizard } from '@/components/wizard';
 import {
+  OBRIGATORIOS,
   SEPARADORES,
+  emFalta,
   preenchimento,
   type Briefing,
   type IdSeparador,
@@ -24,7 +27,10 @@ const ICONES: Record<IdSeparador, typeof Target> = {
  * É o que a Cát.IA lê antes de escrever — daí valer a pena estar completo.
  */
 export default function PerfilPage() {
+  const router = useRouter();
   const [briefing, setBriefing] = useState<Briefing>({});
+  /** primeira vez: entrou agora e ainda não respondeu ao essencial */
+  const [primeiraVez, setPrimeiraVez] = useState(false);
   const [aba, setAba] = useState<IdSeparador>('nicho');
   const [busy, setBusy] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -35,10 +41,15 @@ export default function PerfilPage() {
   useEffect(() => {
     fetch('/api/perfil')
       .then((r) => r.json())
-      .then((d) => setBriefing(d.briefing ?? {}));
+      .then((d) => {
+        const b = (d.briefing ?? {}) as Briefing;
+        setBriefing(b);
+        setPrimeiraVez(emFalta(b).length > 0);
+      });
   }, []);
 
   const { feitos, total } = preenchimento(briefing);
+  const falta = emFalta(briefing);
   const separador = SEPARADORES.find((s) => s.id === aba)!;
 
   /**
@@ -61,6 +72,23 @@ export default function PerfilPage() {
   }
 
   const guardar = () => guardarCom(briefing);
+
+  /**
+   * O botão de quem está a entrar pela primeira vez: só abre a app depois de
+   * responder ao essencial, e diz o que falta em vez de se limitar a recusar.
+   */
+  async function guardarEComecar() {
+    if (falta.length) {
+      setAba(SEPARADORES.find((s) => s.campos.some((c) => c.id === falta[0].id))!.id);
+      setError(
+        `Falta responder: ${falta.map((c) => c.pergunta.replace(/\?$/, '')).join(' · ')}`,
+      );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    await guardarCom(briefing);
+    router.push('/criar');
+  }
 
   async function avaliar() {
     setAAvaliar(true);
@@ -98,6 +126,23 @@ export default function PerfilPage() {
       />
 
       <Wizard destaque="perfil" />
+
+      {primeiraVez && (
+        <div className="mb-5 rounded-2xl border border-rosa/30 bg-rosaSuave/40 px-5 py-4">
+          <h2 className="mb-1 font-semibold">Antes de começarmos</h2>
+          <p className="text-sm leading-relaxed text-ink/80">
+            A Cát.IA escreve a partir daqui. Sem saber o teu nicho e para quem falas, sairia
+            conteúdo que serve a toda a gente — que é o mesmo que não servir ninguém. Responde às{' '}
+            <strong>{OBRIGATORIOS.length} perguntas marcadas</strong> e a app abre-se; o resto
+            podes ir preenchendo depois.
+          </p>
+          {falta.length > 0 && (
+            <p className="mt-2 text-sm text-ink/70">
+              Faltam {falta.length} de {OBRIGATORIOS.length}.
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -143,7 +188,14 @@ export default function PerfilPage() {
           const semResposta = briefing[campo.id] === '__nenhum__';
           return (
             <Card key={campo.id}>
-              <label className="mb-3 block font-medium">{campo.pergunta}</label>
+              <label className="mb-3 block font-medium">
+                {campo.pergunta}
+                {OBRIGATORIOS.includes(campo.id) && (
+                  <span className="ml-2 align-middle text-[11px] font-semibold uppercase tracking-wide text-rosa">
+                    essencial
+                  </span>
+                )}
+              </label>
 
               {campo.tipo === 'escolha' ? (
                 <div className="flex gap-3">
@@ -233,9 +285,15 @@ export default function PerfilPage() {
           {guardado ? 'guardado' : 'guarda-se sozinho ao sair de cada campo'}
         </span>
 
-        <button className="btn-escuro ml-auto" onClick={guardar} disabled={busy}>
-          <Save className="h-4 w-4" /> {busy ? 'A guardar…' : 'Guardar'}
-        </button>
+        {primeiraVez ? (
+          <button className="btn-primary ml-auto" onClick={guardarEComecar} disabled={busy}>
+            <Save className="h-4 w-4" /> {busy ? 'A guardar…' : 'Guardar e começar'}
+          </button>
+        ) : (
+          <button className="btn-escuro ml-auto" onClick={guardar} disabled={busy}>
+            <Save className="h-4 w-4" /> {busy ? 'A guardar…' : 'Guardar'}
+          </button>
+        )}
       </div>
     </>
   );

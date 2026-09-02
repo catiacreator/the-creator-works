@@ -19,6 +19,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/configurar', request.url));
   }
 
+  // o layout precisa de saber a página para decidir se deixa passar
+  request.headers.set('x-caminho', request.nextUrl.pathname);
+
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(

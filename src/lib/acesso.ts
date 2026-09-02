@@ -9,10 +9,22 @@
  * Para acrescentar alguém: EMAILS_COM_ACESSO no ambiente, separados por
  * vírgulas.
  */
-const DONA = 'catiacreator@gmail.com';
+/**
+ * O email da dona. Vive numa variável de ambiente para poder mudar sem tocar
+ * em código — e é NEXT_PUBLIC_ de propósito: o ecrã de login precisa de saber
+ * o mesmo que o servidor, e isto não é segredo nenhum (a fechadura é a
+ * sessão, não o nome).
+ */
+const DONA = (
+  process.env.NEXT_PUBLIC_EMAIL_DA_DONA ?? 'catiacreator@gmail.com'
+).toLowerCase();
 
 export function emailsComAcesso(): string[] {
-  const doAmbiente = (process.env.EMAILS_COM_ACESSO ?? '')
+  const doAmbiente = (
+    process.env.NEXT_PUBLIC_EMAILS_COM_ACESSO ??
+    process.env.EMAILS_COM_ACESSO ??
+    ''
+  )
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);

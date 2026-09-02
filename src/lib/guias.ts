@@ -135,8 +135,9 @@ export const GUIAS: Record<string, Guia> = {
   '/definicoes': {
     titulo: 'Como funciona esta página',
     passos: [
-      'A voz da marca é como queres que a app escreva por ti.',
-      'Entra em tudo: carrosséis, roteiros e respostas da Cát.IA.',
+      'Cada linha abre um assunto: a conta, o briefing, a voz, a memória, o aspeto.',
+      'A voz da marca entra em tudo o que a app escreve por ti.',
+      'Mudar de email pede confirmação no endereço novo — até lá entras com o de sempre.',
     ],
   },
 };
