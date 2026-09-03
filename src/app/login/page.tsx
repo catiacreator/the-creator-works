@@ -11,13 +11,16 @@ export default function LoginPage() {
   const [palavra, setPalavra] = useState('');
   const [enviado, setEnviado] = useState<'link' | 'recuperar' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recado, setRecado] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const dev = process.env.NODE_ENV !== 'production';
 
   // o middleware e o callback mandam para aqui com o motivo no endereço
   useEffect(() => {
-    const motivo = new URLSearchParams(window.location.search).get('erro');
+    const params = new URLSearchParams(window.location.search);
+    const motivo = params.get('erro');
     if (motivo) setError(motivo === '1' ? 'O link expirou ou já foi usado.' : motivo);
+    if (params.get('novo') === '1') setRecado('Palavra-passe criada. Entra com ela.');
   }, []);
 
   async function devLogin() {
@@ -136,6 +139,12 @@ export default function LoginPage() {
         <div className="mb-4 flex items-center gap-3 text-xs text-muted">
           <span className="h-px flex-1 bg-sand" /> ou <span className="h-px flex-1 bg-sand" />
         </div>
+
+        {recado && (
+          <div className="mb-4 rounded-xl border border-sand bg-creme/60 px-4 py-3 text-sm">
+            {recado}
+          </div>
+        )}
 
         {enviado === 'link' && (
           <div className="card text-sm">

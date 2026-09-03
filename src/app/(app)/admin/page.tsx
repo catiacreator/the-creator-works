@@ -58,6 +58,7 @@ export default function AdminPage() {
     null,
   );
   const [aRemover, setARemover] = useState<Membro | null>(null);
+  const [recado, setRecado] = useState<string | null>(null);
   const [matriz, setMatriz] = useState<Matriz>(MATRIZ_PADRAO);
   const [paginas, setPaginas] = useState<EstadoDasPaginas>({});
   const [aba, setAba] = useState<Aba>('pessoas');
@@ -213,6 +214,15 @@ export default function AdminPage() {
         </div>
       )}
 
+      {recado && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-sand bg-creme/70 px-4 py-3 text-sm">
+          <span className="flex-1">{recado}</span>
+          <button className="text-muted hover:text-ink" onClick={() => setRecado(null)}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {aba === 'pessoas' && (!membros ? (
         <Spinner label="A ver quem cá anda…" />
       ) : !membros.length ? (
@@ -252,6 +262,11 @@ export default function AdminPage() {
                     {eADona(m) && (
                       <span className="rounded-full bg-rosaSuave px-2 py-0.5 text-[11px] text-ink">
                         dona da app
+                      </span>
+                    )}
+                    {m.convite_pendente && (
+                      <span className="rounded-full bg-manteiga px-2 py-0.5 text-[11px] text-ink">
+                        convite por abrir
                       </span>
                     )}
                     {!m.ativo && (
@@ -540,12 +555,27 @@ export default function AdminPage() {
           ocupado={ocupado}
           aoFechar={() => setConvite(null)}
           aoConfirmar={async () => {
-            const feito = await pedir('/api/membros', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(convite),
-            });
-            if (feito) setConvite(null);
+            setOcupado(true);
+            setErro(null);
+            try {
+              const d = await fetch('/api/membros', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(convite),
+              }).then((r) => r.json());
+              if (d.error) throw new Error(d.error);
+              await carregar();
+              setRecado(
+                d.convite_enviado
+                  ? `Convite enviado para ${convite.email}. O link leva-a a escolher a palavra-passe.`
+                  : (d.aviso ?? 'Lugar criado.'),
+              );
+              setConvite(null);
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não deu.');
+            } finally {
+              setOcupado(false);
+            }
           }}
         >
           <div className="mb-4 space-y-3">

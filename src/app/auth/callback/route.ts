@@ -18,6 +18,17 @@ export async function GET(request: Request) {
           `${origin}/login?erro=${encodeURIComponent(RECADO_SEM_ACESSO)}`,
         );
       }
+      // convite por abrir: primeiro escolhe a palavra-passe, e só depois entra
+      const { data: membro } = await supabase
+        .from('membros')
+        .select('convite_pendente')
+        .ilike('email', data.user?.email ?? '')
+        .maybeSingle();
+
+      if (membro?.convite_pendente) {
+        return NextResponse.redirect(`${origin}/palavra-passe?novo=1`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

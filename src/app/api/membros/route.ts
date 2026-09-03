@@ -26,7 +26,9 @@ export const GET = withUser(async ({ user, supabase }) => {
 
   const { data, error } = await supabase
     .from('membros')
-    .select('id, email, nome, papel, ativo, convidado_por, ultimo_acesso, created_at')
+    .select(
+      'id, email, nome, papel, ativo, convite_pendente, convidado_por, ultimo_acesso, created_at',
+    )
     .order('created_at', { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -60,16 +62,44 @@ export const POST = withUser(async ({ user, supabase, request }) => {
       nome: body.nome?.trim() || null,
       papel: body.papel ?? 'aluno',
       convidado_por: user.email,
+      convite_pendente: true,
     })
     .select('id, email, nome, papel, ativo, convidado_por, ultimo_acesso, created_at')
     .single();
 
   if (error) {
     throw new Error(
-      /duplicate|unique/i.test(error.message) ? 'Esse email já tem lugar.' : error.message,
+      /duplicate|unique/i.test(error.message)
+        ? 'Esse email já tem lugar.'
+        : /row-level security/i.test(error.message)
+          ? 'A base de dados não te reconhece como admin nesta conta. Entra com o email da dona da app.'
+          : error.message,
     );
   }
-  return ok({ membro: data });
+
+  // 2. o convite propriamente dito: um email com um link que a leva a
+  //    escolher a palavra-passe. Vai pelo caminho normal do login (link
+  //    mágico), que não precisa da chave de serviço.
+  const origem =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+
+  const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      // sem parâmetros: o Supabase só aceita endereços que estejam na sua
+      // lista, e é o `convite_pendente` que diz ao callback para onde a levar
+      emailRedirectTo: `${origem}/auth/callback`,
+    },
+  });
+
+  return ok({
+    membro: data,
+    convite_enviado: !erroDoEmail,
+    aviso: erroDoEmail
+      ? 'O lugar ficou feito, mas o email de convite não saiu: ' + erroDoEmail.message
+      : null,
+  });
 });
 
 /** Mudar o papel, ou suspender e retomar o acesso. */

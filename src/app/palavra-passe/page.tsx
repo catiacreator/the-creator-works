@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 /**
@@ -12,6 +13,9 @@ import { createClient } from '@/lib/supabase/client';
  * Definições. Nos dois casos há sessão, e é a sessão que autoriza a mudança.
  */
 export default function PalavraPassePage() {
+  const router = useRouter();
+  /** veio de um convite: acaba de escolher a palavra-passe e entra de novo */
+  const [novo, setNovo] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [aCarregar, setACarregar] = useState(true);
   const [nova, setNova] = useState('');
@@ -21,6 +25,7 @@ export default function PalavraPassePage() {
   const [feito, setFeito] = useState(false);
 
   useEffect(() => {
+    setNovo(new URLSearchParams(window.location.search).get('novo') === '1');
     (async () => {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
@@ -42,6 +47,14 @@ export default function PalavraPassePage() {
     setNova('');
     setRepetida('');
     setFeito(true);
+
+    // quem chegou aqui por convite entra agora pela porta da frente, com a
+    // palavra-passe que acabou de escolher
+    if (novo) {
+      await supabase.rpc('convite_aceite');
+      await supabase.auth.signOut();
+      router.push('/login?novo=1');
+    }
   }
 
   return (
@@ -50,6 +63,12 @@ export default function PalavraPassePage() {
         <h1 className="mb-1 text-2xl font-semibold tracking-tight">
           Palavra-<span className="text-rosa">passe</span>
         </h1>
+
+        {novo && !feito && (
+          <p className="mb-4 text-sm leading-relaxed text-muted">
+            Bem-vinda. Falta só escolheres a palavra-passe com que vais entrar.
+          </p>
+        )}
 
         {aCarregar ? (
           <p className="text-sm text-muted">Um momento…</p>

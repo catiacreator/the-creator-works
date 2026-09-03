@@ -22,6 +22,7 @@ export interface Membro {
   nome: string | null;
   papel: Papel;
   ativo: boolean;
+  convite_pendente?: boolean;
   convidado_por: string | null;
   ultimo_acesso: string | null;
   created_at: string;
