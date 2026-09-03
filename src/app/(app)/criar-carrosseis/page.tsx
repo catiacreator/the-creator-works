@@ -28,6 +28,7 @@ import { Card, PageHeader, Spinner } from '@/components/ui';
 import { SlidePreview } from '@/components/studio/preview';
 import { EditorDeEstilo } from '@/components/studio/editor-estilo';
 import { extrairCarrosseis, type CarrosselLido } from '@/lib/extrair-slides';
+import JSZip from 'jszip';
 import { descarregar, slideParaBlob, slideParaDataUrl } from '@/lib/studio-render';
 import { ESTILOS_BASE, normalizar, type Estilo } from '@/lib/studio-estilos';
 import type { PhotoRow } from '@/lib/types';
@@ -303,32 +304,53 @@ export default function EstudioPage() {
     escala: 3,
   });
 
-  async function descarregarCarrossel(i: number) {
+  /**
+   * Os slides de um carrossel dentro de um .zip — e a legenda com eles, se a
+   * houver. Um ficheiro só: o browser trava downloads em cadeia, e sete PNGs
+   * soltos na pasta das transferências não são um carrossel.
+   */
+  async function zipDoCarrossel(i: number, zip: JSZip, dentroDeUmaPasta: boolean) {
     const c = carrosseis[i];
+    const nome = limpo(c.titulo);
+    const pasta = dentroDeUmaPasta ? (zip.folder(nome) ?? zip) : zip;
+
+    for (let n = 0; n < c.slides.length; n++) {
+      setOcupado(`${nome} · slide ${n + 1} de ${c.slides.length}`);
+      const blob = await slideParaBlob(opcoesDe(i, n));
+      if (blob) pasta.file(`${String(n + 1).padStart(2, '0')}-${nome}.png`, blob);
+    }
+
+    const legenda = [c.titulo, '', c.legenda ?? '', '', c.slides.join('\n\n')]
+      .filter((x) => x !== undefined)
+      .join('\n')
+      .trim();
+    pasta.file('legenda.txt', legenda);
+  }
+
+  async function descarregarCarrossel(i: number) {
     setOcupado(`c-${i}`);
     try {
-      for (let n = 0; n < c.slides.length; n++) {
-        const blob = await slideParaBlob(opcoesDe(i, n));
-        if (blob) descarregar(blob, `${limpo(c.titulo)}-${n + 1}.png`);
-        await new Promise((r) => setTimeout(r, 200));
-      }
+      const zip = new JSZip();
+      await zipDoCarrossel(i, zip, false);
+      const blob = await zip.generateAsync({ type: 'blob' });
+      descarregar(blob, `${limpo(carrosseis[i].titulo)}.zip`);
     } finally {
       setOcupado(null);
     }
   }
 
   async function descarregarVarios(indices: number[]) {
+    if (indices.length === 1) return descarregarCarrossel(indices[0]);
+
     setOcupado('varios');
     try {
-      for (const i of indices) {
-        const c = carrosseis[i];
-        for (let n = 0; n < c.slides.length; n++) {
-          setOcupado(`${limpo(c.titulo)} · slide ${n + 1}`);
-          const blob = await slideParaBlob(opcoesDe(i, n));
-          if (blob) descarregar(blob, `${limpo(c.titulo)}-${n + 1}.png`);
-          await new Promise((r) => setTimeout(r, 200));
-        }
-      }
+      const zip = new JSZip();
+      for (const i of indices) await zipDoCarrossel(i, zip, true);
+
+      setOcupado('a fechar o zip…');
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const dia = new Date().toISOString().slice(0, 10);
+      descarregar(blob, `carrosseis-${dia}.zip`);
     } finally {
       setOcupado(null);
     }
@@ -988,7 +1010,7 @@ export default function EstudioPage() {
                         className="inline-flex items-center gap-1 font-medium text-rosa"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        {ocupado === `c-${i}` ? 'a descarregar…' : '4K'}
+                        {ocupado === `c-${i}` ? 'a fechar o zip…' : 'zip'}
                       </button>
                     </div>
                   </div>
@@ -1025,7 +1047,9 @@ export default function EstudioPage() {
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  {escolhidos.length === 1 ? 'Descarregar em 4K' : `Descarregar os ${escolhidos.length} em 4K`}
+                  {escolhidos.length === 1
+                    ? 'Descarregar em zip'
+                    : `Descarregar os ${escolhidos.length} em zip`}
                 </>
               )}
             </button>
@@ -1052,7 +1076,7 @@ export default function EstudioPage() {
                 onClick={() => descarregarCarrossel(aVer)}
                 disabled={!!ocupado}
               >
-                <Download className="h-3.5 w-3.5" /> 4K
+                <Download className="h-3.5 w-3.5" /> zip
               </button>
               <button
                 onClick={() => setAVer(null)}
