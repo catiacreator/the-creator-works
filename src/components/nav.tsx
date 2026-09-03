@@ -249,7 +249,7 @@ export function Nav({
       </nav>
 
       {/* ── as conversas com a Cát.IA ──────────────── */}
-      {!fechada && (permissoes ?? []).includes('criar') && (
+      {!fechada && (permissoes ?? []).includes('chat') && (
         <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sand px-3 pt-4">
           <div className="mb-2 flex items-center gap-1.5 px-2">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
