@@ -102,6 +102,11 @@ export default function AdminPage() {
   const [codigos, setCodigos] = useState<Codigo[] | null>(null);
   const [novo, setNovo] = useState<{ papel: Papel; nota: string; usos_max: number } | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [vendas, setVendas] = useState<{
+    endereco: string;
+    ligado: boolean;
+    vendas: number;
+  } | null>(null);
 
   async function carregar() {
     const d = await fetch('/api/membros').then((r) => r.json());
@@ -119,6 +124,9 @@ export default function AdminPage() {
 
     const c = await fetch('/api/codigos').then((r) => r.json());
     if (!c.error) setCodigos(c.codigos ?? []);
+
+    const v = await fetch('/api/vendas').then((r) => r.json());
+    if (!v.error) setVendas(v);
   }
 
   useEffect(() => {
@@ -610,6 +618,62 @@ export default function AdminPage() {
             </p>
           </Card>
 
+          {vendas && (
+            <Card className="mb-4">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h2 className="font-medium">Vendas automáticas</h2>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] ${
+                    vendas.ligado ? 'bg-rosa text-white' : 'bg-creme text-muted'
+                  }`}
+                >
+                  {vendas.ligado ? 'a funcionar' : 'por ligar'}
+                </span>
+                {vendas.vendas > 0 && (
+                  <span className="text-xs text-muted">
+                    {vendas.vendas} entraram por aqui
+                  </span>
+                )}
+              </div>
+
+              <p className="mb-3 text-sm leading-relaxed text-muted">
+                {vendas.ligado ? (
+                  <>
+                    Quando alguém compra na Hotmart, a app dá-lhe o lugar e manda-lhe o email para
+                    escolher a palavra-passe — sem tu tocares em nada. Devoluções e cancelamentos
+                    fecham a porta sozinhos.
+                  </>
+                ) : (
+                  <>
+                    Falta ligar. Na Hotmart, em <strong className="text-ink">Ferramentas →
+                    Webhook</strong>, cria um com o endereço abaixo e os eventos de compra
+                    aprovada, devolução e cancelamento. Ela dá-te um <em>hottok</em>: essa chave
+                    tens de a pôr na Vercel, em HOTMART_HOTTOK.
+                  </>
+                )}
+              </p>
+
+              <div className="flex items-center gap-2 rounded-xl border border-sand bg-creme/60 px-3 py-2">
+                <code className="min-w-0 flex-1 truncate text-xs">{vendas.endereco}</code>
+                <button
+                  className="shrink-0 rounded-lg p-1.5 text-muted transition hover:text-ink"
+                  title="Copiar o endereço"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(vendas.endereco);
+                    setCopiado(vendas.endereco);
+                    setTimeout(() => setCopiado(null), 1500);
+                  }}
+                >
+                  {copiado === vendas.endereco ? (
+                    <Check className="h-4 w-4 text-rosa" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </Card>
+          )}
+
           {podeGerir && (
             <button
               className="btn-primary mb-4"
@@ -622,11 +686,13 @@ export default function AdminPage() {
 
           {!codigos ? (
             <Spinner />
-          ) : !codigos.length ? (
+          ) : !codigos.filter((c) => c.codigo !== 'HOTMART-AUTO').length ? (
             <Empty>Ainda não há códigos. Cria o primeiro antes da próxima venda.</Empty>
           ) : (
             <div className="space-y-3">
-              {codigos.map((c) => {
+              {codigos
+                .filter((c) => c.codigo !== 'HOTMART-AUTO')
+                .map((c) => {
                 const gasto = c.usos >= c.usos_max;
                 const fora = !!c.expira && c.expira < new Date().toISOString().slice(0, 10);
                 return (
