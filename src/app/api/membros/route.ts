@@ -140,8 +140,18 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
   if (papel) campos.papel = papel;
   if (ativo !== undefined) campos.ativo = ativo;
 
-  const { error } = await supabase.from('membros').update(campos).eq('id', id);
+  const { data, error } = await supabase
+    .from('membros')
+    .update(campos)
+    .eq('id', id)
+    .select('id');
+
   if (error) throw new Error(error.message);
+  if (!data?.length) {
+    throw new Error(
+      'A base de dados não deixou guardar: esta conta não é reconhecida como admin.',
+    );
+  }
   return ok();
 });
 
@@ -158,7 +168,12 @@ export const DELETE = withUser(async ({ user, supabase, request }) => {
     throw new Error('Esta é a conta dona da app. Não se remove.');
   }
 
-  const { error } = await supabase.from('membros').delete().eq('id', id);
+  const { data, error } = await supabase.from('membros').delete().eq('id', id).select('id');
   if (error) throw new Error(error.message);
+  if (!data?.length) {
+    throw new Error(
+      'A base de dados não deixou remover: esta conta não é reconhecida como admin.',
+    );
+  }
   return ok();
 });

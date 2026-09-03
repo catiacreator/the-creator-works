@@ -33,10 +33,11 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
   const limpas = (permissoes ?? []).filter((p) => TODAS_AS_PERMISSOES.includes(p));
   const finais = [...new Set([...limpas, ...INTOCAVEIS[papel]])];
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('papeis')
     .update({ permissoes: finais, atualizado: new Date().toISOString() })
-    .eq('id', papel);
+    .eq('id', papel)
+    .select('id, permissoes');
 
   if (error) {
     throw new Error(
@@ -45,5 +46,17 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
         : error.message,
     );
   }
-  return ok({ permissoes: finais });
+
+  // Sem isto, a mudança parecia guardada e não estava: quando as políticas
+  // recusam uma alteração, o Postgres não dá erro — simplesmente não altera
+  // linha nenhuma. O ecrã mostrava o novo estado e a base de dados ficava com
+  // o antigo, e só se dava por isso na sessão seguinte.
+  if (!data?.length) {
+    throw new Error(
+      'A base de dados não deixou guardar: esta conta não é reconhecida como admin. ' +
+        'Entra com o email da dona da app.',
+    );
+  }
+
+  return ok({ permissoes: data[0].permissoes });
 });
