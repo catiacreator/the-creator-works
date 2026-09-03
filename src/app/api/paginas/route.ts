@@ -28,15 +28,18 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
   };
   if (!caminho) throw new Error('Falta dizer que página.');
 
-  const { error } = await supabase.from('paginas').upsert(
-    {
-      caminho,
-      escondida: Boolean(escondida),
-      manutencao: Boolean(manutencao),
-      atualizado: new Date().toISOString(),
-    },
-    { onConflict: 'caminho' },
-  );
+  const { data, error } = await supabase
+    .from('paginas')
+    .upsert(
+      {
+        caminho,
+        escondida: Boolean(escondida),
+        manutencao: Boolean(manutencao),
+        atualizado: new Date().toISOString(),
+      },
+      { onConflict: 'caminho' },
+    )
+    .select('caminho');
 
   if (error) {
     throw new Error(
@@ -45,5 +48,13 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
         : error.message,
     );
   }
+  // uma escrita recusada pelas políticas não dá erro: não altera nada. Sem
+  // esta verificação, ficava a parecer guardada.
+  if (!data?.length) {
+    throw new Error(
+      'A base de dados não deixou guardar: esta conta não é reconhecida como admin.',
+    );
+  }
+
   return ok();
 });
