@@ -8,7 +8,9 @@ import {
   Crown,
   Eye,
   EyeOff,
+  Copy,
   Flame,
+  KeyRound,
   LayoutList,
   Library,
   PenTool,
@@ -32,13 +34,25 @@ import {
   NOMES_DAS_PERMISSOES,
   PAPEIS,
   TODAS_AS_PERMISSOES,
+  papelPorId,
   type Matriz,
   type Membro,
   type Papel,
   type Permissao,
 } from '@/lib/papeis';
 
-type Aba = 'pessoas' | 'papeis' | 'paginas';
+type Aba = 'pessoas' | 'papeis' | 'paginas' | 'codigos';
+
+interface Codigo {
+  codigo: string;
+  papel: Papel;
+  nota: string | null;
+  usos: number;
+  usos_max: number;
+  expira: string | null;
+  ativo: boolean;
+  created_at: string;
+}
 
 /** Os mesmos ícones do menu — para se reconhecer a página de relance. */
 const ICONES: Record<Permissao, LucideIcon> = {
@@ -85,6 +99,9 @@ export default function AdminPage() {
   const [matriz, setMatriz] = useState<Matriz>(MATRIZ_PADRAO);
   const [paginas, setPaginas] = useState<EstadoDasPaginas>({});
   const [aba, setAba] = useState<Aba>('pessoas');
+  const [codigos, setCodigos] = useState<Codigo[] | null>(null);
+  const [novo, setNovo] = useState<{ papel: Papel; nota: string; usos_max: number } | null>(null);
+  const [copiado, setCopiado] = useState<string | null>(null);
 
   async function carregar() {
     const d = await fetch('/api/membros').then((r) => r.json());
@@ -99,6 +116,9 @@ export default function AdminPage() {
       .then((x) => (x.paginas as EstadoDasPaginas) ?? {})
       .catch(() => ({}) as EstadoDasPaginas);
     setPaginas(p);
+
+    const c = await fetch('/api/codigos').then((r) => r.json());
+    if (!c.error) setCodigos(c.codigos ?? []);
   }
 
   useEffect(() => {
@@ -228,6 +248,7 @@ export default function AdminPage() {
           { id: 'pessoas', label: 'Pessoas', icone: Users },
           { id: 'papeis', label: 'Papéis e permissões', icone: ShieldCheck },
           { id: 'paginas', label: 'Páginas', icone: LayoutList },
+          { id: 'codigos', label: 'Códigos', icone: KeyRound },
         ]}
       />
 
@@ -575,6 +596,196 @@ export default function AdminPage() {
             })}
           </div>
         </>
+      )}
+
+      {aba === 'codigos' && (
+        <>
+          <Card className="mb-4">
+            <h2 className="mb-1 font-medium">Como se entra nesta app</h2>
+            <p className="text-sm leading-relaxed text-muted">
+              Não há registo aberto. Quem compra recebe um <strong className="text-ink">código</strong>{' '}
+              teu e vai a <strong className="text-ink">thecreatorworks.com/acesso</strong>: escreve
+              o código, escolhe o email e a palavra-passe, e a conta nasce com o papel que puseste
+              no código. Um código pode servir uma pessoa ou muitas, e pode ter validade.
+            </p>
+          </Card>
+
+          {podeGerir && (
+            <button
+              className="btn-primary mb-4"
+              onClick={() => setNovo({ papel: 'aluno', nota: '', usos_max: 1 })}
+            >
+              <Plus className="h-4 w-4" />
+              Criar código
+            </button>
+          )}
+
+          {!codigos ? (
+            <Spinner />
+          ) : !codigos.length ? (
+            <Empty>Ainda não há códigos. Cria o primeiro antes da próxima venda.</Empty>
+          ) : (
+            <div className="space-y-3">
+              {codigos.map((c) => {
+                const gasto = c.usos >= c.usos_max;
+                const fora = !!c.expira && c.expira < new Date().toISOString().slice(0, 10);
+                return (
+                  <Card key={c.codigo}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[15px] font-semibold tracking-wider">
+                            {c.codigo}
+                          </span>
+                          <span className="rounded-full bg-creme px-2 py-0.5 text-[11px] text-muted">
+                            {papelPorId(c.papel).nome}
+                          </span>
+                          {!c.ativo && (
+                            <span className="rounded-full bg-creme px-2 py-0.5 text-[11px] text-muted">
+                              desligado
+                            </span>
+                          )}
+                          {gasto && (
+                            <span className="rounded-full bg-creme px-2 py-0.5 text-[11px] text-muted">
+                              gasto
+                            </span>
+                          )}
+                          {fora && (
+                            <span className="rounded-full bg-creme px-2 py-0.5 text-[11px] text-muted">
+                              fora de prazo
+                            </span>
+                          )}
+                        </div>
+                        {c.nota && <p className="mt-0.5 text-sm text-muted">{c.nota}</p>}
+                        <p className="mt-1 text-xs text-muted">
+                          {c.usos} de {c.usos_max} usado{c.usos_max === 1 ? '' : 's'}
+                          {c.expira && ` · válido até ${c.expira}`}
+                          <span className="mx-2">·</span>
+                          criado em {data(c.created_at)}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          title="Copiar o código"
+                          className="rounded-lg p-2 text-muted transition hover:text-ink"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(c.codigo);
+                            setCopiado(c.codigo);
+                            setTimeout(() => setCopiado(null), 1500);
+                          }}
+                        >
+                          {copiado === c.codigo ? (
+                            <Check className="h-4 w-4 text-rosa" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        {podeGerir && (
+                          <>
+                            <button
+                              title={c.ativo ? 'Desligar' : 'Voltar a ligar'}
+                              className="rounded-lg p-2 text-muted transition hover:text-ink"
+                              onClick={() =>
+                                pedir('/api/codigos', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ codigo: c.codigo, ativo: !c.ativo }),
+                                })
+                              }
+                            >
+                              {c.ativo ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                            </button>
+                            <button
+                              title="Apagar"
+                              className="rounded-lg p-2 text-muted transition hover:text-rosa"
+                              onClick={() =>
+                                pedir(`/api/codigos?codigo=${encodeURIComponent(c.codigo)}`, {
+                                  method: 'DELETE',
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {novo && (
+        <Dialogo
+          titulo="Criar código"
+          texto="O código nasce aqui e sai daqui para quem comprou. Vais poder copiá-lo a seguir."
+          confirmar="Criar"
+          ocupado={ocupado}
+          aoFechar={() => setNovo(null)}
+          aoConfirmar={async () => {
+            const feito = await pedir('/api/codigos', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(novo),
+            });
+            if (feito) setNovo(null);
+          }}
+        >
+          <div className="mb-4 space-y-3">
+            <div>
+              <label className="label">Para quem é (só tu vês)</label>
+              <input
+                className="input"
+                autoFocus
+                value={novo.nota}
+                onChange={(e) => setNovo({ ...novo, nota: e.target.value })}
+                placeholder="Ex.: Mentoria de setembro · Ana"
+              />
+            </div>
+            <div>
+              <label className="label">Quantas pessoas pode abrir</label>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                className="input"
+                value={novo.usos_max}
+                onChange={(e) => setNovo({ ...novo, usos_max: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="label">Com que papel entram</label>
+              <div className="grid gap-2">
+                {PAPEIS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setNovo({ ...novo, papel: p.id })}
+                    className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                      novo.papel === p.id
+                        ? 'border-ink bg-superficie shadow-soft'
+                        : 'border-sand hover:border-ink/30'
+                    }`}
+                  >
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-ink/40">
+                      {novo.papel === p.id && <span className="h-2 w-2 rounded-full bg-rosa" />}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold">{p.nome}</span>
+                      <span className="block text-xs leading-relaxed text-muted">
+                        {p.descricao}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Dialogo>
       )}
 
       {/* ── convidar ───────────────────────────────── */}

@@ -138,6 +138,7 @@ export const GUIAS: Record<string, Guia> = {
       'Pessoas: convida pelo email — o lugar fica feito antes de a pessoa se registar.',
       'Papéis: carrega nos quadrados para dar ou tirar o que cada papel pode fazer.',
       'Páginas: esconde uma página do menu ou põe-na em obras; tu continuas a entrar.',
+      'Códigos: é assim que se entra na app — quem compra recebe um e vai a /acesso.',
     ],
   },
   '/definicoes': {
