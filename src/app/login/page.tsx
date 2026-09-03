@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { RECADO_SEM_ACESSO, podeEntrar } from '@/lib/acesso';
 
 type Modo = 'palavra-passe' | 'link';
 
@@ -49,7 +48,6 @@ export default function LoginPage() {
   /** Entrar com email e palavra-passe. */
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
-    if (!podeEntrar(email)) return setError(RECADO_SEM_ACESSO);
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -69,7 +67,6 @@ export default function LoginPage() {
   /** O link mágico de sempre, para quando a palavra-passe não estiver à mão. */
   async function linkMagico(e: React.FormEvent) {
     e.preventDefault();
-    if (!podeEntrar(email)) return setError(RECADO_SEM_ACESSO);
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -77,8 +74,10 @@ export default function LoginPage() {
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // a app é privada: o link mágico serve para entrar, não para abrir conta
-        shouldCreateUser: false,
+        // quem é convidado pode nunca ter entrado antes: a conta nasce aqui.
+        // Ter conta não é ter acesso — quem decide isso é a lista de membros,
+        // no middleware e no callback.
+        shouldCreateUser: true,
       },
     });
     setBusy(false);
@@ -89,7 +88,6 @@ export default function LoginPage() {
   /** Manda o email de recuperação, que aterra na página de definir palavra-passe. */
   async function recuperar() {
     if (!email) return setError('Escreve o teu email primeiro.');
-    if (!podeEntrar(email)) return setError(RECADO_SEM_ACESSO);
     setBusy(true);
     setError(null);
     const supabase = createClient();

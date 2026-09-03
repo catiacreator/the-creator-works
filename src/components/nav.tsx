@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Ajuda } from './ajuda';
 import { BotaoDeTema } from './tema';
+import { permissaoDaPagina, type Permissao } from '@/lib/papeis';
 import {
   Sparkles,
   Library,
@@ -15,6 +16,7 @@ import {
   Brain,
   Crown,
   Settings,
+  ShieldCheck,
   LogOut,
   PanelLeftClose,
   PanelLeft,
@@ -57,6 +59,7 @@ const GRUPOS: Array<{
   {
     titulo: 'Configurações',
     itens: [
+      { href: '/admin', label: 'Admin', icone: ShieldCheck },
       { href: '/perfil', label: 'Sobre mim', icone: UserRound },
       { href: '/definicoes', label: 'Definições', icone: Settings },
     ],
@@ -72,10 +75,19 @@ interface Conversa {
 export function Nav({
   email,
   bloqueado,
+  permissoes,
+  escondidas,
+  emManutencao,
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
   bloqueado?: boolean;
+  /** o que esta pessoa pode ver: o menu mostra só isso */
+  permissoes?: Permissao[];
+  /** páginas fechadas pela admin — nem aparecem */
+  escondidas?: string[];
+  /** páginas em obras — aparecem, com a etiqueta */
+  emManutencao?: string[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -168,7 +180,15 @@ export function Nav({
 
       {/* ── secções ────────────────────────────────── */}
       <nav className="space-y-4 px-3">
-        {GRUPOS.map((grupo, i) => (
+        {GRUPOS.map((grupo, i) => {
+          // fora do menu o que este papel não pode ver
+          const itens = grupo.itens.filter((l) => {
+            if ((escondidas ?? []).includes(l.href)) return false;
+            const precisa = permissaoDaPagina(l.href);
+            return !precisa || (permissoes ?? []).includes(precisa);
+          });
+          if (!itens.length) return null;
+          return (
           <div key={grupo.titulo ?? i} className="space-y-0.5">
             {grupo.titulo && !fechada && (
               <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -177,7 +197,7 @@ export function Nav({
             )}
             {grupo.titulo && fechada && <div className="mx-3 mb-1 border-t border-sand" />}
 
-            {grupo.itens.map((link) => {
+            {itens.map((link) => {
               const ativo =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
               // no primeiro dia só o Sobre mim está aberto
@@ -212,15 +232,24 @@ export function Nav({
                     strokeWidth={ativo ? 2.2 : 1.8}
                   />
                   {!fechada && link.label}
+                  {!fechada && (emManutencao ?? []).includes(link.href) && (
+                    <span
+                      title="Em manutenção"
+                      className="ml-auto rounded-full bg-manteiga px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink"
+                    >
+                      obras
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* ── as conversas com a Cát.IA ──────────────── */}
-      {!fechada && (
+      {!fechada && (permissoes ?? []).includes('criar') && (
         <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sand px-3 pt-4">
           <div className="mb-2 flex items-center gap-1.5 px-2">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { RECADO_SEM_ACESSO, podeEntrar } from '@/lib/acesso';
+import { RECADO_SEM_ACESSO, acessoDe } from '@/lib/acesso';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // A app é privada: quem não está na lista sai daqui sem sessão.
-      if (!podeEntrar(data.user?.email)) {
+      if (!(await acessoDe(supabase, data.user?.email))) {
         await supabase.auth.signOut();
         return NextResponse.redirect(
           `${origin}/login?erro=${encodeURIComponent(RECADO_SEM_ACESSO)}`,

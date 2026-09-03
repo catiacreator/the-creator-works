@@ -19,7 +19,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
-import { emailsComAcesso, podeEntrar } from '@/lib/acesso';
 
 /**
  * Definições.
@@ -48,6 +47,8 @@ export default function DefinicoesClient() {
   const [novoEmail, setNovoEmail] = useState('');
   const [recadoEmail, setRecadoEmail] = useState<string | null>(null);
   const [erroEmail, setErroEmail] = useState<string | null>(null);
+  /** mudar o email da conta é coisa de admin — a lista de acessos depende dele */
+  const [souAdmin, setSouAdmin] = useState(false);
 
   async function load() {
     const data = await fetch('/api/settings').then((r) => r.json());
@@ -57,11 +58,13 @@ export default function DefinicoesClient() {
   useEffect(() => {
     load();
     setEscuro(document.documentElement.classList.contains('dark'));
-    (async () => {
-      const { createClient } = await import('@/lib/supabase/client');
-      const { data } = await createClient().auth.getUser();
-      setEmail(data.user?.email ?? null);
-    })();
+    fetch('/api/eu')
+      .then((r) => r.json())
+      .then((d) => {
+        setEmail(d.email ?? null);
+        setSouAdmin(d.papel === 'admin');
+      })
+      .catch(() => {});
   }, []);
 
   async function save() {
@@ -100,10 +103,15 @@ export default function DefinicoesClient() {
 
     if (!alvo || !alvo.includes('@')) return setErroEmail('Escreve o email novo.');
     if (alvo === (email ?? '').toLowerCase()) return setErroEmail('Esse já é o teu email.');
-    if (!podeEntrar(alvo)) {
+    // trocar para um email que não está na lista de pessoas era a maneira mais
+    // fácil de ficar fechada de fora — o servidor confirma antes de enviar
+    const check = await fetch(`/api/membros/existe?email=${encodeURIComponent(alvo)}`).then((r) =>
+      r.json(),
+    );
+    if (!check.existe) {
       return setErroEmail(
-        `Este email ainda não tem acesso à app — se trocasses agora, ficavas fechada de fora. ` +
-          `Quem entra é ${emailsComAcesso().join(' e ')}. Diz-me e eu acrescento-o primeiro.`,
+        'Este email ainda não tem acesso à app — se trocasses agora, ficavas fechada de fora. ' +
+          'Convida-o primeiro no Admin, com o papel de admin.',
       );
     }
 
@@ -225,6 +233,15 @@ export default function DefinicoesClient() {
           </p>
         </Card>
 
+        {!souAdmin ? (
+          <Card className="mb-4">
+            <h2 className="mb-1 font-medium">Mudar de email</h2>
+            <p className="text-sm leading-relaxed text-muted">
+              O email é a chave que te dá acesso a esta app, e quem gere essas chaves é a admin.
+              Se precisares de mudar o teu, fala com ela.
+            </p>
+          </Card>
+        ) : (
         <Card className="mb-4">
           <h2 className="mb-1 font-medium">Mudar de email</h2>
           <p className="mb-3 text-sm text-muted">
@@ -254,6 +271,7 @@ export default function DefinicoesClient() {
             </>
           )}
         </Card>
+        )}
         <Card>
           <h2 className="mb-1 font-medium">Palavra-passe</h2>
           <p className="mb-3 text-sm text-muted">

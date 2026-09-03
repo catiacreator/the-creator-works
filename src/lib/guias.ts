@@ -132,6 +132,14 @@ export const GUIAS: Record<string, Guia> = {
       'Não tens de responder a tudo de uma vez; guarda sozinho à medida que escreves.',
     ],
   },
+  '/admin': {
+    titulo: 'Como funciona esta página',
+    passos: [
+      'Pessoas: convida pelo email — o lugar fica feito antes de a pessoa se registar.',
+      'Papéis: carrega nos quadrados para dar ou tirar o que cada papel pode fazer.',
+      'Páginas: esconde uma página do menu ou põe-na em obras; tu continuas a entrar.',
+    ],
+  },
   '/definicoes': {
     titulo: 'Como funciona esta página',
     passos: [

@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseConfigured } from '@/lib/env';
-import { RECADO_SEM_ACESSO, podeEntrar } from '@/lib/acesso';
+import { RECADO_SEM_ACESSO, acessoDe } from '@/lib/acesso';
 
 /** Mantém a sessão do Supabase fresca em cada pedido. */
 export async function middleware(request: NextRequest) {
@@ -48,9 +48,9 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // A app é privada. Sessão de alguém que não está na lista fecha-se aqui,
-  // antes de chegar a qualquer página ou API.
-  if (user && !podeEntrar(user.email)) {
+  // A app é privada. Sessão de quem não tem lugar na tabela `membros`
+  // fecha-se aqui, antes de chegar a qualquer página ou API.
+  if (user && !(await acessoDe(supabase, user.email))) {
     await supabase.auth.signOut();
     const { pathname } = request.nextUrl;
     if (pathname.startsWith('/api/')) {

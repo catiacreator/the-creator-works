@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Target, Users, Compass, Trophy, Save, Sparkles, X } from 'lucide-react';
+import { Target, Users, Compass, Trophy, Eye, Save, Sparkles, X } from 'lucide-react';
 import { Card, PageHeader, Spinner } from '@/components/ui';
 import { TextoRico } from '@/components/texto-rico';
 import { Wizard } from '@/components/wizard';
@@ -31,6 +31,8 @@ export default function PerfilPage() {
   const [briefing, setBriefing] = useState<Briefing>({});
   /** primeira vez: entrou agora e ainda não respondeu ao essencial */
   const [primeiraVez, setPrimeiraVez] = useState(false);
+  /** a admin a espreitar o primeiro dia — o briefing dela está feito */
+  const [aEspreitar, setAEspreitar] = useState(false);
   const [aba, setAba] = useState<IdSeparador>('nicho');
   const [busy, setBusy] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -43,8 +45,12 @@ export default function PerfilPage() {
       .then((r) => r.json())
       .then((d) => {
         const b = (d.briefing ?? {}) as Briefing;
-        setBriefing(b);
-        setPrimeiraVez(emFalta(b).length > 0);
+        const espreita = document.cookie.includes('primeiro-dia=1');
+        setAEspreitar(espreita);
+        // a espreitadela mostra o ecrã em branco, como ele aparece a quem
+        // chega agora — e não grava nada, para não estragar o dela
+        setBriefing(espreita ? {} : b);
+        setPrimeiraVez(espreita || emFalta(b).length > 0);
       });
   }, []);
 
@@ -58,6 +64,7 @@ export default function PerfilPage() {
    * altura o estado do ecrã ainda é o anterior.
    */
   async function guardarCom(valores: Briefing) {
+    if (aEspreitar) return; // a espreitadela não escreve na conta dela
     setBusy(true);
     setError(null);
     const d = await fetch('/api/perfil', {
@@ -77,7 +84,19 @@ export default function PerfilPage() {
    * O botão de quem está a entrar pela primeira vez: só abre a app depois de
    * responder ao essencial, e diz o que falta em vez de se limitar a recusar.
    */
+  /** sair da espreitadela ao primeiro dia */
+  async function sairDaEspreitadela() {
+    await fetch('/api/ver-como', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ primeiroDia: false }),
+    });
+    router.push('/admin');
+    router.refresh();
+  }
+
   async function guardarEComecar() {
+    if (aEspreitar) return sairDaEspreitadela();
     if (falta.length) {
       setAba(SEPARADORES.find((s) => s.campos.some((c) => c.id === falta[0].id))!.id);
       setError(
@@ -126,6 +145,20 @@ export default function PerfilPage() {
       />
 
       <Wizard destaque="perfil" />
+
+      {aEspreitar && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/20 bg-creme px-5 py-3">
+          <Eye className="h-4 w-4 shrink-0" />
+          <p className="min-w-0 flex-1 text-sm">
+            Estás a ver o <strong>primeiro dia</strong> de quem acabou de se registar — ecrã em
+            branco, menu fechado. Nada do que escreveres aqui é guardado, e o teu briefing está
+            intacto.
+          </p>
+          <button className="btn-ghost shrink-0 px-3 py-1.5 text-xs" onClick={sairDaEspreitadela}>
+            Sair
+          </button>
+        </div>
+      )}
 
       {primeiraVez && (
         <div className="mb-5 rounded-2xl border border-rosa/30 bg-rosaSuave/40 px-5 py-4">
@@ -287,7 +320,8 @@ export default function PerfilPage() {
 
         {primeiraVez ? (
           <button className="btn-primary ml-auto" onClick={guardarEComecar} disabled={busy}>
-            <Save className="h-4 w-4" /> {busy ? 'A guardar…' : 'Guardar e começar'}
+            <Save className="h-4 w-4" />{' '}
+            {busy ? 'A guardar…' : aEspreitar ? 'Sair da espreitadela' : 'Guardar e começar'}
           </button>
         ) : (
           <button className="btn-escuro ml-auto" onClick={guardar} disabled={busy}>
