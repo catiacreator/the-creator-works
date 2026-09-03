@@ -8,11 +8,19 @@
 
 export type Papel = 'admin' | 'suporte' | 'aluno';
 
+/**
+ * Uma permissão por página do menu — para ela poder decidir página a página,
+ * e não em blocos. A ordem é a do menu.
+ */
 export type Permissao =
-  | 'criar' //         criar conteúdo: Criar, Cát.IA, carrosséis, editor, biblioteca
-  | 'memoria' //       a memória da Cát.IA
-  | 'ultima-hora' //   a pesquisa de notícias
-  | 'analise' //       análise de perfis de Instagram
+  | 'criar' //         Criar
+  | 'carrosseis' //    Criar carrosséis
+  | 'editor' //        Editor
+  | 'biblioteca' //    Biblioteca (templates, fotografias, material, carrosséis feitos)
+  | 'chat' //          Agente Cát.IA
+  | 'memoria' //       Memória da Cát.IA
+  | 'ultima-hora' //   Última hora
+  | 'analise' //       Análise de perfil
   | 'ver-pessoas' //   ver quem tem acesso
   | 'gerir-pessoas'; // convidar, mudar papéis, tirar acesso
 
@@ -39,25 +47,50 @@ export const PAPEIS: Array<{
     id: 'admin',
     nome: 'Admin',
     descricao: 'A dona da app. Faz tudo, e decide quem entra.',
-    permissoes: ['criar', 'memoria', 'ultima-hora', 'analise', 'ver-pessoas', 'gerir-pessoas'],
+    permissoes: [
+      'criar',
+      'carrosseis',
+      'editor',
+      'biblioteca',
+      'chat',
+      'memoria',
+      'ultima-hora',
+      'analise',
+      'ver-pessoas',
+      'gerir-pessoas',
+    ],
   },
   {
     id: 'suporte',
     nome: 'Suporte',
     descricao: 'Ajuda quem usa a app. Vê tudo o que os alunos têm e a lista de pessoas, mas não mexe em papéis.',
-    permissoes: ['criar', 'memoria', 'ultima-hora', 'analise', 'ver-pessoas'],
+    permissoes: [
+      'criar',
+      'carrosseis',
+      'editor',
+      'biblioteca',
+      'chat',
+      'memoria',
+      'ultima-hora',
+      'analise',
+      'ver-pessoas',
+    ],
   },
   {
     id: 'aluno',
     nome: 'Aluno',
     descricao: 'Cria conteúdo e ensina a Cát.IA a escrever como ele. Não vê a Última hora, a Análise de perfil nem quem mais tem acesso.',
-    permissoes: ['criar', 'memoria'],
+    permissoes: ['criar', 'carrosseis', 'editor', 'biblioteca', 'chat', 'memoria'],
   },
 ];
 
 /** O nome de cada permissão, para se perceber na página de Admin. */
 export const NOMES_DAS_PERMISSOES: Record<Permissao, string> = {
-  criar: 'Criar conteúdo',
+  criar: 'Criar',
+  carrosseis: 'Criar carrosséis',
+  editor: 'Editor',
+  biblioteca: 'Biblioteca',
+  chat: 'Agente Cát.IA',
   memoria: 'Memória da Cát.IA',
   'ultima-hora': 'Última hora',
   analise: 'Análise de perfil',
@@ -110,16 +143,18 @@ export function pode(
  * Definições e a palavra-passe são de toda a gente.
  */
 const PORTAS: Array<[string, Permissao]> = [
-  ['/criar-carrosseis', 'criar'],
+  // a ordem importa: /criar-carrosseis tem de ser visto antes de /criar
+  ['/criar-carrosseis', 'carrosseis'],
   ['/criar', 'criar'],
-  ['/chat', 'criar'],
-  ['/editor', 'criar'],
-  ['/carrosseis', 'criar'],
-  ['/biblioteca', 'criar'],
-  ['/templates', 'criar'],
-  ['/fotografias', 'criar'],
-  ['/material', 'criar'],
-  ['/painel', 'criar'],
+  ['/editor', 'editor'],
+  // o que a Biblioteca abre por dentro anda com ela
+  ['/biblioteca', 'biblioteca'],
+  ['/templates', 'biblioteca'],
+  ['/fotografias', 'biblioteca'],
+  ['/material', 'biblioteca'],
+  ['/carrosseis', 'biblioteca'],
+  ['/painel', 'biblioteca'],
+  ['/chat', 'chat'],
   ['/memoria', 'memoria'],
   ['/ultima-hora', 'ultima-hora'],
   ['/analise', 'analise'],
@@ -136,7 +171,6 @@ export function paginaInicial(
   papel: Papel | null | undefined,
   matriz: Matriz = MATRIZ_PADRAO,
 ): string {
-  if (pode(papel, 'criar', matriz)) return '/criar';
-  if (pode(papel, 'ver-pessoas', matriz)) return '/admin';
-  return '/perfil';
+  const primeira = PORTAS.find(([, permissao]) => pode(papel, permissao, matriz));
+  return primeira ? primeira[0] : '/perfil';
 }
