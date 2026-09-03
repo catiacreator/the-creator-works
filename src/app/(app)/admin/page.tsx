@@ -3,17 +3,26 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Brain,
   Check,
+  Crown,
   Eye,
   EyeOff,
+  Flame,
   LayoutList,
+  Library,
+  PenTool,
   Plus,
+  Radio,
   ShieldCheck,
+  Sparkles,
   Trash2,
   UserPlus,
+  UserSearch,
   Users,
   Wrench,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
@@ -30,6 +39,20 @@ import {
 } from '@/lib/papeis';
 
 type Aba = 'pessoas' | 'papeis' | 'paginas';
+
+/** Os mesmos ícones do menu — para se reconhecer a página de relance. */
+const ICONES: Record<Permissao, LucideIcon> = {
+  criar: Sparkles,
+  carrosseis: Flame,
+  editor: PenTool,
+  biblioteca: Library,
+  chat: Crown,
+  memoria: Brain,
+  'ultima-hora': Radio,
+  analise: UserSearch,
+  'ver-pessoas': Users,
+  'gerir-pessoas': UserPlus,
+};
 
 const data = (iso: string | null) =>
   iso
@@ -374,9 +397,16 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {TODAS_AS_PERMISSOES.map((perm) => (
+              {TODAS_AS_PERMISSOES.map((perm) => {
+                const Icone = ICONES[perm];
+                return (
                 <tr key={perm} className="border-b border-sand/60 last:border-0">
-                  <td className="px-1 py-2">{NOMES_DAS_PERMISSOES[perm]}</td>
+                  <td className="px-1 py-2">
+                    <span className="flex items-center gap-2.5">
+                      <Icone className="h-4 w-4 shrink-0 text-muted" strokeWidth={1.8} />
+                      {NOMES_DAS_PERMISSOES[perm]}
+                    </span>
+                  </td>
                   {PAPEIS.map((p) => {
                     const tem = (matriz[p.id] ?? []).includes(perm);
                     const fixa = INTOCAVEIS[p.id].includes(perm);
@@ -412,7 +442,8 @@ export default function AdminPage() {
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
