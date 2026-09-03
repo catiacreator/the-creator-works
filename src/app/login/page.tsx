@@ -3,13 +3,10 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-type Modo = 'palavra-passe' | 'link';
-
 export default function LoginPage() {
-  const [modo, setModo] = useState<Modo>('palavra-passe');
   const [email, setEmail] = useState('');
   const [palavra, setPalavra] = useState('');
-  const [enviado, setEnviado] = useState<'link' | 'recuperar' | null>(null);
+  const [enviado, setEnviado] = useState<'recuperar' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recado, setRecado] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,27 +62,6 @@ export default function LoginPage() {
       return;
     }
     window.location.href = '/';
-  }
-
-  /** O link mágico de sempre, para quando a palavra-passe não estiver à mão. */
-  async function linkMagico(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // quem é convidado pode nunca ter entrado antes: a conta nasce aqui.
-        // Ter conta não é ter acesso — quem decide isso é a lista de membros,
-        // no middleware e no callback.
-        shouldCreateUser: true,
-      },
-    });
-    setBusy(false);
-    if (error) setError(error.message);
-    else setEnviado('link');
   }
 
   /** Manda o email de recuperação, que aterra na página de definir palavra-passe. */
@@ -146,12 +122,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {enviado === 'link' && (
-          <div className="card text-sm">
-            Enviámos um link para <strong>{email}</strong>. Abre-o neste dispositivo para entrar.
-          </div>
-        )}
-
         {enviado === 'recuperar' && (
           <div className="card text-sm">
             Enviámos um email para <strong>{email}</strong>. O link abre a página onde escolhes a
@@ -160,10 +130,7 @@ export default function LoginPage() {
         )}
 
         {!enviado && (
-          <form
-            onSubmit={modo === 'palavra-passe' ? entrar : linkMagico}
-            className="card space-y-4"
-          >
+          <form onSubmit={entrar} className="card space-y-4">
             <div>
               <label className="label" htmlFor="email">
                 E-mail
@@ -180,54 +147,36 @@ export default function LoginPage() {
               />
             </div>
 
-            {modo === 'palavra-passe' && (
-              <div>
-                <label className="label" htmlFor="palavra">
-                  Palavra-passe
-                </label>
-                <input
-                  id="palavra"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  className="input"
-                  value={palavra}
-                  onChange={(e) => setPalavra(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-            )}
+            <div>
+              <label className="label" htmlFor="palavra">
+                Palavra-passe
+              </label>
+              <input
+                id="palavra"
+                type="password"
+                required
+                autoComplete="current-password"
+                className="input"
+                value={palavra}
+                onChange={(e) => setPalavra(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
 
             {error && <p className="text-sm text-rose-700">{error}</p>}
 
             <button className="btn-primary w-full" disabled={busy}>
-              {busy
-                ? 'Um momento…'
-                : modo === 'palavra-passe'
-                  ? 'Entrar'
-                  : 'Enviar link mágico'}
+              {busy ? 'Um momento…' : 'Entrar'}
             </button>
 
-            <div className="flex items-center justify-between text-xs text-muted">
+            <div className="text-center text-xs text-muted">
               <button
                 type="button"
                 className="underline-offset-2 hover:text-ink hover:underline"
-                onClick={() => {
-                  setError(null);
-                  setModo(modo === 'palavra-passe' ? 'link' : 'palavra-passe');
-                }}
+                onClick={recuperar}
               >
-                {modo === 'palavra-passe' ? 'Entrar com link mágico' : 'Entrar com palavra-passe'}
+                Esqueci-me da palavra-passe
               </button>
-              {modo === 'palavra-passe' && (
-                <button
-                  type="button"
-                  className="underline-offset-2 hover:text-ink hover:underline"
-                  onClick={recuperar}
-                >
-                  Esqueci-me
-                </button>
-              )}
             </div>
           </form>
         )}

@@ -146,6 +146,7 @@ export const GUIAS: Record<string, Guia> = {
       'Cada linha abre um assunto: a conta, o briefing, a voz, a memória, o aspeto.',
       'A voz da marca entra em tudo o que a app escreve por ti.',
       'Mudar de email pede confirmação no endereço novo — até lá entras com o de sempre.',
+      'Entra-se com email e palavra-passe, ou com o Google.',
     ],
   },
 };

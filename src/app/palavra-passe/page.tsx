@@ -75,8 +75,8 @@ export default function PalavraPassePage() {
         ) : !email ? (
           <div className="card space-y-3 text-sm">
             <p>
-              Esta página precisa de sessão aberta. Entra primeiro — com o link mágico ou com o
-              Google — e volta aqui.
+              Esta página precisa de sessão aberta. Entra primeiro — com a tua palavra-passe ou
+              com o Google — e volta aqui. Se recebeste um convite, abre o link do email.
             </p>
             <Link href="/login" className="btn-primary w-full">
               Ir para o login
