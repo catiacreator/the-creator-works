@@ -34,6 +34,7 @@
     "archiver": "^7.0.1",
     "clsx": "^2.1.1",
     "html-to-image": "^1.11.13",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.35.0",
     "mammoth": "^1.8.0",
     "nanoid": "^6.0.1",
