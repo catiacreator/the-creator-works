@@ -21,13 +21,27 @@ export function kindFromMime(mime: string, filename = ''): SourceKind {
   return 'txt';
 }
 
+/**
+ * O PDF, com o texto e as propriedades do ficheiro.
+ * As propriedades interessam ao Documento Mestre: é lá que ele guarda o
+ * briefing, sem sujar as páginas.
+ */
+export async function lerPdf(
+  buffer: Buffer,
+): Promise<{ text: string; info?: Record<string, unknown> }> {
+  // import dinâmico: pdf-parse é CJS e lê o disco no import de topo
+  const mod = await import('pdf-parse');
+  const pdfParse = (
+    mod as unknown as {
+      default: (b: Buffer) => Promise<{ text: string; info?: Record<string, unknown> }>;
+    }
+  ).default;
+  return pdfParse(buffer);
+}
+
 export async function extractText(buffer: Buffer, kind: SourceKind): Promise<string> {
   if (kind === 'pdf') {
-    // import dinâmico: pdf-parse é CJS e lê o disco no import de topo
-    const mod = await import('pdf-parse');
-    const pdfParse = (mod as unknown as { default: (b: Buffer) => Promise<{ text: string }> })
-      .default;
-    const data = await pdfParse(buffer);
+    const data = await lerPdf(buffer);
     return clean(data.text);
   }
 
