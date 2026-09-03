@@ -100,6 +100,14 @@ export const GUIAS: Record<string, Guia> = {
       'Quando escrever um carrossel, aparece o botão para o abrir no editor.',
     ],
   },
+  '/memoria': {
+    titulo: 'Como funciona esta página',
+    passos: [
+      'As regras são ordens: passam à frente do método e de tudo o resto.',
+      'As campanhas dizem-lhe o que andas a vender; as histórias dão-lhe o que contar.',
+      'Tudo o que está aqui viaja com cada pedido — no chat e nos carrosséis.',
+    ],
+  },
   '/ultima-hora': {
     titulo: 'Como funciona esta página',
     passos: [
@@ -124,11 +132,21 @@ export const GUIAS: Record<string, Guia> = {
       'Não tens de responder a tudo de uma vez; guarda sozinho à medida que escreves.',
     ],
   },
+  '/admin': {
+    titulo: 'Como funciona esta página',
+    passos: [
+      'Pessoas: convida pelo email — o lugar fica feito antes de a pessoa se registar.',
+      'Papéis: carrega nos quadrados para dar ou tirar o que cada papel pode fazer.',
+      'Páginas: esconde uma página do menu ou põe-na em obras; tu continuas a entrar.',
+    ],
+  },
   '/definicoes': {
     titulo: 'Como funciona esta página',
     passos: [
-      'A voz da marca é como queres que a app escreva por ti.',
-      'Entra em tudo: carrosséis, roteiros e respostas da Cát.IA.',
+      'Cada linha abre um assunto: a conta, o briefing, a voz, a memória, o aspeto.',
+      'A voz da marca entra em tudo o que a app escreve por ti.',
+      'Mudar de email pede confirmação no endereço novo — até lá entras com o de sempre.',
+      'Entra-se com email e palavra-passe, ou com o Google.',
     ],
   },
 };

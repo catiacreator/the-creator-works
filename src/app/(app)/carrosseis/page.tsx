@@ -78,7 +78,7 @@ export default function CarrosseisPage() {
 
       {/* ── ações em lote ─────────────────────────────── */}
       {marcados.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-rosa/30 bg-white px-4 py-3 text-sm">
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-rosa/30 bg-superficie px-4 py-3 text-sm">
           <strong>{marcados.length} escolhidos</strong>
           <button
             className="inline-flex items-center gap-1.5 text-xs underline hover:text-rosa"
@@ -104,7 +104,7 @@ export default function CarrosseisPage() {
       )}
 
       {carousels.length ? (
-        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-white">
+        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-superficie">
           {carousels.map((c) => (
             <div
               key={c.id}

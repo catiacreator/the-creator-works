@@ -177,7 +177,7 @@ export const FORMATOS_REELS: Opcao[] = [
       'Segue a estrutura base: [GANCHO] → [IDENTIFICAÇÃO] → [CONTEÚDO] → [CTA]. Se ela trouxer um Reels de referência, adapta essa estrutura ao nicho dela em vez de inventar outra.',
   },
 
-  // ── o catálogo dos 20 formatos ────────────────────────────────
+  // ── o catálogo dos formatos, por famílias ─────────────────────
   // Cada ficha traz a estrutura com tempos, dois ganchos-modelo e o erro que
   // costuma matar aquele formato. É o que a Cát.IA recebe como instrução.
   {
@@ -219,6 +219,14 @@ export const FORMATOS_REELS: Opcao[] = [
     familia: 'A',
     comoSeEscreve:
       'Ligação emocional: esquecem-se listas, lembram-se histórias. Normalmente um erro dela que custou dinheiro, tempo ou orgulho. 0–4s entra a meio da tensão, não pelo princípio cronológico. 4–12s o contexto mínimo para a história fazer sentido. 12–25s a viragem: o que correu mal e porquê. 25–35s a lição transferível. Ganchos: "Cobrei 200 euros por um trabalho que valia 2000. A conta que fiz mal:" · "O maior erro da minha carreira aconteceu num sábado às 11 da noite." O erro que mata: história sem lição, ou lição colada à força no fim.',
+  },
+  {
+    id: 'oi-pessoa',
+    nome: 'Oi, pessoa',
+    curto: 'A voz off pergunta, quem está à frente responde',
+    familia: 'A',
+    comoSeEscreve:
+      'Serve para ensinar sem parecer aula: a pergunta vem de fora e ela só responde — é conversa, não discurso. Quem filma (ou a voz gravada depois) chama pelo nome e pergunta; ela responde a olhar para quem pergunta, nunca para a lente. Escreve as falas identificadas: [VOZ OFF] e [ELA]. 0–2s a chamada, curta, com a imagem já a andar: [VOZ OFF] «Óh Cátia.» [ELA] «Oi.» 2–5s a pergunta, dita com as palavras de quem a segue e não com jargão — menos de dez palavras. 5–22s a resposta, uma ideia só, com um exemplo concreto; a meio entra a segunda pergunta a relançar («e se não der?», «mas isso não dá muito trabalho?»). 22–32s a última pergunta é o comando: [VOZ OFF] «e quem quiser isso faz o quê?» Ganchos: [VOZ OFF] «Óh Cátia, como é que eu escrevo uma legenda que vende?» · [VOZ OFF] «Oi. Posso fazer uma pergunta parva?» — [ELA] «Podes. E é a que toda a gente tem.» O erro que mata: a voz off a fazer discurso em vez de perguntar. Se a pergunta passa de uma linha, deixa de ser conversa e volta a ser aula.',
   },
   {
     id: 'tutorial',

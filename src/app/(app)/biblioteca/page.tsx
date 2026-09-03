@@ -73,7 +73,7 @@ export default function BibliotecaPage() {
           <Link
             key={c.href}
             href={c.href}
-            className="group flex flex-col rounded-[1.25rem] border border-sand bg-white p-6 transition hover:border-ink/40 hover:shadow-soft"
+            className="group flex flex-col rounded-[1.25rem] border border-sand bg-superficie p-6 transition hover:border-ink/40 hover:shadow-soft"
           >
             <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-creme text-ink transition group-hover:bg-ink group-hover:text-white">
               <c.icone className="h-5 w-5" strokeWidth={1.8} />

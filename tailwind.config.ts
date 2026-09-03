@@ -8,19 +8,23 @@ import type { Config } from 'tailwindcss';
  *  manteiga  — acento, só em etiquetas de estado
  */
 const config: Config = {
+  darkMode: 'class',
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: '#141010',        // preto quente
-        carvao: '#211B1A',     // preto mais claro, para superfícies
-        paper: '#FFFFFF',      // fundo — branco
-        manteiga: '#F7E3A0',   // amarelo manteiga
-        creme: '#F6F4F1',      // superfície suave, para hover e faixas
-        sand: '#E8E4DE',       // borda
-        rosa: '#EE4E8B',       // rosa principal
-        rosaSuave: '#FBDAE7',  // rosa de fundo
-        muted: '#8A7C63',
+        // Estas seis leem variáveis CSS e trocam de valor no modo escuro
+        // (ver globals.css). O rosa e a manteiga não trocam: são a marca.
+        ink: 'rgb(var(--ink) / <alpha-value>)',            // texto e superfícies invertidas
+        carvao: 'rgb(var(--carvao) / <alpha-value>)',      // o ink ao passar o rato
+        paper: 'rgb(var(--paper) / <alpha-value>)',        // fundo da página
+        superficie: 'rgb(var(--superficie) / <alpha-value>)', // cartões, caixas, campos
+        creme: 'rgb(var(--creme) / <alpha-value>)',        // faixas e hover
+        sand: 'rgb(var(--sand) / <alpha-value>)',          // bordas
+        muted: 'rgb(var(--muted) / <alpha-value>)',        // texto secundário
+        rosaSuave: 'rgb(var(--rosa-suave) / <alpha-value>)',
+        manteiga: '#F7E3A0',
+        rosa: '#EE4E8B',
         // superfícies escuras — o editor visual vive em preto
         surface: '#211B1A',
         line: '#352C2A',

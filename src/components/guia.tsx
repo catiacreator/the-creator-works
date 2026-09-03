@@ -50,7 +50,7 @@ export function GuiaDaPagina() {
             setLido(true);
             setAberto(false);
           }}
-          className="ml-auto rounded-full p-1.5 text-muted transition hover:bg-white hover:text-ink"
+          className="ml-auto rounded-full p-1.5 text-muted transition hover:bg-superficie hover:text-ink"
           title={lido ? 'Fechar' : 'Já percebi'}
         >
           <X className="h-4 w-4" />
@@ -60,7 +60,7 @@ export function GuiaDaPagina() {
       <ol className="space-y-1.5">
         {guia.passos.map((p, i) => (
           <li key={i} className="flex gap-2.5 text-sm leading-relaxed">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-muted">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-superficie text-[11px] font-semibold text-muted">
               {i + 1}
             </span>
             <span>{p}</span>

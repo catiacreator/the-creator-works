@@ -5,14 +5,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Ajuda } from './ajuda';
+import { BotaoDeTema } from './tema';
+import { permissaoDaPagina, type Permissao } from '@/lib/papeis';
 import {
   Sparkles,
   Library,
   UserRound,
   UserSearch,
   PenTool,
+  Brain,
   Crown,
   Settings,
+  ShieldCheck,
   LogOut,
   PanelLeftClose,
   PanelLeft,
@@ -47,6 +51,7 @@ const GRUPOS: Array<{
   {
     itens: [
       { href: '/chat', label: 'Agente Cát.IA', icone: Crown },
+      { href: '/memoria', label: 'Memória da Cát.IA', icone: Brain },
       { href: '/ultima-hora', label: 'Última hora', icone: Radio },
       { href: '/analise', label: 'Análise de perfil', icone: UserSearch },
     ],
@@ -54,6 +59,7 @@ const GRUPOS: Array<{
   {
     titulo: 'Configurações',
     itens: [
+      { href: '/admin', label: 'Admin', icone: ShieldCheck },
       { href: '/perfil', label: 'Sobre mim', icone: UserRound },
       { href: '/definicoes', label: 'Definições', icone: Settings },
     ],
@@ -66,7 +72,23 @@ interface Conversa {
   created_at: string;
 }
 
-export function Nav({ email }: { email?: string | null }) {
+export function Nav({
+  email,
+  bloqueado,
+  permissoes,
+  escondidas,
+  emManutencao,
+}: {
+  email?: string | null;
+  /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
+  bloqueado?: boolean;
+  /** o que esta pessoa pode ver: o menu mostra só isso */
+  permissoes?: Permissao[];
+  /** páginas fechadas pela admin — nem aparecem */
+  escondidas?: string[];
+  /** páginas em obras — aparecem, com a etiqueta */
+  emManutencao?: string[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -118,16 +140,34 @@ export function Nav({ email }: { email?: string | null }) {
   return (
     <aside
       className={clsx(
-        'flex shrink-0 flex-col border-r border-sand bg-white transition-all',
+        'flex shrink-0 flex-col border-r border-sand bg-superficie transition-all',
         fechada ? 'w-[68px]' : 'w-64',
       )}
     >
       {/* ── marca ──────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-5">
         <Link href="/" className="min-w-0 leading-none">
-          <span className="block text-[17px] font-semibold tracking-tight">
-            The Creator<span className="text-rosa">Works</span>
-          </span>
+          {fechada ? (
+            // fechada, só cabe a marca reduzida
+            <span className="block text-[17px] font-semibold tracking-tight">
+              T<span className="text-rosa">W</span>
+            </span>
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/the-creator-works.png"
+                alt="The Creator Works"
+                className="h-[26px] w-auto dark:hidden"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/the-creator-works-escuro.png"
+                alt="The Creator Works"
+                className="hidden h-[26px] w-auto dark:block"
+              />
+            </>
+          )}
         </Link>
         <button
           onClick={alternar}
@@ -140,7 +180,15 @@ export function Nav({ email }: { email?: string | null }) {
 
       {/* ── secções ────────────────────────────────── */}
       <nav className="space-y-4 px-3">
-        {GRUPOS.map((grupo, i) => (
+        {GRUPOS.map((grupo, i) => {
+          // fora do menu o que este papel não pode ver
+          const itens = grupo.itens.filter((l) => {
+            if ((escondidas ?? []).includes(l.href)) return false;
+            const precisa = permissaoDaPagina(l.href);
+            return !precisa || (permissoes ?? []).includes(precisa);
+          });
+          if (!itens.length) return null;
+          return (
           <div key={grupo.titulo ?? i} className="space-y-0.5">
             {grupo.titulo && !fechada && (
               <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -149,36 +197,59 @@ export function Nav({ email }: { email?: string | null }) {
             )}
             {grupo.titulo && fechada && <div className="mx-3 mb-1 border-t border-sand" />}
 
-            {grupo.itens.map((link) => {
+            {itens.map((link) => {
               const ativo =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
+              // no primeiro dia só o Sobre mim está aberto
+              const fechado = bloqueado && link.href !== '/perfil';
               return (
                 <Link
                   key={link.href}
-                  href={link.href}
-                  title={fechada ? link.label : undefined}
+                  href={fechado ? '/perfil' : link.href}
+                  title={
+                    fechado
+                      ? 'Responde ao Sobre mim para abrir'
+                      : fechada
+                        ? link.label
+                        : undefined
+                  }
+                  aria-disabled={fechado || undefined}
                   className={clsx(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition',
-                    ativo
-                      ? 'bg-rosa font-medium text-white shadow-lift'
-                      : 'text-ink/75 hover:bg-creme hover:text-ink',
+                    fechado
+                      ? 'cursor-not-allowed text-muted/50'
+                      : ativo
+                        ? 'bg-rosa font-medium text-white shadow-lift'
+                        : 'text-ink/75 hover:bg-creme hover:text-ink',
                     fechada && 'justify-center px-0',
                   )}
+                  onClick={(e) => {
+                    if (fechado) e.preventDefault();
+                  }}
                 >
                   <link.icone
                     className="h-[18px] w-[18px] shrink-0"
                     strokeWidth={ativo ? 2.2 : 1.8}
                   />
                   {!fechada && link.label}
+                  {!fechada && (emManutencao ?? []).includes(link.href) && (
+                    <span
+                      title="Em manutenção"
+                      className="ml-auto rounded-full bg-manteiga px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-ink"
+                    >
+                      obras
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* ── as conversas com a Cát.IA ──────────────── */}
-      {!fechada && (
+      {!fechada && (permissoes ?? []).includes('criar') && (
         <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sand px-3 pt-4">
           <div className="mb-2 flex items-center gap-1.5 px-2">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -226,6 +297,7 @@ export function Nav({ email }: { email?: string | null }) {
 
       {/* ── ajuda e sair ───────────────────────────── */}
       <div className={clsx('space-y-0.5 border-t border-sand p-3', fechada && 'text-center')}>
+        <BotaoDeTema fechada={fechada} />
         <Ajuda fechada={fechada} />
         <button
           onClick={signOut}

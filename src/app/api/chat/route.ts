@@ -1,5 +1,6 @@
 import { ok, withUser } from '@/lib/api';
 import { getSettings } from '@/lib/pipeline';
+import { contextoDaMemoria } from '@/lib/memoria';
 import { contextoDoMaterial } from '@/lib/material';
 import { conversa } from '@/lib/ia';
 import { signedUrl } from '@/lib/storage';
@@ -82,12 +83,16 @@ export const POST = withUser(async ({ user, supabase, request }) => {
 
   const settings = await getSettings(supabase, user.id);
 
-  // o que ela carregou em Material entra como matéria-prima
-  const material = await contextoDoMaterial(supabase, user.id, message);
+  // o que ela carregou em Material entra como matéria-prima, e o que a
+  // Cát.IA já aprendeu dela entra como lei
+  const [material, memoria] = await Promise.all([
+    contextoDoMaterial(supabase, user.id, message),
+    contextoDaMemoria(supabase, user.id),
+  ]);
 
   const reply = await conversa({
     settings,
-    material,
+    material: [memoria, material].filter(Boolean).join('\n\n') || null,
     historico: (history ?? [])
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),

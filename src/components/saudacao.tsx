@@ -45,7 +45,7 @@ export function Saudacao() {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[30px] font-semibold tracking-tight">{bemVindo}!</span>
-        <span className="flex items-center gap-1.5 rounded-full border border-sand bg-white px-3 py-1.5">
+        <span className="flex items-center gap-1.5 rounded-full border border-sand bg-superficie px-3 py-1.5">
           <input
             className="w-32 bg-transparent text-sm outline-none placeholder:text-muted"
             placeholder="como te chamas?"
