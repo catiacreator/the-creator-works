@@ -31,6 +31,8 @@ export interface Membro {
   papel: Papel;
   ativo: boolean;
   convite_pendente?: boolean;
+  /** dia em que o acesso caduca; nulo quer dizer sem prazo */
+  acesso_ate?: string | null;
   convidado_por: string | null;
   ultimo_acesso: string | null;
   created_at: string;

@@ -18,6 +18,15 @@ export const maxDuration = 60;
 
 const CODIGO = process.env.CODIGO_VENDAS ?? 'HOTMART-AUTO';
 
+/**
+ * Quanto tempo dura o acesso de uma mensalidade paga.
+ *
+ * Trinta e cinco e não trinta: a Hotmart cobra ao dia certo mas o aviso pode
+ * chegar umas horas depois, e um cartão que falha à terça costuma passar à
+ * quinta. Cinco dias de folga evitam fechar a porta a quem afinal pagou.
+ */
+const DIAS = Number(process.env.DIAS_DE_ACESSO ?? 35);
+
 const APROVA = new Set([
   'PURCHASE_APPROVED',
   'PURCHASE_COMPLETE',
@@ -40,6 +49,13 @@ const RETIRA = new Set([
   'PURCHASE_EXPIRED',
   'SUBSCRIPTION_CANCELLATION',
 ]);
+
+/** É uma mensalidade ou uma compra única? Só as mensalidades levam prazo. */
+function ehAssinatura(corpo: Record<string, unknown>): boolean {
+  const dados = (corpo.data ?? corpo) as Record<string, unknown>;
+  const compra = (dados.purchase ?? {}) as Record<string, unknown>;
+  return Boolean(dados.subscription ?? compra.recurrence_number ?? compra.subscription_id);
+}
 
 /** Procura o email do comprador onde a Hotmart o costuma pôr. */
 function emailDoComprador(corpo: Record<string, unknown>): { email?: string; nome?: string } {
@@ -107,6 +123,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Não consegui dar o acesso.' }, { status: 500 });
   }
 
+  // mensalidade: o acesso passa a ter prazo, e cada cobrança empurra-o para
+  // a frente. Compra única fica sem prazo nenhum.
+  let ate: string | null = null;
+  if (ehAssinatura(corpo)) {
+    const { data } = await supabase.rpc('renovar_acesso', {
+      c: CODIGO,
+      e: email,
+      dias: DIAS,
+    });
+    ate = (data as string) ?? null;
+  }
+
   const origem = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
   const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
     email,
@@ -127,6 +155,7 @@ export async function POST(request: Request) {
     acao: 'acesso dado',
     email,
     papel,
+    ate,
     email_enviado: !erroDoEmail,
   });
 }

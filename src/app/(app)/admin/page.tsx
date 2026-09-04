@@ -326,6 +326,16 @@ export default function AdminPage() {
                         suspenso
                       </span>
                     )}
+                    {m.acesso_ate &&
+                      (m.acesso_ate < new Date().toISOString().slice(0, 10) ? (
+                        <span className="rounded-full bg-creme px-2 py-0.5 text-[11px] text-muted">
+                          prazo acabado
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-manteiga px-2 py-0.5 text-[11px] text-ink">
+                          até {data(m.acesso_ate)}
+                        </span>
+                      ))}
                   </div>
                   {m.nome && <p className="break-all text-sm text-muted">{m.email}</p>}
                   <p className="mt-1 text-xs text-muted">
