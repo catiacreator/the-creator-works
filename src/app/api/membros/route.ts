@@ -27,7 +27,7 @@ export const GET = withUser(async ({ user, supabase }) => {
   const { data, error } = await supabase
     .from('membros')
     .select(
-      'id, email, nome, papel, ativo, convite_pendente, convidado_por, ultimo_acesso, created_at',
+      'id, email, nome, papel, ativo, convite_pendente, convidado_por, acesso_ate, ultimo_acesso, created_at',
     )
     .order('created_at', { ascending: true });
 

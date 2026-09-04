@@ -28,6 +28,8 @@ function emailDeConstrucao(email?: string | null) {
 export interface Acesso {
   papel: Papel;
   ativo: boolean;
+  /** dia em que o acesso caduca; nulo quer dizer sem prazo */
+  ate: string | null;
 }
 
 /**
@@ -43,17 +45,30 @@ export async function acessoDe(
   try {
     const { data, error } = await supabase
       .from('membros')
-      .select('papel, ativo')
+      .select('papel, ativo, acesso_ate')
       .ilike('email', email.trim())
       .maybeSingle();
 
     if (error) throw error;
-    if (data) return data.ativo ? { papel: data.papel as Papel, ativo: true } : null;
+
+    if (data) {
+      if (!data.ativo) return null;
+
+      // a validade fecha a porta sozinha: se a Hotmart deixar de avisar que
+      // a mensalidade foi paga, o prazo passa e o acesso acaba aqui, sem
+      // ninguém ter de o ir tirar à mão
+      const ate = data.acesso_ate as string | null;
+      if (ate && ate < new Date().toISOString().slice(0, 10)) return null;
+
+      return { papel: data.papel as Papel, ativo: true, ate };
+    }
   } catch {
     // a tabela ainda não existe (migração por correr) — a dona entra à mesma
   }
 
-  if (eADona(email) || emailDeConstrucao(email)) return { papel: 'admin', ativo: true };
+  if (eADona(email) || emailDeConstrucao(email)) {
+    return { papel: 'admin', ativo: true, ate: null };
+  }
   return null;
 }
 
