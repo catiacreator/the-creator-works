@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { type UserSettings } from './openai';
 import { escreverCarrossel, temIA } from './ia';
+import { contextoDaMemoria } from './memoria';
 import { contextoDoMaterial } from './material';
 import { splitIntoSlides } from './split';
 import { renderSlidePng, toDataUri, defaultSpec } from './render';
@@ -134,7 +135,13 @@ export async function runWrite(supabase: SupabaseClient, job: JobRow) {
           slidesPer,
           topic: carousel.topic ?? (job.payload.topic as string | undefined) ?? null,
           sourceText,
-          extra: (job.payload.extra as string | undefined) ?? null,
+          // as regras dela e o que a Cát.IA aprendeu andam com o pedido
+          extra: [
+            await contextoDaMemoria(supabase, job.user_id),
+            (job.payload.extra as string | undefined) ?? null,
+          ]
+            .filter(Boolean)
+            .join('\n\n') || null,
           // o que ela carregou em Material entra como matéria-prima: os casos
           // dela valem mais do que qualquer coisa que o modelo invente
           material: await contextoDoMaterial(

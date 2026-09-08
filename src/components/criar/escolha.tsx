@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import { PreviewFormato } from '@/components/criar/preview-formato';
 import {
-  ChevronLeft,
-  ChevronRight,
   Info,
   Film,
   LayoutGrid,
@@ -64,7 +63,7 @@ export function Cartao({
   return (
     <div
       onClick={onClick}
-      className={`relative flex cursor-pointer flex-col rounded-[1.25rem] border bg-white p-6 transition ${
+      className={`relative flex cursor-pointer flex-col rounded-[1.25rem] border bg-superficie p-6 transition ${
         largura ?? ''
       } ${escolhido ? 'border-ink shadow-soft' : 'border-sand hover:border-ink/40 hover:shadow-soft'}`}
     >
@@ -106,36 +105,94 @@ export function Cartao({
   );
 }
 
-/** Faixa horizontal com setas — as listas de formatos são longas. */
-export function Faixa({ children }: { children: React.ReactNode }) {
-  const pista = useRef<HTMLDivElement>(null);
-  const deslizar = (d: number) =>
-    pista.current?.scrollBy({ left: d * pista.current.clientWidth * 0.8, behavior: 'smooth' });
+/** A grelha da vitrine dos formatos. */
+export function Vitrine({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{children}</div>;
+}
+
+/** O título de uma família de formatos, dentro da vitrine. */
+export function Familia({ titulo, nota }: { titulo: string; nota?: string }) {
+  return (
+    <div className="mb-4 mt-10 flex items-center gap-3 first:mt-0">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+        {titulo}
+      </span>
+      {nota && <span className="text-xs text-muted/70">{nota}</span>}
+      <span className="h-px flex-1 bg-sand" />
+    </div>
+  );
+}
+
+/**
+ * O card de um formato na vitrine: o desenho do formato em cima — ou o
+ * exemplo real, se já houver um em `public/formatos` — e por baixo o nome,
+ * a linha do que é e o (i) para a instrução completa.
+ */
+export function CartaoFormato({
+  tipo,
+  id,
+  nome,
+  curto,
+  detalhe,
+  imagem,
+  escolhido,
+  onClick,
+}: {
+  tipo: string;
+  id: string;
+  nome: string;
+  curto: string;
+  detalhe?: string;
+  imagem?: string;
+  escolhido?: boolean;
+  onClick: () => void;
+}) {
+  const [aberto, setAberto] = useState(false);
 
   return (
-    <div className="relative px-5">
-      <button
-        onClick={() => deslizar(-1)}
-        className="absolute left-0 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-sand bg-white text-muted shadow-soft transition hover:text-ink"
-        title="Anterior"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
+    <div
+      onClick={onClick}
+      className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-[1.25rem] border bg-superficie p-3 transition ${
+        escolhido
+          ? 'border-ink shadow-soft'
+          : 'border-sand hover:border-ink/40 hover:shadow-soft'
+      }`}
+    >
+      <PreviewFormato tipo={tipo} id={id} imagem={imagem} />
 
-      <div
-        ref={pista}
-        className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {children}
+      <div className="relative px-2 pb-1 pt-3.5">
+        {detalhe && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setAberto(!aberto);
+            }}
+            className={`absolute right-0 top-3 rounded-full p-1 transition ${
+              aberto ? 'text-ink' : 'text-muted hover:text-ink'
+            }`}
+            title="Como se escreve"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        )}
+
+        <span className="block pr-6 text-[15px] font-semibold leading-snug tracking-tight">
+          {nome}
+        </span>
+        <span
+          className={`mt-1 block text-[13px] leading-relaxed text-muted ${
+            aberto ? '' : 'line-clamp-2'
+          }`}
+        >
+          {aberto && detalhe ? detalhe : curto}
+        </span>
       </div>
 
-      <button
-        onClick={() => deslizar(1)}
-        className="absolute right-0 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-sand bg-white text-muted shadow-soft transition hover:text-ink"
-        title="Seguinte"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+      {escolhido && (
+        <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[11px] font-bold text-paper">
+          ✓
+        </span>
+      )}
     </div>
   );
 }

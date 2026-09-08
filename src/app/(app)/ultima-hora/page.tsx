@@ -612,7 +612,7 @@ export default function UltimaHoraPage() {
                   <button
                     onClick={paraOEditor}
                     disabled={!!ocupado}
-                    className="flex flex-col rounded-2xl border border-sand bg-white p-5 text-left transition hover:border-ink/40 hover:shadow-soft disabled:opacity-60"
+                    className="flex flex-col rounded-2xl border border-sand bg-superficie p-5 text-left transition hover:border-ink/40 hover:shadow-soft disabled:opacity-60"
                   >
                     <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-creme text-ink">
                       <PenTool className="h-5 w-5" strokeWidth={1.8} />
@@ -627,7 +627,7 @@ export default function UltimaHoraPage() {
                   <button
                     onClick={paraOCreator}
                     disabled={!!ocupado}
-                    className="flex flex-col rounded-2xl border border-sand bg-white p-5 text-left transition hover:border-ink/40 hover:shadow-soft disabled:opacity-60"
+                    className="flex flex-col rounded-2xl border border-sand bg-superficie p-5 text-left transition hover:border-ink/40 hover:shadow-soft disabled:opacity-60"
                   >
                     <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-creme text-ink">
                       <Flame className="h-5 w-5" strokeWidth={1.8} />

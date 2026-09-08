@@ -112,6 +112,35 @@ export const TODOS_OS_CAMPOS = SEPARADORES.flatMap((s) =>
   s.campos.map((c) => ({ ...c, separador: s.titulo })),
 );
 
+/**
+ * Os campos sem os quais a Cát.IA não sabe para quem escreve.
+ *
+ * Não são os vinte e um: obrigar a responder a tudo antes de mexer na app
+ * afasta quem acabou de entrar. São estes seis que mudam mesmo o que ela
+ * escreve — nicho, para quem, e o que se vende.
+ */
+export const OBRIGATORIOS = [
+  'nicho',
+  'pais',
+  'cliente_ideal',
+  'desejos',
+  'resultado',
+  'diferente',
+];
+
+/** O que ainda falta responder, das obrigatórias. */
+export function emFalta(b: Briefing) {
+  return TODOS_OS_CAMPOS.filter(
+    (c) => OBRIGATORIOS.includes(c.id) && !(b[c.id] ?? '').trim(),
+  );
+}
+
+/** Já dá para trabalhar? É isto que abre a app a quem se regista. */
+export function briefingCompleto(b: Briefing | null | undefined) {
+  if (!b) return false;
+  return emFalta(b).length === 0;
+}
+
 /** Quantos campos estão respondidos. */
 export function preenchimento(b: Briefing) {
   const feitos = TODOS_OS_CAMPOS.filter((c) => (b[c.id] ?? '').trim()).length;

@@ -112,7 +112,7 @@ export default function MaterialPage() {
 
       <h2 className="mb-3 text-xl font-semibold tracking-tight">O teu material</h2>
       {sources.length ? (
-        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-white">
+        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-superficie">
           {sources.map((s) => (
             <div key={s.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
               <div className="min-w-0">

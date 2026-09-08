@@ -230,7 +230,7 @@ export default function TemplatesPage() {
           {/* pré-visualização */}
           <div>
             <div className="sticky top-6">
-              <div className="overflow-hidden rounded-2xl border border-sand bg-white">
+              <div className="overflow-hidden rounded-2xl border border-sand bg-superficie">
                 {preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={preview} alt="Pré-visualização" className="block w-full" />

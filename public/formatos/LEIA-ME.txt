@@ -1,0 +1,12 @@
+Exemplos dos formatos.
+
+Larga aqui uma imagem com o nome {tipo}-{id} e ela passa a aparecer dentro do
+card desse formato, no passo "Qual o formato?".
+
+  reels-talking-head.jpg
+  reels-antes-depois.png
+  carrossel-storytelling.jpg
+  stories-vendas.jpg
+
+Formatos verticais (reels e stories) ficam bem em 9:16; carrossel em 4:5.
+Enquanto não houver imagem, o card mostra o esquema desenhado do formato.

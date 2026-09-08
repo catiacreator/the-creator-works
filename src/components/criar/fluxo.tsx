@@ -16,7 +16,14 @@ import {
 } from 'lucide-react';
 import { Card, Spinner } from '@/components/ui';
 import { GuiaDaPagina } from '@/components/guia';
-import { Cartao, Faixa, ICONES, Pergunta } from '@/components/criar/escolha';
+import {
+  Cartao,
+  CartaoFormato,
+  Familia,
+  ICONES,
+  Pergunta,
+  Vitrine,
+} from '@/components/criar/escolha';
 import {
   FAMILIAS,
   OBJETIVOS,
@@ -59,6 +66,8 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
   const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
   const [templateId, setTemplateId] = useState('');
   const [photos, setPhotos] = useState<Foto[]>([]);
+  /** `{tipo}-{id}` → imagem de exemplo do formato, para quem já a tem */
+  const [exemplos, setExemplos] = useState<Record<string, string>>({});
 
   const [propostos, setPropostos] = useState<Proposto[] | null>(null);
   const [origem, setOrigem] = useState<string | null>(null);
@@ -81,9 +90,34 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
       setPhotos(p.photos ?? []);
       if (t.templates?.length) setTemplateId(t.templates[0].id);
     })();
+    fetch('/api/formatos-preview')
+      .then((r) => r.json())
+      .then((d) => setExemplos(d.imagens ?? {}))
+      .catch(() => {});
   }, []);
 
   const formatos = tipo ? formatosDe(tipo) : [];
+  /**
+   * A vitrine dos Reels vem arrumada: primeiro os formatos de sempre, depois
+   * as quatro famílias do catálogo. Carrossel e Stories são poucos — uma
+   * grelha só.
+   */
+  const grupos = (() => {
+    const semFamilia = formatos.filter((f) => !f.familia);
+    const familias = Object.keys(FAMILIAS)
+      .map((c) => ({
+        chave: c,
+        titulo: FAMILIAS[c],
+        nota: undefined as string | undefined,
+        formatos: formatos.filter((f) => f.familia === c),
+      }))
+      .filter((g) => g.formatos.length);
+    if (!familias.length) return [{ chave: 'todos', titulo: '', nota: undefined, formatos }];
+    return [
+      { chave: 'base', titulo: 'Os do costume', nota: 'estrutura livre', formatos: semFamilia },
+      ...familias,
+    ];
+  })();
   const oFormato = formatos.find((f) => f.id === formato);
   const oObjetivo = OBJETIVOS.find((o) => o.id === objetivo);
   const nomeDoTipo = TIPOS.find((t) => t.id === tipo)?.nome ?? '';
@@ -310,20 +344,26 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
                 : `Como se conta este ${nomeDoTipo}`
             }
           />
-          <Faixa>
-            {formatos.map((f) => (
-              <div key={f.id} className="w-[210px] shrink-0">
-                <Cartao
-                  nome={f.nome}
-                  curto={f.curto}
-                  escolhido={formato === f.id}
-                  onClick={() => setFormato(f.id)}
-                  detalhe={f.comoSeEscreve}
-                  etiqueta={f.familia ? FAMILIAS[f.familia] : undefined}
-                />
-              </div>
-            ))}
-          </Faixa>
+          {grupos.map((g) => (
+            <div key={g.chave}>
+              {grupos.length > 1 && <Familia titulo={g.titulo} nota={g.nota} />}
+              <Vitrine>
+                {g.formatos.map((f) => (
+                  <CartaoFormato
+                    key={f.id}
+                    tipo={tipo}
+                    id={f.id}
+                    nome={f.nome}
+                    curto={f.curto}
+                    detalhe={f.comoSeEscreve}
+                    imagem={exemplos[`${tipo}-${f.id}`]}
+                    escolhido={formato === f.id}
+                    onClick={() => setFormato(f.id)}
+                  />
+                ))}
+              </Vitrine>
+            </div>
+          ))}
 
           <div className="mt-10 text-center">
             <button
@@ -496,7 +536,7 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
             </div>
           </Card>
 
-          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-sand bg-white px-4 py-2.5 text-sm">
+          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-sand bg-superficie px-4 py-2.5 text-sm">
             <strong>
               {propostos.filter((c) => escolhidos[c.indice]).length} de {propostos.length} escolhidos
             </strong>

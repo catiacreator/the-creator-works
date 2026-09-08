@@ -10,10 +10,12 @@ const nextConfig = {
     // Sem isto, o alojamento não as leva no pacote e os slides saem com outra
     // letra — a Advercase desapareceria em produção.
     outputFileTracingIncludes: {
-      '/api/**/*': ['./fonts/**/*'],
+      // as letras e o logótipo entram no Documento Mestre, lidos do disco
+      '/api/**/*': ['./fonts/**/*', './public/the-creator-works.png'],
     },
     serverComponentsExternalPackages: [
       'pdf-parse',
+      'pdfkit',
       'mammoth',
       'satori',
       '@resvg/resvg-js',

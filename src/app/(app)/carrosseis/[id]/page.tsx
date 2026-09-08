@@ -107,7 +107,7 @@ export default function CarrosselPage() {
               <button className="btn-ghost">
                 <Download className="h-4 w-4" /> Descarregar
               </button>
-              <div className="cartao-claro absolute right-0 top-full z-40 mt-1 hidden w-56 rounded-2xl border border-sand bg-white p-1 shadow-soft group-hover:block">
+              <div className="cartao-claro absolute right-0 top-full z-40 mt-1 hidden w-56 rounded-2xl border border-sand bg-superficie p-1 shadow-soft group-hover:block">
                 <a
                   className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-creme"
                   href={`/api/export/${id}`}

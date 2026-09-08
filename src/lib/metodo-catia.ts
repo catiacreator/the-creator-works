@@ -92,11 +92,12 @@ Cada peça tem um objetivo:
 
 E um formato. Nos CARROSSÉIS: Storytelling · Dualidade · Erro comum · Assunto
 do momento · Certo e errado · Lista · Outro formato.
-Nos REELS há vinte e nove formatos. Os nove de sempre: Lo-fi · Lê a legenda ·
+Nos REELS há trinta formatos. Os nove de sempre: Lo-fi · Lê a legenda ·
 Fala dinâmica · Série · Sketch · Rotina · Assunto do momento · Narrado · Outro
 formato. E o catálogo dela, em quatro famílias:
 · Falar para a câmara — Talking head direto · Opinião contra-corrente ·
-  Resposta a pergunta do direct · Micro-aula · Storytime.
+  Resposta a pergunta do direct · Micro-aula · Storytime · Oi, pessoa (a voz
+  off pergunta e ela responde, em falas marcadas [VOZ OFF] e [ELA]).
 · Ecrã e demonstração — Tutorial passo a passo · Demonstração de ferramenta ·
   Green screen com prova · Antes e depois · Comparação lado a lado.
 · Texto e ritmo — Lista rápida · B-roll com legendas · Mito vs verdade · POV ·

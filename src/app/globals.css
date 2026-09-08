@@ -26,6 +26,34 @@
 
 :root {
   color-scheme: light;
+
+  /* ── modo claro ─────────────────────────────────── */
+  --ink: 20 16 16;
+  --carvao: 33 27 26;
+  --paper: 255 255 255;
+  --superficie: 255 255 255;
+  --creme: 246 244 241;
+  --sand: 232 228 222;
+  --muted: 138 124 99;
+  --rosa-suave: 251 218 231;
+}
+
+/*
+ * Modo escuro. Não é o claro com as cores invertidas à bruta: o fundo é
+ * castanho-escuro quente, da mesma família do #141010, para a app continuar
+ * a parecer a mesma app. O rosa mantém-se — é a marca.
+ */
+.dark {
+  color-scheme: dark;
+
+  --ink: 244 241 238;
+  --carvao: 226 220 214;
+  --paper: 22 18 16;
+  --superficie: 30 25 23;
+  --creme: 38 32 29;
+  --sand: 56 47 43;
+  --muted: 163 150 138;
+  --rosa-suave: 58 30 42;
 }
 
 body {
@@ -38,7 +66,7 @@ body {
 
 /* ── superfícies ─────────────────────────────────────── */
 .card {
-  @apply rounded-[1.25rem] border border-sand bg-white p-5 shadow-soft;
+  @apply rounded-[1.25rem] border border-sand bg-superficie p-5 shadow-soft;
 }
 
 .card-escuro {
@@ -61,12 +89,12 @@ body {
 }
 
 .btn-ghost {
-  @apply btn border border-sand bg-white text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
+  @apply btn border border-sand bg-superficie text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
 }
 
 /* ── formulários ─────────────────────────────────────── */
 .input {
-  @apply w-full rounded-xl border border-sand bg-white px-3.5 py-2.5 text-sm outline-none
+  @apply w-full rounded-xl border border-sand bg-superficie px-3.5 py-2.5 text-sm outline-none
          transition placeholder:text-muted/70 focus:border-rosa focus:ring-4 focus:ring-rosa/20;
 }
 
@@ -94,7 +122,7 @@ input[type='radio'] {
 }
 
 .chip-off {
-  @apply chip border border-sand bg-white text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
+  @apply chip border border-sand bg-superficie text-ink hover:border-rosa/40 hover:bg-rosaSuave/40;
 }
 
 /* ── editor visual ────────────────────────────────────────

@@ -94,7 +94,7 @@ export default async function Dashboard() {
 
       <h2 className="mb-3 text-xl font-semibold tracking-tight">Últimos carrosséis</h2>
       {recentes?.length ? (
-        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-white">
+        <div className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand bg-superficie">
           {recentes.map((c) => (
             <Link
               key={c.id}

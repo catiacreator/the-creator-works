@@ -13,9 +13,18 @@ export default function ConfigurarPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-1 text-3xl font-semibold tracking-tight">
-        The Creator <span className="text-rosa">Works</span>
-      </h1>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/the-creator-works.png"
+        alt="The Creator Works"
+        className="mb-3 h-9 w-auto dark:hidden"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/the-creator-works-escuro.png"
+        alt="The Creator Works"
+        className="mb-3 hidden h-9 w-auto dark:block"
+      />
       <p className="mb-8 text-sm text-muted">
         {pronto
           ? 'Está tudo ligado. Podes entrar.'

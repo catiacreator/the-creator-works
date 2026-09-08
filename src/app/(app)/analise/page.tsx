@@ -103,7 +103,7 @@ export default function AnalisePage() {
       <GuiaDaPagina />
       {/* ── herói ───────────────────────────────────── */}
       <div className="pb-2 pt-6 text-center">
-        <span className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sand bg-white shadow-soft">
+        <span className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-sand bg-superficie shadow-soft">
           <AtSign className="h-7 w-7" strokeWidth={1.8} />
         </span>
         <h1 className="text-[38px] font-semibold leading-tight tracking-tight">
@@ -131,7 +131,7 @@ export default function AnalisePage() {
       )}
 
       {/* ── o formulário ────────────────────────────── */}
-      <div className="rounded-[1.5rem] border border-sand bg-white shadow-soft">
+      <div className="rounded-[1.5rem] border border-sand bg-superficie shadow-soft">
         <button
           onClick={() => setFormAberto(!formAberto)}
           className="flex w-full items-start gap-3 px-8 pb-5 pt-7 text-left"
@@ -153,7 +153,7 @@ export default function AnalisePage() {
         {formAberto && (
           <div className="space-y-6 px-8 pb-8">
             <Campo etiqueta="@ do perfil">
-              <div className="flex items-center rounded-2xl border border-sand bg-white px-4 transition focus-within:border-rosa focus-within:ring-4 focus-within:ring-rosa/15">
+              <div className="flex items-center rounded-2xl border border-sand bg-superficie px-4 transition focus-within:border-rosa focus-within:ring-4 focus-within:ring-rosa/15">
                 <span className="text-muted">@</span>
                 <input
                   className="w-full bg-transparent px-2 py-3.5 text-[15px] outline-none placeholder:text-muted/60"
@@ -251,7 +251,7 @@ export default function AnalisePage() {
 
       {/* ── o relatório ─────────────────────────────── */}
       {aberta && (
-        <div className="mt-6 rounded-[1.5rem] border border-sand bg-white p-8 shadow-soft">
+        <div className="mt-6 rounded-[1.5rem] border border-sand bg-superficie p-8 shadow-soft">
           <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-sand pb-5">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">@{aberta.handle}</h2>
@@ -286,7 +286,7 @@ export default function AnalisePage() {
               <div
                 key={a.id}
                 className={`group flex items-center gap-2 rounded-2xl border px-4 py-3 transition ${
-                  aberta?.id === a.id ? 'border-rosa bg-rosaSuave/30' : 'border-sand bg-white'
+                  aberta?.id === a.id ? 'border-rosa bg-rosaSuave/30' : 'border-sand bg-superficie'
                 }`}
               >
                 <button onClick={() => setAberta(a)} className="min-w-0 flex-1 text-left">
@@ -346,7 +346,7 @@ function Entrada({
 }) {
   return (
     <input
-      className="w-full rounded-2xl border border-sand bg-white px-4 py-3.5 text-[15px] outline-none transition placeholder:text-muted/60 focus:border-rosa focus:ring-4 focus:ring-rosa/15"
+      className="w-full rounded-2xl border border-sand bg-superficie px-4 py-3.5 text-[15px] outline-none transition placeholder:text-muted/60 focus:border-rosa focus:ring-4 focus:ring-rosa/15"
       value={valor}
       onChange={(e) => set(e.target.value)}
       placeholder={dica}
@@ -370,7 +370,7 @@ function Area({
 }) {
   return (
     <textarea
-      className={`w-full rounded-2xl border border-sand bg-white px-4 py-3.5 text-[15px] leading-relaxed outline-none transition placeholder:text-muted/60 focus:border-rosa focus:ring-4 focus:ring-rosa/15 ${
+      className={`w-full rounded-2xl border border-sand bg-superficie px-4 py-3.5 text-[15px] leading-relaxed outline-none transition placeholder:text-muted/60 focus:border-rosa focus:ring-4 focus:ring-rosa/15 ${
         alta ? 'min-h-[170px]' : 'min-h-[110px]'
       }`}
       value={valor}
