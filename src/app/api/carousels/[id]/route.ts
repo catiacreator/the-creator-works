@@ -44,7 +44,31 @@ export const PATCH = withUser(async ({ user, supabase, request, params }) => {
   };
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (body.design !== undefined) patch.design = body.design;
+
+  // antes de escrever por cima do desenho, guarda o que lá estava. É isto que
+  // dá o histórico de versões — e o caminho de volta quando se estraga um slide.
+  if (body.design !== undefined) {
+    const { data: antes } = await supabase
+      .from('carousels')
+      .select('design, title')
+      .eq('id', params.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (antes?.design) {
+      await supabase.from('carrossel_versoes').insert({
+        carousel_id: params.id,
+        user_id: user.id,
+        title: antes.title,
+        design: antes.design,
+        motivo: 'guardado',
+      });
+      // as velhas não interessam a ninguém e enchiam a tabela
+      await supabase.rpc('aparar_versoes', { c: params.id, quantas: 30 });
+    }
+
+    patch.design = body.design;
+  }
   for (const key of ['title', 'caption', 'hashtags', 'photo_id'] as const) {
     if (body[key] !== undefined) patch[key] = body[key];
   }

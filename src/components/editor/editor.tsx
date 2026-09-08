@@ -12,17 +12,28 @@ import {
   Sun,
   Moon,
   HelpCircle,
+  History,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { GUIAS } from '@/lib/guias';
 import { useEditor } from '@/lib/editor-store';
 import { FORMATOS, type Formato, type Slide } from '@/lib/types';
-import { exportarPng, descarregar } from '@/lib/export-image';
+import {
+  exportarPng,
+  descarregar,
+  guardarResolucao,
+  resolucaoGuardada,
+  RESOLUCOES,
+  type Resolucao,
+} from '@/lib/export-image';
 import { BarraFerramentas } from './barra-ferramentas';
 import { BarraRapida } from './barra-rapida';
 import { Canvas, ID_CANVAS } from './canvas';
 import { PainelPropriedades } from './painel-propriedades';
 import { TiraSlides } from './tira-slides';
+import { Historico } from './historico';
+import { Tutorial, tutorialPorVer } from './tutorial';
 
 interface Props {
   userId: string;
@@ -44,11 +55,17 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
   const [aSair, setASair] = useState(false);
   const [nomeTemplate, setNomeTemplate] = useState<string | null>(null);
   const [tema, setTema] = useState<'escuro' | 'claro'>('escuro');
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [tutorialAberto, setTutorialAberto] = useState(false);
+  const [resolucao, setResolucao] = useState<Resolucao>('fullhd');
 
   // o tema fica guardado no browser — é uma preferência de quem desenha
   useEffect(() => {
     const guardado = window.localStorage.getItem('editor-tema');
     if (guardado === 'claro' || guardado === 'escuro') setTema(guardado);
+    setResolucao(resolucaoGuardada());
+    // a visita guiada aparece sozinha só da primeira vez
+    if (tutorialPorVer()) setTutorialAberto(true);
   }, []);
 
   useEffect(() => {
@@ -152,6 +169,11 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
     }
   }
 
+  function escolherResolucao(r: Resolucao) {
+    setResolucao(r);
+    guardarResolucao(r);
+  }
+
   async function sair(guardarAntes: boolean) {
     if (guardarAntes && !(await guardar())) return;
     router.push(modo === 'template' ? '/templates' : '/carrosseis');
@@ -164,14 +186,14 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
     for (let i = 0; i < slides.length; i++) {
       setSlideAtivo(i);
       await new Promise((r) => setTimeout(r, 260));
-      blobs.push(await exportarPng(ID_CANVAS, formato));
+      blobs.push(await exportarPng(ID_CANVAS, formato, resolucao));
     }
     setSlideAtivo(original);
     return blobs;
   }
 
   async function descarregarAtual() {
-    const blob = await exportarPng(ID_CANVAS, formato);
+    const blob = await exportarPng(ID_CANVAS, formato, resolucao);
     descarregar(blob, `${nome.replace(/\s+/g, '-')}-slide-${slideAtivo + 1}.png`);
   }
 
@@ -235,6 +257,20 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
           <LayoutTemplate className="w-3.5 h-3.5" /> Criar template
         </button>
 
+        <button
+          data-tour="historico"
+          onClick={() => setHistoricoAberto(true)}
+          className="btn-fantasma p-2 disabled:opacity-30"
+          disabled={!projetoId}
+          title={
+            projetoId
+              ? 'Histórico de versões'
+              : 'Guarda o carrossel uma vez para começar a haver histórico'
+          }
+        >
+          <History className="h-4 w-4" />
+        </button>
+
         {guiaAberto && (
           <div className="absolute right-4 top-14 z-40 w-80 rounded-2xl border border-edLinha bg-edSuperficie p-4 text-edTexto shadow-lift">
             <div className="mb-2 flex items-center gap-2">
@@ -255,6 +291,15 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
                 </li>
               ))}
             </ol>
+            <button
+              onClick={() => {
+                setGuiaAberto(false);
+                setTutorialAberto(true);
+              }}
+              className="btn-secundario mt-3 w-full text-xs"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Ver a visita guiada
+            </button>
           </div>
         )}
 
@@ -265,11 +310,30 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
           <LogOut className="w-3.5 h-3.5" /> Sair
         </button>
 
-        <div className="relative group">
+        <div className="relative group" data-tour="download">
           <button className="btn-secundario text-xs">
             <Download className="w-3.5 h-3.5" /> Download
           </button>
-          <div className="absolute right-0 top-full mt-1 hidden group-hover:block cartao p-1 w-44 z-50">
+          <div className="absolute right-0 top-full mt-1 hidden group-hover:block cartao p-1 w-56 z-50">
+            <p className="px-3 pb-1 pt-2 text-[10px] uppercase tracking-wider text-edSuave">
+              Tamanho
+            </p>
+            <div className="flex gap-1 px-2 pb-2">
+              {(Object.keys(RESOLUCOES) as Resolucao[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => escolherResolucao(r)}
+                  title={RESOLUCOES[r].nota}
+                  className={`chip flex-1 text-[10px] ${resolucao === r ? 'chip-ativo' : ''}`}
+                >
+                  {RESOLUCOES[r].label}
+                </button>
+              ))}
+            </div>
+            <p className="px-3 pb-2 text-[10px] leading-relaxed text-edSuave">
+              {RESOLUCOES[resolucao].largura}px de largura — {RESOLUCOES[resolucao].nota}.
+            </p>
+            <span className="mx-2 mb-1 block h-px bg-edLinha" />
             <button onClick={descarregarAtual}
               className="w-full text-left text-xs px-3 py-2 rounded-lg hover:bg-edFundo">
               Só este slide
@@ -353,15 +417,35 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
       )}
 
       <div className="flex flex-1 min-h-0">
-        <BarraFerramentas userId={userId} />
+        <div data-tour="ferramentas" className="flex">
+          <BarraFerramentas userId={userId} />
+        </div>
         <div className="flex-1 flex flex-col min-w-0">
           <BarraRapida />
-          <Canvas />
-          <TiraSlides />
+          <div data-tour="canvas" className="flex min-h-0 flex-1 flex-col">
+            <Canvas />
+          </div>
+          <div data-tour="tira">
+            <TiraSlides />
+          </div>
         </div>
         <PainelPropriedades />
       </div>
 
+      {projetoId && (
+        <Historico
+          carrosselId={projetoId}
+          aberto={historicoAberto}
+          fechar={() => setHistoricoAberto(false)}
+          aoRepor={() => {
+            setHistoricoAberto(false);
+            router.refresh();
+            window.location.reload();
+          }}
+        />
+      )}
+
+      <Tutorial aberto={tutorialAberto} fechar={() => setTutorialAberto(false)} />
     </div>
   );
 }
