@@ -60,7 +60,9 @@ export function SlidePreview({
                   ? 'center'
                   : estilo.alinhamento === 'direita'
                     ? 'right'
-                    : 'left',
+                    : estilo.alinhamento === 'justificado'
+                      ? 'justify'
+                      : 'left',
             }}
           >
             <span className="line-clamp-6 w-full">{texto}</span>

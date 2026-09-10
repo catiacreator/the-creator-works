@@ -21,27 +21,74 @@ function cantos(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
   ctx.closePath();
 }
 
-function partirEmLinhas(ctx: CanvasRenderingContext2D, texto: string, larguraMax: number) {
-  const linhas: string[] = [];
+/**
+ * Uma linha de texto já partida.
+ * `ultima` marca a que fecha um parágrafo — essa nunca se justifica, senão
+ * ficam três palavras esticadas de uma ponta à outra do slide.
+ */
+interface Linha {
+  texto: string;
+  ultima: boolean;
+}
+
+function partirEmLinhas(
+  ctx: CanvasRenderingContext2D,
+  texto: string,
+  larguraMax: number,
+): Linha[] {
+  const linhas: Linha[] = [];
   for (const paragrafo of String(texto).split('\n')) {
     const palavras = paragrafo.split(/\s+/).filter(Boolean);
     if (!palavras.length) {
-      linhas.push('');
+      linhas.push({ texto: '', ultima: true });
       continue;
     }
     let linha = palavras[0];
     for (let i = 1; i < palavras.length; i++) {
       const tentativa = `${linha} ${palavras[i]}`;
       if (ctx.measureText(tentativa).width > larguraMax) {
-        linhas.push(linha);
+        linhas.push({ texto: linha, ultima: false });
         linha = palavras[i];
       } else {
         linha = tentativa;
       }
     }
-    linhas.push(linha);
+    linhas.push({ texto: linha, ultima: true });
   }
   return linhas;
+}
+
+/**
+ * Escreve uma linha com as palavras esticadas até encher a largura.
+ *
+ * O canvas não sabe justificar: escreve-se palavra a palavra e reparte-se o
+ * espaço que sobra pelos intervalos. Uma linha de uma palavra só fica como
+ * está — não há intervalos onde pôr o espaço.
+ */
+function escreverJustificado(
+  ctx: CanvasRenderingContext2D,
+  linha: string,
+  x: number,
+  y: number,
+  largura: number,
+) {
+  const palavras = linha.split(/\s+/).filter(Boolean);
+  if (palavras.length < 2) {
+    ctx.fillText(linha, x, y);
+    return;
+  }
+  const soPalavras = palavras.reduce((a, p) => a + ctx.measureText(p).width, 0);
+  const intervalo = (largura - soPalavras) / (palavras.length - 1);
+  // linha já mais larga do que a caixa: escreve-se normal, sem encolher
+  if (intervalo <= 0) {
+    ctx.fillText(linha, x, y);
+    return;
+  }
+  let cursor = x;
+  palavras.forEach((p, i) => {
+    ctx.fillText(p, cursor, y);
+    cursor += ctx.measureText(p).width + (i < palavras.length - 1 ? intervalo : 0);
+  });
 }
 
 function carregarImagem(src: string) {
@@ -122,7 +169,8 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
   const alturaTexto = linhas.length * alturaLinha;
   const comeco = caixaY + (caixaA - alturaTexto) / 2 + px * 0.82;
 
-  // onde começa a linha depende do alinhamento; o canvas faz o resto
+  // onde começa a linha depende do alinhamento; o canvas faz o resto —
+  // menos no justificado, que é escrito palavra a palavra aqui em baixo
   const alinhamento = estilo.alinhamento ?? 'esquerda';
   ctx.textAlign =
     alinhamento === 'centro' ? 'center' : alinhamento === 'direita' ? 'right' : 'left';
@@ -133,7 +181,15 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
         ? caixaX + caixaL - padX
         : caixaX + padX;
 
-  linhas.forEach((l, i) => ctx.fillText(l, xDoTexto, comeco + i * alturaLinha));
+  const larguraUtil = caixaL - padX * 2;
+  linhas.forEach((l, i) => {
+    const y = comeco + i * alturaLinha;
+    if (alinhamento === 'justificado' && !l.ultima) {
+      escreverJustificado(ctx, l.texto, caixaX + padX, y, larguraUtil);
+    } else {
+      ctx.fillText(l.texto, xDoTexto, y);
+    }
+  });
 
   if (handle) {
     ctx.font = `600 ${LARGURA * 0.024}px Poppins, Arial, sans-serif`;

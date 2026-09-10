@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
@@ -1331,6 +1332,13 @@ function CartaoDeSlide({
           ativo={estilo.alinhamento === 'direita'}
         >
           <AlignRight className="h-3.5 w-3.5" />
+        </Txt>
+        <Txt
+          label="Justificar"
+          onClick={() => aoAlinhar('justificado')}
+          ativo={estilo.alinhamento === 'justificado'}
+        >
+          <AlignJustify className="h-3.5 w-3.5" />
         </Txt>
         {aoRepor && (
           <Txt label="Repor o texto do estilo" onClick={aoRepor}>
