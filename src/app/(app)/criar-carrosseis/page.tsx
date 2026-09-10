@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   AlignCenter,
   AlignJustify,
@@ -10,6 +9,7 @@ import {
   Bold,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Copy,
   Download,
@@ -20,7 +20,6 @@ import {
   Pencil,
   Plus,
   RotateCcw,
-  Save,
   Search,
   Trash2,
   X,
@@ -30,7 +29,7 @@ import { Card, PageHeader, Spinner } from '@/components/ui';
 import { SlidePreview } from '@/components/studio/preview';
 import { EditorDeEstilo } from '@/components/studio/editor-estilo';
 import { extrairDoTexto, type CarrosselLido } from '@/lib/fabrica-extrair';
-import { descarregar, slideParaBlob, slideParaDataUrl } from '@/lib/studio-render';
+import { descarregar, slideParaBlob } from '@/lib/studio-render';
 import {
   CORES_FUNDO,
   ESTILOS_BASE,
@@ -63,6 +62,14 @@ interface Rascunho {
 }
 
 const VAZIO: Rascunho = { texto: '', carrosseis: [], ajustes: {}, fotosDeSlide: {} };
+
+/**
+ * Quantos slides cabem num carrossel.
+ *
+ * É o que o Instagram deixa levar num carrossel só — e a partir daí ninguém
+ * vai até ao fim. A conta é do carrossel todo, não do que se acrescenta.
+ */
+const MAX_SLIDES = 20;
 
 /** A chave de um slide dentro de um carrossel. */
 const chave = (ci: number, si: number) => `${ci}:${si}`;
@@ -100,7 +107,6 @@ const limpo = (t?: string) =>
  * tamanho da letra, o negrito, o alinhamento.
  */
 export default function Fabrica() {
-  const router = useRouter();
 
   const [passo, setPasso] = useState<Passo>(1);
   const [erro, setErro] = useState<string | null>(null);
@@ -288,6 +294,11 @@ export default function Fabrica() {
   /** Um slide novo, vazio, a seguir a outro — para escrever ali mesmo. */
   function adicionarSlide(ci: number, depoisDe: number) {
     const total = carrosseis[ci]?.slides.length ?? 0;
+    if (total >= MAX_SLIDES) {
+      setErro(`Um carrossel leva no máximo ${MAX_SLIDES} slides.`);
+      return;
+    }
+    setErro(null);
     const onde = Math.min(Math.max(depoisDe + 1, 0), total);
     // o -1 é o lugar do novo: não vem de lado nenhum, por isso não traz
     // foto nem ajustes, e empurra para a frente os que estavam a seguir
@@ -371,6 +382,17 @@ export default function Fabrica() {
       if (url) setModoFundo('foto');
     }
     setBibliotecaPara(null);
+  }
+
+  /** Liga ou desliga um carrossel da escolha. Tem de sobrar sempre um. */
+  function alternarCarrossel(i: number) {
+    const dentro = escolhidosIdx;
+    if (!dentro.includes(i)) {
+      setEscolhidos([...dentro, i].sort((a, b) => a - b));
+      return;
+    }
+    if (dentro.length === 1) return;
+    setEscolhidos(dentro.filter((x) => x !== i));
   }
 
   function aplicarEstiloATodos(id: string) {
@@ -528,36 +550,6 @@ export default function Fabrica() {
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui montar o zip.');
     } finally {
-      setOcupado(null);
-    }
-  }
-
-  async function guardarNaBiblioteca() {
-    if (!escolhidosIdx.length) return;
-    setErro(null);
-    let ultimo = '';
-    try {
-      for (const ci of escolhidosIdx) {
-        const c = carrosseis[ci];
-        const imagens: Array<{ texto: string; imagem: string }> = [];
-        for (let si = 0; si < c.slides.length; si++) {
-          setOcupado(`a guardar ${limpo(c.titulo)} · ${si + 1}/${c.slides.length}`);
-          imagens.push({
-            texto: c.slides[si],
-            imagem: await slideParaDataUrl({ ...opcoesDe(ci, si), escala: 1 }),
-          });
-        }
-        const d = await fetch('/api/carousels/importar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: c.titulo, slides: imagens }),
-        }).then((r) => r.json());
-        if (d.error) throw new Error(d.error);
-        ultimo = d.carousel.id;
-      }
-      router.push(escolhidosIdx.length === 1 ? `/carrosseis/${ultimo}` : '/carrosseis');
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não consegui guardar.');
       setOcupado(null);
     }
   }
@@ -956,11 +948,68 @@ export default function Fabrica() {
       {/* ── 3. os teus slides ─────────────────────────── */}
       {passo === 3 && (
         <>
-          <p className="mb-4 text-sm text-muted">
-            {escolhidosIdx.length
-              ? `${escolhidosIdx.length === 1 ? '1 carrossel' : `${escolhidosIdx.length} carrosséis`} · ${totalDeSlides} slides. Podes afinar cada um.`
-              : 'Ainda não há slides — volta ao passo 1 e analisa o texto.'}
-          </p>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <button onClick={() => setPasso(2)} className="btn-fantasma text-sm">
+              <ChevronLeft className="h-4 w-4" /> Voltar ao estilo
+            </button>
+            <p className="text-sm text-muted">
+              {escolhidosIdx.length
+                ? `${escolhidosIdx.length === 1 ? '1 carrossel' : `${escolhidosIdx.length} carrosséis`} · ${totalDeSlides} slides. Podes afinar cada um.`
+                : 'Ainda não há slides — volta ao passo 1 e analisa o texto.'}
+            </p>
+          </div>
+
+          {carrosseis.length > 1 && (
+            <Card className="mb-6">
+              <div className="mb-2.5 flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Que carrosséis levar daqui
+                </span>
+                <button
+                  onClick={() => setEscolhidos(carrosseis.map((_, i) => i))}
+                  className="text-xs font-semibold text-rosa"
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setEscolhidos([escolhidosIdx[0] ?? 0])}
+                  className="text-xs font-semibold text-muted"
+                >
+                  Só um
+                </button>
+                <span className="ml-auto text-xs text-muted">
+                  {escolhidosIdx.length} de {carrosseis.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {carrosseis.map((c, i) => {
+                  const dentro = escolhidosIdx.includes(i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => alternarCarrossel(i)}
+                      aria-pressed={dentro}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                        dentro ? 'border-rosa bg-rosaSuave font-semibold' : 'border-sand text-muted'
+                      }`}
+                    >
+                      {dentro ? (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-rosa" />
+                      ) : (
+                        <span className="h-3.5 w-3.5 shrink-0 rounded border border-sand" />
+                      )}
+                      <span className="max-w-[180px] truncate">{c.titulo}</span>
+                      <span className="text-xs font-normal text-muted">{c.slides.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2.5 text-xs leading-relaxed text-muted">
+                Só os escolhidos aparecem aqui em baixo — e só esses vão no zip ou
+                para a biblioteca.
+              </p>
+            </Card>
+          )}
 
           {!!escolhidosIdx.length && (
             <Card className="mb-6">
@@ -991,7 +1040,13 @@ export default function Fabrica() {
                 <span className="text-xs text-muted">{carrosseis[ci].slides.length} slides</span>
                 <button
                   onClick={() => adicionarSlide(ci, carrosseis[ci].slides.length - 1)}
-                  className="ml-auto flex items-center gap-1 rounded-xl border border-sand px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-rosa"
+                  disabled={carrosseis[ci].slides.length >= MAX_SLIDES}
+                  title={
+                    carrosseis[ci].slides.length >= MAX_SLIDES
+                      ? `Um carrossel leva no máximo ${MAX_SLIDES} slides.`
+                      : 'Acrescentar um slide no fim'
+                  }
+                  className="ml-auto flex items-center gap-1 rounded-xl border border-sand px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-rosa disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-sand"
                 >
                   <Plus className="h-3.5 w-3.5" /> Adicionar slide
                 </button>
@@ -1028,7 +1083,11 @@ export default function Fabrica() {
                     aoMudarTexto={(v) => mudarTexto(ci, si, v)}
                     aoDescarregar={() => descarregarSlide(ci, si)}
                     novo={slideNovo?.c === ci && slideNovo?.s === si}
-                    aoAdicionarASeguir={() => adicionarSlide(ci, si)}
+                    aoAdicionarASeguir={
+                      carrosseis[ci].slides.length < MAX_SLIDES
+                        ? () => adicionarSlide(ci, si)
+                        : undefined
+                    }
                     aoEscolherFoto={() => {
                       setFotoParaTodos(false);
                       setBibliotecaPara({ tipo: 'slide', c: ci, s: si });
@@ -1063,28 +1122,40 @@ export default function Fabrica() {
                     }
                   />
                 ))}
+
+                {carrosseis[ci].slides.length < MAX_SLIDES ? (
+                  <button
+                    onClick={() => adicionarSlide(ci, carrosseis[ci].slides.length - 1)}
+                    className="flex min-h-[280px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-sand p-4 text-sm font-semibold text-muted transition hover:border-rosa hover:bg-rosaSuave/40 hover:text-rosa"
+                  >
+                    <Plus className="h-7 w-7" />
+                    Adicionar slide
+                    <span className="text-xs font-normal">
+                      {carrosseis[ci].slides.length} de {MAX_SLIDES}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex min-h-[280px] flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-sand p-4 text-center text-xs leading-relaxed text-muted">
+                    <span className="font-semibold">{MAX_SLIDES} slides</span>
+                    Um carrossel não leva mais do que isto. Apaga um para
+                    acrescentares outro.
+                  </div>
+                )}
               </div>
             </div>
           ))}
 
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <button onClick={() => setPasso(2)} className="btn-fantasma text-sm">
-              Voltar
+              <ChevronLeft className="h-4 w-4" /> Voltar ao estilo
             </button>
             <div className="flex-1" />
             <button
               onClick={descarregarTudo}
-              className="btn-secundario text-sm"
-              disabled={!escolhidosIdx.length || !!ocupado}
-            >
-              <Download className="h-4 w-4" /> Descarregar em zip
-            </button>
-            <button
-              onClick={guardarNaBiblioteca}
               className="btn-primario text-sm"
               disabled={!escolhidosIdx.length || !!ocupado}
             >
-              <Save className="h-4 w-4" /> Guardar em Carrosséis
+              <Download className="h-4 w-4" /> Descarregar em zip
             </button>
           </div>
         </>
@@ -1301,7 +1372,7 @@ function CartaoDeSlide({
   aoDescarregar: () => void;
   aoEscolherFoto: () => void;
   aoAplicarFotoATodos?: () => void;
-  aoAdicionarASeguir: () => void;
+  aoAdicionarASeguir?: () => void;
   /** Acabou de nascer: abre logo o campo de escrita. */
   novo?: boolean;
   aoTirarFoto?: () => void;
@@ -1359,11 +1430,13 @@ function CartaoDeSlide({
             icone={<Pencil className="h-3.5 w-3.5" />}
           />
           <Mini label="Descarregar este slide" onClick={aoDescarregar} icone={<Download className="h-3.5 w-3.5" />} />
-          <Mini
-            label="Acrescentar um slide a seguir a este"
-            onClick={aoAdicionarASeguir}
-            icone={<Plus className="h-3.5 w-3.5" />}
-          />
+          {aoAdicionarASeguir && (
+            <Mini
+              label="Acrescentar um slide a seguir a este"
+              onClick={aoAdicionarASeguir}
+              icone={<Plus className="h-3.5 w-3.5" />}
+            />
+          )}
           {aoApagar && <Mini label="Eliminar este slide" onClick={aoApagar} icone={<Trash2 className="h-3.5 w-3.5" />} />}
         </span>
       </div>

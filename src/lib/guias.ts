@@ -34,7 +34,7 @@ export const GUIAS: Record<string, Guia> = {
       'Cola o texto com os slides e carrega em Analisar — a app diz quantos carrosséis lá estão.',
       'Escolhe o visual: um estilo guardado e o fundo, em cor ou fotografia.',
       'Afina cada slide: a foto, o tamanho da letra, o negrito, o alinhamento, a ordem.',
-      'No fim descarregas em 4K, um a um ou tudo num zip, ou guardas na biblioteca.',
+      'No fim escolhes que carrosséis levas e descarregas em 4K, um a um ou tudo num zip.',
     ],
   },
   '/editor': {
