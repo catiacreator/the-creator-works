@@ -31,10 +31,10 @@ export const GUIAS: Record<string, Guia> = {
   '/criar-carrosseis': {
     titulo: 'Como funciona esta página',
     passos: [
-      'Cola o texto ou carrega um PDF, Word ou Excel — a app diz quantos carrosséis lá estão.',
-      'Escolhe quais levas. Abre cada um para corrigir o texto, mudar a ordem ou apagar slides.',
-      'Dá aspeto a cada carrossel — estilo e fotografia, uma para todos os slides ou uma a uma.',
-      'No fim descarregas em 4K, um a um ou todos, ou guardas na biblioteca.',
+      'Cola o texto com os slides e carrega em Analisar — a app diz quantos carrosséis lá estão.',
+      'Escolhe o visual: um estilo guardado e o fundo, em cor ou fotografia.',
+      'Afina cada slide: a foto, o tamanho da letra, o negrito, o alinhamento, a ordem.',
+      'No fim descarregas em 4K, um a um ou tudo num zip, ou guardas na biblioteca.',
     ],
   },
   '/editor': {

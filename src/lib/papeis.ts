@@ -14,7 +14,7 @@ export type Papel = 'admin' | 'suporte' | 'aluno';
  */
 export type Permissao =
   | 'criar' //         Criar
-  | 'carrosseis' //    Criar carrosséis
+  | 'carrosseis' //    Fábrica de carrosséis
   | 'editor' //        Editor
   | 'biblioteca' //    Biblioteca (templates, fotografias, material, carrosséis feitos)
   | 'chat' //          Agente Cát.IA
@@ -89,7 +89,7 @@ export const PAPEIS: Array<{
 /** O nome de cada permissão, para se perceber na página de Admin. */
 export const NOMES_DAS_PERMISSOES: Record<Permissao, string> = {
   criar: 'Criar',
-  carrosseis: 'Criar carrosséis',
+  carrosseis: 'Fábrica de carrosséis',
   editor: 'Editor',
   biblioteca: 'Biblioteca',
   chat: 'Agente Cát.IA',

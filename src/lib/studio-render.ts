@@ -96,7 +96,8 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
   const padY = 26;
   const caixaL = estilo.caixaFixa ? areaL * (estilo.caixaLargura / 100) : areaL;
 
-  ctx.font = `700 ${px}px ${estilo.fonte}, Poppins, Arial, sans-serif`;
+  const peso = estilo.negrito === false ? 400 : 700;
+  ctx.font = `${peso} ${px}px ${estilo.fonte}, Poppins, Arial, sans-serif`;
   const linhas = partirEmLinhas(ctx, (texto || '').trim(), caixaL - padX * 2);
   const alturaLinha = px * 1.28;
   const caixaA = estilo.caixaFixa
@@ -104,9 +105,11 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
     : linhas.length * alturaLinha + padY * 2;
 
   const caixaX = areaX;
-  const caixaY = estilo.caixaFixa
-    ? areaY + Math.max(0, areaA - caixaA) * (estilo.caixaY / 100)
-    : areaY + (areaA * estilo.caixaY) / 100 - (caixaA * estilo.caixaY) / 100;
+  const caixaY = estilo.caixaCentrada
+    ? areaY + (areaA - caixaA) / 2
+    : estilo.caixaFixa
+      ? areaY + Math.max(0, areaA - caixaA) * (estilo.caixaY / 100)
+      : areaY + (areaA * estilo.caixaY) / 100 - (caixaA * estilo.caixaY) / 100;
 
   if (estilo.opacidadeCaixa > 0) {
     ctx.fillStyle = hexParaRgba(estilo.corCaixa, estilo.opacidadeCaixa);
@@ -115,11 +118,22 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
   }
 
   ctx.fillStyle = corDoTexto(estilo);
-  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   const alturaTexto = linhas.length * alturaLinha;
   const comeco = caixaY + (caixaA - alturaTexto) / 2 + px * 0.82;
-  linhas.forEach((l, i) => ctx.fillText(l, caixaX + padX, comeco + i * alturaLinha));
+
+  // onde começa a linha depende do alinhamento; o canvas faz o resto
+  const alinhamento = estilo.alinhamento ?? 'esquerda';
+  ctx.textAlign =
+    alinhamento === 'centro' ? 'center' : alinhamento === 'direita' ? 'right' : 'left';
+  const xDoTexto =
+    alinhamento === 'centro'
+      ? caixaX + caixaL / 2
+      : alinhamento === 'direita'
+        ? caixaX + caixaL - padX
+        : caixaX + padX;
+
+  linhas.forEach((l, i) => ctx.fillText(l, xDoTexto, comeco + i * alturaLinha));
 
   if (handle) {
     ctx.font = `600 ${LARGURA * 0.024}px Poppins, Arial, sans-serif`;

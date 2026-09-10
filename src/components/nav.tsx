@@ -41,7 +41,7 @@ const GRUPOS: Array<{
   {
     titulo: '🔥 Carrosséis Creator',
     itens: [
-      { href: '/criar-carrosseis', label: 'Criar carrosséis', icone: Flame },
+      { href: '/criar-carrosseis', label: 'Fábrica de carrosséis', icone: Flame },
       { href: '/editor', label: 'Editor', icone: PenTool },
     ],
   },

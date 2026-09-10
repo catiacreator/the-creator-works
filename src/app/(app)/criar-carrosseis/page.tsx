@@ -1,374 +1,461 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Upload,
-  Search,
-  ArrowRight,
-  ArrowLeft,
-  Download,
-  Save,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
   Check,
-  Pencil,
+  ChevronDown,
+  ChevronRight,
   Copy,
-  Trash2,
-  Plus,
+  Download,
+  FileText,
+  GripVertical,
   Image as ImageIcon,
   Images,
-  ChevronRight,
-  Layers,
-  CheckSquare,
-  Square,
+  Pencil,
+  RotateCcw,
+  Save,
+  Search,
+  Trash2,
   X,
-  Sparkles,
-  GripVertical,
 } from 'lucide-react';
+import JSZip from 'jszip';
 import { Card, PageHeader, Spinner } from '@/components/ui';
 import { SlidePreview } from '@/components/studio/preview';
 import { EditorDeEstilo } from '@/components/studio/editor-estilo';
-import { extrairCarrosseis, type CarrosselLido } from '@/lib/extrair-slides';
-import JSZip from 'jszip';
+import { extrairDoTexto, type CarrosselLido } from '@/lib/fabrica-extrair';
 import { descarregar, slideParaBlob, slideParaDataUrl } from '@/lib/studio-render';
-import { ESTILOS_BASE, normalizar, type Estilo } from '@/lib/studio-estilos';
+import {
+  CORES_FUNDO,
+  ESTILOS_BASE,
+  comAjuste,
+  normalizar,
+  type AjusteDoSlide,
+  type Alinhamento,
+  type Estilo,
+} from '@/lib/studio-estilos';
 import type { PhotoRow } from '@/lib/types';
 
-type Passo = 1 | 2 | 3 | 4;
+type Passo = 1 | 2 | 3;
 type Foto = PhotoRow & { url: string | null };
 
 const PASSOS: Array<{ n: Passo; label: string }> = [
   { n: 1, label: 'Documento' },
-  { n: 2, label: 'Carrosséis' },
-  { n: 3, label: 'Estilo' },
-  { n: 4, label: 'Prontos' },
+  { n: 2, label: 'Estilo' },
+  { n: 3, label: 'Gerar' },
 ];
 
-const ABERTAS = 'estudio-seccoes-abertas';
+/** O que fica guardado no browser entre visitas. */
+const GUARDADO = 'fabrica-rascunho';
+const ABERTAS = 'fabrica-seccoes-abertas';
 
-/** Quantos slides tem um carrossel quando é a Cát.IA a escrevê-lo de raiz. */
-const SLIDES_POR_CARROSSEL = 7;
-
-/** As escolhas de raiz de um carrossel: o primeiro estilo e nenhuma fotografia. */
-function vazia(estiloId?: string): Escolha {
-  return { estiloId: estiloId ?? ESTILOS_BASE[0].id, foto: null, fotos: {} };
+interface Rascunho {
+  texto: string;
+  carrosseis: CarrosselLido[];
+  ajustes: Record<string, AjusteDoSlide>;
+  fotosDeSlide: Record<string, string>;
 }
 
-/**
- * O que cada carrossel escolheu para si.
- * `foto` vale para o carrossel todo; `fotos` são as exceções, slide a slide —
- * é assim que dá para ter uma fotografia igual em tudo e trocar só a capa.
- */
-interface Escolha {
-  estiloId: string;
-  foto: string | null;
-  fotos: Record<number, string | null>;
+const VAZIO: Rascunho = { texto: '', carrosseis: [], ajustes: {}, fotosDeSlide: {} };
+
+/** A chave de um slide dentro de um carrossel. */
+const chave = (ci: number, si: number) => `${ci}:${si}`;
+
+/** Renumera as chaves `ci:si` depois de apagar ou reordenar slides. */
+function renumerar<T>(mapa: Record<string, T>, ci: number, ordem: number[]): Record<string, T> {
+  const saida: Record<string, T> = {};
+  for (const [k, v] of Object.entries(mapa)) {
+    const [c, s] = k.split(':').map(Number);
+    if (c !== ci) {
+      saida[k] = v;
+      continue;
+    }
+    const novo = ordem.indexOf(s);
+    if (novo >= 0) saida[chave(ci, novo)] = v;
+  }
+  return saida;
 }
 
+const limpo = (t?: string) =>
+  (t || 'carrossel')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'carrossel';
+
 /**
- * Carrosséis Creator.
+ * A Fábrica de carrosséis.
  *
- * Um documento entra, saem todos os carrosséis que lá estão dentro. Escolhe-se
- * quais interessam, dá-se aspeto a cada um, e no fim descarregam-se — um, os
- * escolhidos, ou todos.
+ * Três passos e nada mais: colas o texto, escolhes o visual, e sais com os
+ * slides. O texto é lido aqui no browser — sem esperar por ninguém e sem
+ * limite de tamanho. Depois cada slide pode ser afinado sozinho: a foto, o
+ * tamanho da letra, o negrito, o alinhamento.
  */
-export default function EstudioPage() {
+export default function Fabrica() {
   const router = useRouter();
-  const [passo, setPasso] = useState<Passo>(1);
 
-  // ── o documento ──
+  const [passo, setPasso] = useState<Passo>(1);
+  const [erro, setErro] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState<string | null>(null);
+
+  // ── o rascunho: fica no browser, para não se perder ao fechar o separador ──
   const [texto, setTexto] = useState('');
   const [carrosseis, setCarrosseis] = useState<CarrosselLido[]>([]);
-  const [aviso, setAviso] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [aLer, setALer] = useState<string | null>(null);
+  const [ajustes, setAjustes] = useState<Record<string, AjusteDoSlide>>({});
+  const [fotosDeSlide, setFotosDeSlide] = useState<Record<string, string>>({});
+  const [lido, setLido] = useState(false);
 
-  // ── o que ela escolheu levar ──
-  const [marcados, setMarcados] = useState<Record<number, boolean>>({});
-  const [escolhas, setEscolhas] = useState<Record<number, Escolha>>({});
-  const [aVer, setAVer] = useState<number | null>(null);
-  /** O carrossel aberto para ler e corrigir o texto, no passo dos carrosséis. */
-  const [aLerTexto, setALerTexto] = useState<number | null>(null);
-  /**
-   * Qual o slide que vem na mão, e por cima de qual está.
-   * O que vem na mão vive também numa referência: o `dragover` chega antes de
-   * o React voltar a desenhar, e a partir do estado ainda veria nada.
-   */
-  const arrastado = useRef<number | null>(null);
-  const [aArrastar, setAArrastar] = useState<number | null>(null);
-  const [porCima, setPorCima] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const cru = window.localStorage.getItem(GUARDADO);
+      if (cru) {
+        const r = { ...VAZIO, ...(JSON.parse(cru) as Partial<Rascunho>) };
+        setTexto(r.texto ?? '');
+        setCarrosseis(r.carrosseis ?? []);
+        setAjustes(r.ajustes ?? {});
+        setFotosDeSlide(r.fotosDeSlide ?? {});
+      }
+    } catch {
+      // rascunho estragado: começa-se do princípio, que é melhor do que rebentar
+    }
+    setLido(true);
+  }, []);
 
-  // ── estilos, guardados na conta ──
-  const [estilos, setEstilos] = useState<Estilo[]>(ESTILOS_BASE);
-  const [rascunho, setRascunho] = useState<Estilo | null>(null);
-  /** Quem está à espera de uma fotografia: um carrossel inteiro, ou um slide. */
-  const [aEscolherFoto, setAEscolherFoto] = useState<{ i: number; slide: number | null } | null>(
-    null,
-  );
-  /** O carrossel aberto para trabalhar, no passo do estilo. */
-  const [aEditar, setAEditar] = useState<number | null>(null);
-  const [fotos, setFotos] = useState<Foto[]>([]);
+  useEffect(() => {
+    if (!lido) return;
+    try {
+      const r: Rascunho = { texto, carrosseis, ajustes, fotosDeSlide };
+      window.localStorage.setItem(GUARDADO, JSON.stringify(r));
+    } catch {
+      // sem espaço ou em janela privada: perde-se o rascunho, não o trabalho
+    }
+  }, [lido, texto, carrosseis, ajustes, fotosDeSlide]);
 
-  const [handle, setHandle] = useState('');
-  const [ocupado, setOcupado] = useState<string | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-
+  // ── as secções do passo 2 lembram-se de como as deixaste ──
   const [abertas, setAbertas] = useState<string[]>(['estilo']);
   useEffect(() => {
     try {
-      const guardado = window.localStorage.getItem(ABERTAS);
-      if (guardado) setAbertas(JSON.parse(guardado));
+      const g = window.localStorage.getItem(ABERTAS);
+      if (g) setAbertas(JSON.parse(g));
     } catch {
-      /* primeira vez */
+      // fica com as de partida
     }
   }, []);
+  const alternar = (id: string) =>
+    setAbertas((p) => {
+      const n = p.includes(id) ? p.filter((x) => x !== id) : [...p, id];
+      try {
+        window.localStorage.setItem(ABERTAS, JSON.stringify(n));
+      } catch {
+        // idem
+      }
+      return n;
+    });
 
-  /**
-   * Um carrossel que vem de fora — da Última hora, por exemplo — entra já
-   * escrito e vai direto ao passo do estilo.
-   */
-  useEffect(() => {
-    const guardado = window.sessionStorage.getItem('estudio-importar');
-    if (!guardado) return;
-    window.sessionStorage.removeItem('estudio-importar');
-    try {
-      const vindo = JSON.parse(guardado) as {
-        titulo?: string;
-        slides?: string[];
-        foto?: string | null;
-      };
-      if (!vindo.slides?.length) return;
-      setCarrosseis([{ titulo: vindo.titulo ?? 'Carrossel', slides: vindo.slides }]);
-      setMarcados({ 0: true });
-      setEscolhas({ 0: { ...vazia(), foto: vindo.foto ?? null } });
-      setPasso(3);
-    } catch {
-      /* veio estragado — segue-se como se nada fosse */
-    }
-  }, []);
+  // ── estilos, guardados na conta ──
+  const [estilos, setEstilos] = useState<Estilo[]>(ESTILOS_BASE);
+  const [estiloId, setEstiloId] = useState<string>(ESTILOS_BASE[0].id);
+  const [rascunhoEstilo, setRascunhoEstilo] = useState<Estilo | null>(null);
+
+  const [fotos, setFotos] = useState<Foto[]>([]);
+  const [handle, setHandle] = useState('');
 
   useEffect(() => {
     fetch('/api/estilos')
       .then((r) => r.json())
       .then((d) => {
         const guardados = (d.estilos ?? []) as Estilo[];
-        if (guardados.length) setEstilos(guardados.map(normalizar));
-      });
+        if (guardados.length) {
+          const lista = guardados.map(normalizar);
+          setEstilos(lista);
+          setEstiloId(lista[0].id);
+        }
+      })
+      .catch(() => undefined);
     fetch('/api/photos')
       .then((r) => r.json())
-      .then((d) => setFotos(d.photos ?? []));
+      .then((d) => setFotos(d.photos ?? []))
+      .catch(() => undefined);
     fetch('/api/perfil')
       .then((r) => r.json())
       .then((d) => {
-        const arroba = (d?.briefing?.instagram ?? '').trim();
-        if (arroba) setHandle(arroba.startsWith('@') ? arroba : `@${arroba}`);
-      });
+        const h = d.perfil?.instagram as string | undefined;
+        if (h) setHandle(h.startsWith('@') ? h : `@${h}`);
+      })
+      .catch(() => undefined);
   }, []);
 
-  /**
-   * Os estilos guardados chegam depois do documento poder já estar lido.
-   * Se alguma escolha ficou presa a um estilo que já não existe, passa para o
-   * primeiro — senão a pré-visualização mostra um aspeto e o ficheiro sai com
-   * outro.
-   */
-  useEffect(() => {
-    if (!estilos.length) return;
-    setEscolhas((p) => {
-      const validos = new Set(estilos.map((e) => e.id));
-      let mudou = false;
-      const novo = Object.fromEntries(
-        Object.entries(p).map(([k, v]) => {
-          if (validos.has(v.estiloId)) return [k, v];
-          mudou = true;
-          return [k, { ...v, estiloId: estilos[0].id }];
-        }),
-      );
-      return mudou ? novo : p;
-    });
-  }, [estilos]);
-
-  const gravarEstilos = useCallback(async (lista: Estilo[]) => {
+  async function gravarEstilos(lista: Estilo[]) {
     setEstilos(lista);
     await fetch('/api/estilos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estilos: lista }),
-    });
-  }, []);
+    }).catch(() => undefined);
+  }
 
-  const estiloDe = (i: number) =>
+  // ── que carrosséis levam o estilo, e que carrosséis saem ──
+  const [ambito, setAmbito] = useState<'todos' | 'estes'>('todos');
+  const [estiloPorCarrossel, setEstiloPorCarrossel] = useState<Record<number, string>>({});
+  const [ativo, setAtivo] = useState(0);
+  const [alvos, setAlvos] = useState<number[]>([]);
+  const [escolhidos, setEscolhidos] = useState<number[]>([]);
+
+  const escolhidosIdx = useMemo(
+    () =>
+      escolhidos.length
+        ? escolhidos.filter((i) => carrosseis[i])
+        : carrosseis.length
+          ? [ativo]
+          : [],
+    [escolhidos, carrosseis, ativo],
+  );
+
+  const alvosValidos = alvos.filter((i) => i < carrosseis.length);
+  const alvosDoEstilo = alvosValidos.length ? alvosValidos : [ativo];
+
+  // ── o fundo: uma cor, ou uma fotografia ──
+  const [modoFundo, setModoFundo] = useState<'cor' | 'foto'>('cor');
+  const [fotoDeFundo, setFotoDeFundo] = useState<string | null>(null);
+  const [fotosPorCarrossel, setFotosPorCarrossel] = useState<Record<number, string | null>>({});
+  const [bibliotecaPara, setBibliotecaPara] = useState<
+    { tipo: 'fundo' } | { tipo: 'slide'; c: number; s: number } | null
+  >(null);
+
+  const estiloSelecionado = normalizar(
+    estilos.find((e) => e.id === estiloId) ?? estilos[0] ?? ESTILOS_BASE[0],
+  );
+
+  const estiloDoCarrossel = (ci: number) =>
     normalizar(
-      estilos.find((e) => e.id === (escolhas[i]?.estiloId ?? estilos[0]?.id)) ??
-        estilos[0] ??
-        ESTILOS_BASE[0],
+      estilos.find(
+        (e) => e.id === (ambito === 'todos' ? estiloId : (estiloPorCarrossel[ci] ?? estiloId)),
+      ) ?? estiloSelecionado,
     );
-  const fotoDe = (i: number) => escolhas[i]?.foto ?? null;
-  /** A do slide, se ela lá pôs uma; senão a do carrossel. */
-  const fotoDoSlide = (i: number, n: number) => escolhas[i]?.fotos?.[n] ?? escolhas[i]?.foto ?? null;
-  const mudar = (i: number, p: Partial<Escolha>) =>
-    setEscolhas((e) => ({ ...e, [i]: { ...(e[i] ?? vazia()), ...p } }));
-  const escolhidos = carrosseis.map((_, i) => i).filter((i) => marcados[i]);
 
-  function mostrar(achados: CarrosselLido[], comIA: boolean, encontrados?: number) {
-    setCarrosseis(achados);
-    setMarcados(Object.fromEntries(achados.map((_, i) => [i, true])));
-    setEscolhas(Object.fromEntries(achados.map((_, i) => [i, vazia(estilos[0]?.id)])));
-    const total = achados.reduce((a, c) => a + c.slides.length, 0);
-    const faltaram = encontrados && encontrados > achados.length ? encontrados - achados.length : 0;
-    setAviso({
-      ok: true,
-      msg: `Encontrei ${achados.length} ${achados.length === 1 ? 'carrossel' : 'carrosséis'} · ${total} slides${
-        comIA ? ' · escritos pela Cát.IA' : ''
-      }${faltaram ? ` · ${faltaram} não deram` : ''}`,
+  /** O estilo do carrossel com os ajustes deste slide por cima. */
+  const estiloDoSlide = (ci: number, si: number) =>
+    comAjuste(estiloDoCarrossel(ci), ajustes[chave(ci, si)]);
+
+  const fotoDoSlide = (ci: number, si: number) => {
+    if (modoFundo !== 'foto') return null;
+    const daquele = fotosDeSlide[chave(ci, si)];
+    if (daquele) return daquele;
+    const doCarrossel = fotosPorCarrossel[ci];
+    if (doCarrossel !== undefined) return doCarrossel;
+    return fotoDeFundo;
+  };
+
+  const opcoesDe = (ci: number, si: number) => ({
+    texto: carrosseis[ci].slides[si],
+    estilo: estiloDoSlide(ci, si),
+    foto: fotoDoSlide(ci, si),
+    handle: handle || undefined,
+  });
+
+  function ajustar(ci: number, si: number, patch: Partial<AjusteDoSlide>) {
+    setAjustes((p) => ({ ...p, [chave(ci, si)]: { ...(p[chave(ci, si)] || {}), ...patch } }));
+  }
+
+  function reporTexto(ci: number, si: number) {
+    setAjustes((p) => {
+      const n = { ...p };
+      delete n[chave(ci, si)];
+      return n;
     });
   }
+
+  function mudarTexto(ci: number, si: number, valor: string) {
+    setCarrosseis((p) =>
+      p.map((c, i) =>
+        i === ci ? { ...c, slides: c.slides.map((s, j) => (j === si ? valor : s)) } : c,
+      ),
+    );
+  }
+
+  function apagarSlide(ci: number, si: number) {
+    const total = carrosseis[ci]?.slides.length ?? 0;
+    if (total <= 1) {
+      setErro('O carrossel tem de ter pelo menos um slide.');
+      return;
+    }
+    const ordem = Array.from({ length: total }, (_, i) => i).filter((i) => i !== si);
+    setCarrosseis((p) =>
+      p.map((c, i) => (i === ci ? { ...c, slides: c.slides.filter((_, j) => j !== si) } : c)),
+    );
+    setFotosDeSlide((p) => renumerar(p, ci, ordem));
+    setAjustes((p) => renumerar(p, ci, ordem));
+  }
+
+  function moverSlide(ci: number, de: number, para: number) {
+    if (de === para) return;
+    const total = carrosseis[ci]?.slides.length ?? 0;
+    const ordem = Array.from({ length: total }, (_, i) => i);
+    const [m] = ordem.splice(de, 1);
+    ordem.splice(para, 0, m);
+    setCarrosseis((p) =>
+      p.map((c, i) => {
+        if (i !== ci) return c;
+        const s = [...c.slides];
+        const [x] = s.splice(de, 1);
+        s.splice(para, 0, x);
+        return { ...c, slides: s };
+      }),
+    );
+    setFotosDeSlide((p) => renumerar(p, ci, ordem));
+    setAjustes((p) => renumerar(p, ci, ordem));
+  }
+
+  function aplicarFotoAoCarrossel(ci: number, url: string) {
+    setFotosDeSlide((p) => {
+      const n = { ...p };
+      (carrosseis[ci]?.slides ?? []).forEach((_, si) => {
+        n[chave(ci, si)] = url;
+      });
+      return n;
+    });
+  }
+
+  function escolherFoto(url: string | null) {
+    if (bibliotecaPara?.tipo === 'slide') {
+      const { c, s } = bibliotecaPara;
+      setFotosDeSlide((p) => {
+        const n = { ...p };
+        if (url) n[chave(c, s)] = url;
+        else delete n[chave(c, s)];
+        return n;
+      });
+    } else {
+      setFotoDeFundo(url);
+      setFotosPorCarrossel({});
+      setFotosDeSlide({});
+      if (url) setModoFundo('foto');
+    }
+    setBibliotecaPara(null);
+  }
+
+  function aplicarEstiloATodos(id: string) {
+    setEstiloId(id);
+    setEstiloPorCarrossel({});
+    setAmbito('todos');
+  }
+
+  function aplicarEstiloAoCarrossel(ci: number, id: string) {
+    setEstiloPorCarrossel((p) => ({ ...p, [ci]: id }));
+    setAmbito('estes');
+  }
+
+  function escolherEstilo(id: string) {
+    setEstiloId(id);
+    if (ambito === 'estes') {
+      setEstiloPorCarrossel((p) => {
+        const n = { ...p };
+        alvosDoEstilo.forEach((i) => {
+          n[i] = id;
+        });
+        return n;
+      });
+    }
+  }
+
+  // ── passo 1: ler o texto ──
+  const [aAnalisar, setAAnalisar] = useState(false);
+  const [aviso, setAviso] = useState<{ ok: boolean; msg: string } | null>(null);
 
   function analisar() {
     const t = texto.trim();
-    if (!t) return setAviso({ ok: false, msg: 'Cola primeiro o texto, ou carrega um ficheiro.' });
-    const achados = extrairCarrosseis(t);
-    if (achados.length) return mostrar(achados, false);
-    lerDocumento(undefined, t);
-  }
-
-  /** PDF, Word, Excel ou texto: a app lê e devolve tudo o que lá está dentro. */
-  async function lerDocumento(ficheiro?: File, colado?: string) {
-    setALer(ficheiro ? `A ler ${ficheiro.name}…` : 'A ler o texto…');
+    if (!t) {
+      setAviso({ ok: false, msg: 'Cola primeiro o texto com os slides.' });
+      return;
+    }
+    setAAnalisar(true);
     setAviso(null);
-    setErro(null);
+    const achados = extrairDoTexto(t);
+    setAAnalisar(false);
+
+    if (!achados.length) {
+      setAviso({
+        ok: false,
+        msg: 'Não encontrei slides neste texto. Costuma vir em "Slide 1: …", em lista, ou com os parágrafos separados por uma linha em branco.',
+      });
+      return;
+    }
+    setCarrosseis(achados);
+    setAjustes({});
+    setFotosDeSlide({});
+    setAtivo(0);
+    setEscolhidos(achados.map((_, i) => i));
+    setAlvos([]);
+    const slides = achados.reduce((a, c) => a + c.slides.length, 0);
+    setAviso({
+      ok: true,
+      msg: `${achados.length === 1 ? '1 carrossel' : `${achados.length} carrosséis`} · ${slides} slides.`,
+    });
+  }
+
+  // ── sair daqui: um zip, ou guardado em Carrosséis ──
+  const [arrastado, setArrastado] = useState<{ c: number; i: number } | null>(null);
+
+  async function descarregarSlide(ci: number, si: number) {
+    setOcupado(`a desenhar o slide ${si + 1}`);
     try {
-      let res: Response;
-      if (ficheiro) {
-        const form = new FormData();
-        form.append('file', ficheiro);
-        form.append('slides', String(SLIDES_POR_CARROSSEL));
-        res = await fetch('/api/estudio/ler', { method: 'POST', body: form });
-      } else {
-        res = await fetch('/api/estudio/ler', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texto: colado, slides: SLIDES_POR_CARROSSEL }),
-        });
+      const blob = await slideParaBlob({ ...opcoesDe(ci, si), escala: 3 });
+      if (blob) descarregar(blob, `${limpo(carrosseis[ci].titulo)}-slide-${si + 1}.png`);
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function descarregarTudo() {
+    if (!escolhidosIdx.length) return;
+    setErro(null);
+    const zip = new JSZip();
+    try {
+      for (const ci of escolhidosIdx) {
+        const c = carrosseis[ci];
+        const pasta = escolhidosIdx.length > 1 ? zip.folder(limpo(c.titulo))! : zip;
+        for (let si = 0; si < c.slides.length; si++) {
+          setOcupado(`${limpo(c.titulo)} · slide ${si + 1}/${c.slides.length}`);
+          const blob = await slideParaBlob({ ...opcoesDe(ci, si), escala: 3 });
+          if (blob) {
+            pasta.file(`${String(si + 1).padStart(2, '0')}-${limpo(c.titulo)}.png`, blob);
+          }
+        }
+        pasta.file('legenda.txt', [c.titulo, '', ...c.slides].join('\n\n'));
       }
-      const d = await res.json();
-      if (d.error) throw new Error(d.error);
-      // o que veio do ficheiro fica na caixa: dá para ler, corrigir e voltar a analisar
-      if (d.texto) setTexto(d.texto);
-      mostrar(d.carrosseis ?? [], !!d.comIA, d.encontrados);
+      setOcupado('a fechar o zip');
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const nome =
+        escolhidosIdx.length === 1
+          ? `${limpo(carrosseis[escolhidosIdx[0]].titulo)}.zip`
+          : `carrosseis-${new Date().toISOString().slice(0, 10)}.zip`;
+      descarregar(blob, nome);
     } catch (e) {
-      setAviso({ ok: false, msg: e instanceof Error ? e.message : 'Não consegui ler isso.' });
-    } finally {
-      setALer(null);
-    }
-  }
-
-  /** Mexer no texto de um slide, ou no título do carrossel. */
-  const mudarSlide = (i: number, n: number, texto: string) =>
-    setCarrosseis((c) =>
-      c.map((x, k) =>
-        k === i ? { ...x, slides: x.slides.map((s, m) => (m === n ? texto : s)) } : x,
-      ),
-    );
-  const mudarTitulo = (i: number, titulo: string) =>
-    setCarrosseis((c) => c.map((x, k) => (k === i ? { ...x, titulo } : x)));
-  const apagarSlide = (i: number, n: number) =>
-    setCarrosseis((c) =>
-      c.map((x, k) => (k === i ? { ...x, slides: x.slides.filter((_, m) => m !== n) } : x)),
-    );
-  /** Troca a ordem: o slide `de` passa a ficar na posição `para`. */
-  const moverSlide = (i: number, de: number, para: number) =>
-    setCarrosseis((c) =>
-      c.map((x, k) => {
-        if (k !== i || de === para) return x;
-        const slides = [...x.slides];
-        const [saiu] = slides.splice(de, 1);
-        slides.splice(para, 0, saiu);
-        return { ...x, slides };
-      }),
-    );
-
-  /** Um slide novo, vazio, logo a seguir ao `n`. Sem `n`, vai para o fim. */
-  const juntarSlide = (i: number, n?: number) =>
-    setCarrosseis((c) =>
-      c.map((x, k) => {
-        if (k !== i) return x;
-        const slides = [...x.slides];
-        slides.splice(n === undefined ? slides.length : n + 1, 0, '');
-        return { ...x, slides };
-      }),
-    );
-
-  const opcoesDe = (i: number, n: number) => ({
-    texto: carrosseis[i].slides[n],
-    estilo: estiloDe(i),
-    foto: fotoDoSlide(i, n),
-    handle,
-    escala: 3,
-  });
-
-  /**
-   * Os slides de um carrossel dentro de um .zip — e a legenda com eles, se a
-   * houver. Um ficheiro só: o browser trava downloads em cadeia, e sete PNGs
-   * soltos na pasta das transferências não são um carrossel.
-   */
-  async function zipDoCarrossel(i: number, zip: JSZip, dentroDeUmaPasta: boolean) {
-    const c = carrosseis[i];
-    const nome = limpo(c.titulo);
-    const pasta = dentroDeUmaPasta ? (zip.folder(nome) ?? zip) : zip;
-
-    for (let n = 0; n < c.slides.length; n++) {
-      setOcupado(`${nome} · slide ${n + 1} de ${c.slides.length}`);
-      const blob = await slideParaBlob(opcoesDe(i, n));
-      if (blob) pasta.file(`${String(n + 1).padStart(2, '0')}-${nome}.png`, blob);
-    }
-
-    const legenda = [c.titulo, '', c.legenda ?? '', '', c.slides.join('\n\n')]
-      .filter((x) => x !== undefined)
-      .join('\n')
-      .trim();
-    pasta.file('legenda.txt', legenda);
-  }
-
-  async function descarregarCarrossel(i: number) {
-    setOcupado(`c-${i}`);
-    try {
-      const zip = new JSZip();
-      await zipDoCarrossel(i, zip, false);
-      const blob = await zip.generateAsync({ type: 'blob' });
-      descarregar(blob, `${limpo(carrosseis[i].titulo)}.zip`);
+      setErro(e instanceof Error ? e.message : 'Não consegui montar o zip.');
     } finally {
       setOcupado(null);
     }
   }
 
-  async function descarregarVarios(indices: number[]) {
-    if (indices.length === 1) return descarregarCarrossel(indices[0]);
-
-    setOcupado('varios');
-    try {
-      const zip = new JSZip();
-      for (const i of indices) await zipDoCarrossel(i, zip, true);
-
-      setOcupado('a fechar o zip…');
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const dia = new Date().toISOString().slice(0, 10);
-      descarregar(blob, `carrosseis-${dia}.zip`);
-    } finally {
-      setOcupado(null);
-    }
-  }
-
-  async function guardar(indices: number[]) {
-    setOcupado('guardar');
+  async function guardarNaBiblioteca() {
+    if (!escolhidosIdx.length) return;
     setErro(null);
+    let ultimo = '';
     try {
-      let ultimo = '';
-      for (const i of indices) {
-        const c = carrosseis[i];
-        const imagens = [];
-        for (let n = 0; n < c.slides.length; n++) {
-          setOcupado(`a guardar ${limpo(c.titulo)} · ${n + 1}/${c.slides.length}`);
+      for (const ci of escolhidosIdx) {
+        const c = carrosseis[ci];
+        const imagens: Array<{ texto: string; imagem: string }> = [];
+        for (let si = 0; si < c.slides.length; si++) {
+          setOcupado(`a guardar ${limpo(c.titulo)} · ${si + 1}/${c.slides.length}`);
           imagens.push({
-            texto: c.slides[n],
-            imagem: await slideParaDataUrl({ ...opcoesDe(i, n), escala: 1 }),
+            texto: c.slides[si],
+            imagem: await slideParaDataUrl({ ...opcoesDe(ci, si), escala: 1 }),
           });
         }
         const d = await fetch('/api/carousels/importar', {
@@ -379,21 +466,23 @@ export default function EstudioPage() {
         if (d.error) throw new Error(d.error);
         ultimo = d.carousel.id;
       }
-      router.push(indices.length === 1 ? `/carrosseis/${ultimo}` : '/carrosseis');
+      router.push(escolhidosIdx.length === 1 ? `/carrosseis/${ultimo}` : '/carrosseis');
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não consegui guardar.');
       setOcupado(null);
     }
   }
 
+  const totalDeSlides = escolhidosIdx.reduce((a, ci) => a + carrosseis[ci].slides.length, 0);
+
   return (
     <>
       <PageHeader
-        title="Carrosséis Creator"
-        subtitle="Um documento entra, saem todos os carrosséis que lá estão dentro. Escolhes quais levas, dás-lhes aspeto, e descarregas."
+        title="Fábrica de carrosséis"
+        subtitle="Colas o texto, escolhes o visual, sais com os slides. Cada um pode ser afinado sozinho."
       />
 
-      {/* ── os passos ─────────────────────────────────── */}
+      {/* ── os três passos ────────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-center gap-1">
         {PASSOS.map((p, i) => {
           const atual = passo === p.n;
@@ -422,756 +511,548 @@ export default function EstudioPage() {
       </div>
 
       {erro && (
-        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
-          {erro}
+        <button
+          onClick={() => setErro(null)}
+          className="mb-4 block w-full rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-left text-sm text-rose-800"
+        >
+          {erro} <span className="opacity-60">— clica para fechar</span>
+        </button>
+      )}
+
+      {ocupado && (
+        <div className="mb-4">
+          <Spinner label={ocupado} />
         </div>
       )}
 
-      {/* ── 1. o documento ────────────────────────────── */}
+      {/* ── 1. cola o teu texto ───────────────────────── */}
       {passo === 1 && (
         <>
           <Card className="mb-5">
-            <label className="label">Cola o texto, ou carrega um documento</label>
+            <label className="label">Cola o teu texto</label>
+            <p className="mb-3 text-sm text-muted">
+              Cola a resposta da Cát.IA com os slides. O resto é connosco.
+            </p>
             <textarea
-              className="input min-h-[280px] text-[15px]"
+              className="input min-h-[340px] text-[15px]"
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder={
-                'Se já vier em "Slide 1: …" é lido logo. Se for texto corrido, a Cát.IA trata dele.'
-              }
-              disabled={!!aLer}
+              placeholder={'Slide 1: …\nSlide 2: …'}
             />
-            {aLer ? (
-              <p className="mt-3">
-                <Spinner label={aLer} />
+            {aviso && (
+              <p className={`mt-2 text-sm ${aviso.ok ? 'font-medium text-ink' : 'text-rose-700'}`}>
+                {aviso.msg}
               </p>
-            ) : (
-              aviso && (
-                <p className={`mt-2 text-sm ${aviso.ok ? 'font-medium text-ink' : 'text-rose-700'}`}>
-                  {aviso.msg}
-                </p>
-              )
+            )}
+
+            {carrosseis.length > 0 && (
+              <div className="mt-5">
+                <div className="mb-2 flex flex-wrap items-center gap-3">
+                  <span className="text-[13px] font-semibold">Carrosséis detetados</span>
+                  <button
+                    onClick={() => setEscolhidos(carrosseis.map((_, i) => i))}
+                    className="text-xs font-semibold text-rosa"
+                  >
+                    Selecionar todos
+                  </button>
+                  <button
+                    onClick={() => setEscolhidos([ativo])}
+                    className="text-xs font-semibold text-muted"
+                  >
+                    Só o atual
+                  </button>
+                  <span className="ml-auto text-xs text-muted">
+                    {escolhidosIdx.length} selecionado{escolhidosIdx.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {carrosseis.map((c, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setAtivo(i)}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition ${
+                        i === ativo ? 'border-rosa bg-rosaSuave' : 'border-sand'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={escolhidosIdx.includes(i)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() =>
+                          setEscolhidos((p) =>
+                            p.includes(i)
+                              ? p.filter((x) => x !== i)
+                              : [...p, i].sort((a, b) => a - b),
+                          )
+                        }
+                        aria-label={`Selecionar ${c.titulo}`}
+                      />
+                      <span className="truncate text-sm font-semibold">{c.titulo}</span>
+                      <span className="ml-auto text-xs text-muted">{c.slides.length} slides</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </Card>
 
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            <label
-              className={`btn-ghost cursor-pointer ${aLer ? 'pointer-events-none opacity-60' : ''}`}
-            >
-              <Upload className="h-4 w-4" /> Carregar documento
+            <label className="btn-fantasma cursor-pointer text-sm">
+              <FileText className="h-4 w-4" /> Importar ficheiro
               <input
                 type="file"
-                accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md"
+                accept=".txt,.md,text/plain"
                 hidden
-                onChange={(e) => {
+                onChange={async (e) => {
                   const f = e.target.files?.[0];
-                  if (f) lerDocumento(f);
+                  if (f) setTexto(await f.text());
                   e.target.value = '';
                 }}
               />
             </label>
-            <span className="text-sm text-muted">PDF, Word, Excel, CSV ou texto.</span>
-
-            <button className="btn-ghost ml-auto" onClick={analisar} disabled={!!aLer}>
-              <Search className="h-4 w-4" /> Analisar o texto
+            <div className="flex-1" />
+            <button onClick={analisar} className="btn-secundario text-sm" disabled={aAnalisar}>
+              <Search className="h-4 w-4" /> {aAnalisar ? 'A analisar…' : 'Analisar texto'}
             </button>
-          </div>
-
-          <div className="flex justify-end">
             <button
-              className="btn-primary"
-              onClick={() => setPasso(2)}
-              disabled={!carrosseis.length || !!aLer}
+              onClick={() => (carrosseis.length ? setPasso(2) : analisar())}
+              className="btn-primario text-sm"
             >
-              Avançar <ArrowRight className="h-4 w-4" />
+              Continuar para o estilo <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </>
       )}
 
-      {/* ── 2. os carrosséis encontrados ──────────────── */}
+      {/* ── 2. escolhe o visual ───────────────────────── */}
       {passo === 2 && (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-sand bg-superficie px-4 py-3 text-sm">
-            <strong>
-              {escolhidos.length} de {carrosseis.length} escolhidos
-            </strong>
-            <button
-              className="inline-flex items-center gap-1.5 text-xs underline hover:text-rosa"
-              onClick={() => setMarcados(Object.fromEntries(carrosseis.map((_, i) => [i, true])))}
-            >
-              <CheckSquare className="h-3.5 w-3.5" /> Todos
-            </button>
-            <button
-              className="inline-flex items-center gap-1.5 text-xs underline hover:text-rosa"
-              onClick={() => setMarcados({})}
-            >
-              <Square className="h-3.5 w-3.5" /> Nenhum
-            </button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {carrosseis.map((c, i) => (
-              <div
-                key={i}
-                className={`flex flex-col rounded-2xl border bg-superficie p-4 transition ${
-                  marcados[i] ? 'border-ink' : 'border-sand'
-                }`}
-              >
-                <label className="mb-2 flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!marcados[i]}
-                    onChange={(e) => setMarcados({ ...marcados, [i]: e.target.checked })}
-                    className="h-4 w-4 accent-rosa"
-                  />
-                  <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted">
-                    <Layers className="h-3.5 w-3.5" /> {c.slides.length} slides
-                  </span>
-                </label>
-
-                <button
-                  onClick={() => setALerTexto(i)}
-                  className="mb-4 flex-1 text-left"
-                  title="Abrir para ler e corrigir"
-                >
-                  <p className="mb-2 line-clamp-2 text-[15px] font-semibold leading-snug">
-                    {c.titulo}
-                  </p>
-
-                  <ol className="space-y-1.5 text-xs leading-relaxed text-muted">
-                    {c.slides.slice(0, 4).map((s, n) => (
-                      <li key={n} className="flex gap-1.5">
-                        <span className="shrink-0 font-medium text-ink/50">{n + 1}.</span>
-                        <span className="line-clamp-2">{s}</span>
-                      </li>
-                    ))}
-                    {c.slides.length > 4 && (
-                      <li className="pl-4 text-[11px]">e mais {c.slides.length - 4}…</li>
-                    )}
-                  </ol>
-                </button>
-
-                <div className="mt-auto flex gap-1.5">
-                  <button
-                    className="btn-ghost flex-1 !py-2 text-xs"
-                    onClick={() => setALerTexto(i)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Ver e corrigir
-                  </button>
-                  <button
-                    className="btn-ghost flex-1 !py-2 text-xs"
-                    onClick={() => {
-                      setMarcados({ [i]: true });
-                      setPasso(3);
-                    }}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" /> Gerar este
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button className="btn-ghost" onClick={() => setPasso(1)}>
-              <ArrowLeft className="h-4 w-4" /> Voltar
-            </button>
-            <div className="flex-1" />
-            <button
-              className="btn-escuro"
-              onClick={() => setPasso(3)}
-              disabled={!escolhidos.length}
-            >
-              {escolhidos.length === 1
-                ? 'Dar aspeto a este'
-                : `Dar aspeto aos ${escolhidos.length}`}{' '}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* ── o carrossel aberto para corrigir o texto ──── */}
-      {aLerTexto !== null && carrosseis[aLerTexto] && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-6 backdrop-blur-sm"
-          onClick={() => setALerTexto(null)}
-        >
-          <div className="card my-6 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="mb-1 text-[11px] uppercase tracking-wider text-muted">
-                  {carrosseis[aLerTexto].slides.length} slides · corrige o texto, arrasta para
-                  mudar a ordem
-                </p>
-                <input
-                  className="input font-semibold"
-                  value={carrosseis[aLerTexto].titulo}
-                  onChange={(e) => mudarTitulo(aLerTexto, e.target.value)}
-                />
-              </div>
-              <button
-                onClick={() => setALerTexto(null)}
-                className="mt-6 rounded-lg p-1.5 text-muted transition hover:bg-creme hover:text-ink"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
-              {carrosseis[aLerTexto].slides.map((s, n) => (
-                <div
-                  key={n}
-                  onDragOver={(e) => {
-                    if (arrastado.current === null) return;
-                    e.preventDefault();
-                    setPorCima(n);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (arrastado.current !== null) moverSlide(aLerTexto, arrastado.current, n);
-                    arrastado.current = null;
-                    setAArrastar(null);
-                    setPorCima(null);
-                  }}
-                  className={`flex gap-2 rounded-xl transition ${
-                    aArrastar === n
-                      ? 'opacity-40'
-                      : porCima === n
-                        ? 'ring-2 ring-rosa/60'
-                        : ''
-                  }`}
-                >
-                  <span
-                    draggable
-                    onDragStart={() => {
-                      arrastado.current = n;
-                      setAArrastar(n);
-                    }}
-                    onDragEnd={() => {
-                      arrastado.current = null;
-                      setAArrastar(null);
-                      setPorCima(null);
-                    }}
-                    title="Arrasta para mudar a ordem"
-                    className="mt-2 flex w-6 shrink-0 cursor-grab flex-col items-center gap-0.5 rounded-lg py-1 text-muted transition hover:bg-creme hover:text-ink active:cursor-grabbing"
-                  >
-                    <GripVertical className="h-3.5 w-3.5" />
-                    <span className="text-[11px] font-medium">{n + 1}</span>
-                  </span>
-                  <textarea
-                    className="input min-h-[64px] flex-1 text-sm leading-relaxed"
-                    value={s}
-                    onChange={(e) => mudarSlide(aLerTexto, n, e.target.value)}
-                  />
-                  <span className="mt-2 flex shrink-0 flex-col gap-1">
-                    <button
-                      onClick={() => juntarSlide(aLerTexto, n)}
-                      title="Meter um slide a seguir a este"
-                      className="rounded-lg p-1.5 text-muted transition hover:bg-creme hover:text-ink"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => apagarSlide(aLerTexto, n)}
-                      title="Apagar este slide"
-                      className="rounded-lg p-1.5 text-muted transition hover:bg-rosaSuave hover:text-rosa"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {carrosseis[aLerTexto].legenda && (
-              <div className="mt-4 rounded-xl border border-sand bg-creme/60 p-3">
-                <p className="label mb-1">Legenda que veio no documento</p>
-                <p className="text-sm leading-relaxed text-muted">
-                  {carrosseis[aLerTexto].legenda}
-                </p>
-              </div>
-            )}
-
-            <button
-              className="mt-3 w-full rounded-xl border border-dashed border-sand py-2.5 text-sm text-muted transition hover:border-ink/40 hover:text-ink"
-              onClick={() => juntarSlide(aLerTexto)}
-            >
-              <Plus className="mr-1 inline h-3.5 w-3.5" /> Acrescentar um slide no fim
-            </button>
-
-            <div className="mt-4 flex items-center gap-2 border-t border-sand pt-4">
-              <button
-                className="btn-ghost !py-2 text-xs"
-                onClick={() => {
-                  setMarcados({ [aLerTexto]: true });
-                  setALerTexto(null);
-                  setPasso(3);
-                }}
-              >
-                <Sparkles className="h-3.5 w-3.5" /> Gerar só este
-              </button>
-              <button className="btn-primary ml-auto" onClick={() => setALerTexto(null)}>
-                <Check className="h-4 w-4" /> Está assim
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 3. o aspeto, carrossel a carrossel ────────── */}
-      {passo === 3 && (
-        <>
-          <p className="mb-4 text-sm text-muted">
-            Clica num carrossel para o abrir e lhe dares aspeto. O que fizeres lá dentro pode
-            depois ser aplicado a todos.
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {escolhidos.map((i) => {
-              const c = carrosseis[i];
-              const proprias = Object.values(escolhas[i]?.fotos ?? {}).filter(Boolean).length;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setAEditar(i)}
-                  className="overflow-hidden rounded-2xl border border-sand bg-superficie text-left transition hover:border-ink/40 hover:shadow-soft"
-                >
-                  <SlidePreview
-                    estilo={estiloDe(i)}
-                    foto={fotoDoSlide(i, 0)}
-                    texto={c.slides[0]}
-                    handle={handle}
-                    arredondado={false}
-                  />
-                  <div className="p-3">
-                    <p className="mb-1 line-clamp-1 text-sm font-medium">{c.titulo}</p>
-                    <p className="text-[11px] text-muted">
-                      {c.slides.length} slides · {estiloDe(i).nome}
-                      {fotoDe(i) ? ' · com fotografia' : ''}
-                      {proprias ? ` · ${proprias} slide${proprias > 1 ? 's' : ''} à parte` : ''}
-                    </p>
+          <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-[1fr_320px]">
+            <div>
+              {carrosseis.length > 1 && (
+                <Card className="mb-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-[13px] font-semibold">Aplicar estilo e fundo a:</span>
+                    <div className="inline-flex rounded-xl border border-sand p-1">
+                      {(
+                        [
+                          ['todos', 'Todos os carrosséis'],
+                          ['estes', 'Carrosséis selecionados'],
+                        ] as const
+                      ).map(([v, l]) => (
+                        <button
+                          key={v}
+                          onClick={() => setAmbito(v)}
+                          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                            ambito === v ? 'bg-rosa text-white' : 'text-muted'
+                          }`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </button>
-              );
-            })}
-          </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button className="btn-ghost" onClick={() => setPasso(2)}>
-              <ArrowLeft className="h-4 w-4" /> Voltar
-            </button>
-            <div className="flex-1" />
-            <button className="btn-escuro" onClick={() => setPasso(4)}>
-              <Sparkles className="h-4 w-4" />
-              {escolhidos.length === 1 ? 'Gerar o carrossel' : `Gerar os ${escolhidos.length}`}
-            </button>
-          </div>
-        </>
-      )}
+                  {ambito === 'estes' && (
+                    <div className="mt-3">
+                      <div className="mb-1.5 flex flex-wrap items-center gap-3 text-xs text-muted">
+                        <span>{alvosDoEstilo.length} selecionado(s)</span>
+                        <button
+                          className="underline"
+                          onClick={() => setAlvos(carrosseis.map((_, i) => i))}
+                        >
+                          Selecionar todos
+                        </button>
+                        <button className="underline" onClick={() => setAlvos([ativo])}>
+                          Só o atual
+                        </button>
+                      </div>
+                      <div className="max-h-44 overflow-y-auto rounded-xl border border-sand p-1">
+                        {carrosseis.map((c, i) => (
+                          <label
+                            key={i}
+                            className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${
+                              alvosDoEstilo.includes(i) ? 'bg-rosaSuave' : ''
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={alvosDoEstilo.includes(i)}
+                              onChange={() =>
+                                setAlvos((p) => {
+                                  const n = p.includes(i)
+                                    ? p.filter((x) => x !== i)
+                                    : [...p, i].sort((a, b) => a - b);
+                                  if (n.length) setAtivo(n[0]);
+                                  return n;
+                                })
+                              }
+                            />
+                            <span className="truncate">{c.titulo}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
 
-      {/* ── um carrossel aberto: estilo e fotografias ─── */}
-      {aEditar !== null && carrosseis[aEditar] && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-6 backdrop-blur-sm"
-          onClick={() => setAEditar(null)}
-        >
-          <div className="card my-6 w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-wider text-muted">
-                  {carrosseis[aEditar].slides.length} slides
-                </p>
-                <h2 className="text-lg font-semibold leading-snug">{carrosseis[aEditar].titulo}</h2>
-              </div>
-              <button
-                onClick={() => setAEditar(null)}
-                className="rounded-lg p-1.5 text-muted transition hover:bg-creme hover:text-ink"
+              {/* estilos guardados */}
+              <Seccao
+                id="estilo"
+                abertas={abertas}
+                alternar={alternar}
+                titulo="Estilo guardado"
+                nota={estiloSelecionado.nome}
               >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* estilo */}
-            <div className="mb-4 rounded-2xl border border-sand p-4">
-              <p className="label mb-2">Estilo</p>
-
-              {/* as escolhas */}
-              <div className="flex flex-wrap gap-2">
                 {estilos.map((e) => (
-                  <button
+                  <div
                     key={e.id}
-                    onClick={() => mudar(aEditar, { estiloId: e.id })}
-                    className={`flex items-center gap-2 rounded-xl border-2 px-3.5 py-2.5 text-sm transition ${
-                      estiloDe(aEditar).id === e.id
-                        ? 'border-ink bg-creme font-medium'
-                        : 'border-sand hover:border-ink/30'
+                    onClick={() => escolherEstilo(e.id)}
+                    className={`mb-2 flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 last:mb-0 transition ${
+                      e.id === estiloSelecionado.id ? 'border-rosa bg-rosaSuave' : 'border-sand'
                     }`}
                   >
                     <span
-                      className="h-5 w-5 rounded-md border border-black/10"
+                      className="h-4 w-4 shrink-0 rounded"
                       style={{ background: e.corFundo }}
                     />
-                    {e.nome}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() =>
-                    setRascunho({ ...ESTILOS_BASE[0], id: `e${Date.now()}`, nome: 'Estilo novo' })
-                  }
-                  className="flex items-center gap-1.5 rounded-xl border-2 border-dashed border-sand px-3.5 py-2.5 text-sm text-muted transition hover:border-rosa hover:text-rosa"
-                >
-                  <Plus className="h-4 w-4" /> Criar estilo
-                </button>
-              </div>
-
-              {/* o que se pode fazer ao estilo escolhido — mais discreto, de propósito */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-xs">
-                <span className="text-muted">
-                  Sobre <strong className="font-medium text-ink">{estiloDe(aEditar).nome}</strong>:
-                </span>
-                <button
-                  className="inline-flex items-center gap-1 text-muted transition hover:text-ink hover:underline"
-                  onClick={() => setRascunho(estiloDe(aEditar))}
-                >
-                  <Pencil className="h-3 w-3" /> afinar
-                </button>
-                <button
-                  className="inline-flex items-center gap-1 text-muted transition hover:text-ink hover:underline"
-                  onClick={() => {
-                    const e = estilos.find((x) => x.id === estiloDe(aEditar).id);
-                    if (!e) return;
-                    const novo = { ...e, id: `e${Date.now()}`, nome: `${e.nome} (cópia)` };
-                    gravarEstilos([...estilos, novo]);
-                    mudar(aEditar, { estiloId: novo.id });
-                  }}
-                >
-                  <Copy className="h-3 w-3" /> duplicar
-                </button>
-                {estilos.length > 1 && (
-                  <button
-                    className="inline-flex items-center gap-1 text-muted transition hover:text-rosa hover:underline"
-                    onClick={() => {
-                      const resto = estilos.filter((x) => x.id !== estiloDe(aEditar).id);
-                      gravarEstilos(resto);
-                      mudar(aEditar, { estiloId: resto[0].id });
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" /> apagar
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* fotografia do carrossel inteiro */}
-            <div className="mb-4 rounded-2xl border border-sand p-4">
-              <p className="label mb-2">Fotografia de fundo</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  className="flex items-center gap-2 rounded-xl border-2 border-sand px-3.5 py-2.5 text-sm transition hover:border-ink/30"
-                  onClick={() => setAEscolherFoto({ i: aEditar, slide: null })}
-                >
-                  {fotoDe(aEditar) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={fotoDe(aEditar) as string}
-                      alt=""
-                      className="h-5 w-5 rounded-md object-cover"
-                    />
-                  ) : (
-                    <Images className="h-4 w-4 text-muted" />
-                  )}
-                  {fotoDe(aEditar) ? 'Trocar a de todos os slides' : 'Uma para todos os slides'}
-                </button>
-                <label className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-dashed border-sand px-3.5 py-2.5 text-sm text-muted transition hover:border-rosa hover:text-rosa">
-                  <ImageIcon className="h-4 w-4" /> Do computador
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) mudar(aEditar, { foto: URL.createObjectURL(f) });
-                    }}
-                  />
-                </label>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-sand pt-3 text-xs">
-                <span className="text-muted">ou uma para cada slide, em baixo</span>
-                {(fotoDe(aEditar) || Object.keys(escolhas[aEditar]?.fotos ?? {}).length > 0) && (
-                  <button
-                    className="inline-flex items-center gap-1 text-muted transition hover:text-rosa hover:underline"
-                    onClick={() => mudar(aEditar, { foto: null, fotos: {} })}
-                  >
-                    <X className="h-3 w-3" /> tirar as fotografias
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* slide a slide */}
-            <div className="grid max-h-[52vh] gap-3 overflow-y-auto [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
-              {carrosseis[aEditar].slides.map((s, n) => (
-                <div key={n} className="overflow-hidden rounded-xl border border-sand">
-                  <SlidePreview
-                    estilo={estiloDe(aEditar)}
-                    foto={fotoDoSlide(aEditar, n)}
-                    texto={s}
-                    handle={handle}
-                    arredondado={false}
-                  />
-                  <div className="flex items-center justify-between gap-1 px-2 py-1.5 text-[11px] text-muted">
-                    <span>Slide {n + 1}</span>
-                    <span className="flex items-center gap-1">
-                      <button
-                        onClick={() => setAEscolherFoto({ i: aEditar, slide: n })}
-                        title="Fotografia só deste slide"
-                        className="rounded p-1 transition hover:bg-creme hover:text-ink"
-                      >
-                        <ImageIcon className="h-3.5 w-3.5" />
-                      </button>
-                      {escolhas[aEditar]?.fotos?.[n] && (
-                        <button
+                    <span className="truncate text-sm">{e.nome}</span>
+                    <span className="ml-auto flex items-center gap-1">
+                      <Mini
+                        label="Editar"
+                        onClick={() => setRascunhoEstilo(normalizar(e))}
+                        icone={<Pencil className="h-3.5 w-3.5" />}
+                      />
+                      <Mini
+                        label="Duplicar"
+                        onClick={() => {
+                          const novo = {
+                            ...normalizar(e),
+                            id: `e${Date.now()}`,
+                            nome: `${e.nome} (cópia)`,
+                          };
+                          gravarEstilos([...estilos, novo]);
+                          setEstiloId(novo.id);
+                        }}
+                        icone={<Copy className="h-3.5 w-3.5" />}
+                      />
+                      {estilos.length > 1 && (
+                        <Mini
+                          label="Remover"
                           onClick={() => {
-                            const fotos = { ...(escolhas[aEditar]?.fotos ?? {}) };
-                            delete fotos[n];
-                            mudar(aEditar, { fotos });
+                            const resto = estilos.filter((x) => x.id !== e.id);
+                            gravarEstilos(resto);
+                            if (e.id === estiloId) setEstiloId(resto[0].id);
                           }}
-                          title="Voltar à do carrossel"
-                          className="rounded p-1 transition hover:bg-rosaSuave hover:text-rosa"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                          icone={<Trash2 className="h-3.5 w-3.5" />}
+                        />
                       )}
                     </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                <button
+                  onClick={() =>
+                    setRascunhoEstilo({
+                      ...normalizar(ESTILOS_BASE[0]),
+                      id: `e${Date.now()}`,
+                      nome: 'Novo estilo',
+                    })
+                  }
+                  className="mt-3 w-full rounded-xl border border-dashed border-rosa px-3 py-2.5 text-sm font-semibold text-rosa"
+                >
+                  + Criar estilo
+                </button>
+              </Seccao>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-sand pt-4">
-              <button
-                className="btn-ghost !py-2 text-xs"
-                onClick={() => {
-                  const modelo = escolhas[aEditar];
-                  setEscolhas((p) =>
-                    Object.fromEntries(
-                      Object.entries(p).map(([k, v]) =>
-                        escolhidos.includes(Number(k))
-                          ? [k, { ...v, estiloId: modelo.estiloId, foto: modelo.foto }]
-                          : [k, v],
-                      ),
-                    ),
-                  );
-                }}
+              {/* fundo */}
+              <Seccao
+                id="fundo"
+                abertas={abertas}
+                alternar={alternar}
+                titulo="Fundo"
+                nota={
+                  modoFundo === 'cor'
+                    ? `cor ${estiloSelecionado.corFundo}`
+                    : fotoDeFundo
+                      ? 'foto'
+                      : 'sem foto'
+                }
               >
-                <Layers className="h-3.5 w-3.5" /> Aplicar este aspeto a todos os carrosséis
-              </button>
-              <button className="btn-primary ml-auto" onClick={() => setAEditar(null)}>
-                <Check className="h-4 w-4" /> Está assim
-              </button>
+                <div className="mb-4 inline-flex rounded-xl border border-sand p-1">
+                  {(['cor', 'foto'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setModoFundo(m)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize transition ${
+                        modoFundo === m ? 'bg-rosa text-white' : 'text-muted'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+
+                {modoFundo === 'cor' ? (
+                  <div className="flex flex-wrap gap-2">
+                    {CORES_FUNDO.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() =>
+                          gravarEstilos(
+                            estilos.map((e) =>
+                              e.id === estiloSelecionado.id ? { ...e, corFundo: c } : e,
+                            ),
+                          )
+                        }
+                        className={`h-9 w-9 rounded-lg border-2 transition ${
+                          estiloSelecionado.corFundo === c ? 'border-rosa' : 'border-sand'
+                        }`}
+                        style={{ background: c }}
+                        aria-label={`Fundo ${c}`}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setBibliotecaPara({ tipo: 'fundo' })}
+                      className="btn-secundario text-sm"
+                    >
+                      <Images className="h-4 w-4" /> Biblioteca de fotos
+                    </button>
+                    {fotoDeFundo && (
+                      <button
+                        onClick={() => escolherFoto(null)}
+                        className="btn-fantasma text-sm"
+                      >
+                        <X className="h-4 w-4" /> Tirar a foto
+                      </button>
+                    )}
+                    <p className="w-full text-xs leading-relaxed text-muted">
+                      No passo seguinte podes trocar a foto slide a slide.
+                    </p>
+                  </div>
+                )}
+              </Seccao>
+            </div>
+
+            {/* pré-visualização */}
+            <div>
+              <h3 className="mb-1.5 text-sm font-semibold">Pré-visualização</h3>
+              <SlidePreview
+                estilo={estiloDoCarrossel(ativo)}
+                foto={modoFundo === 'foto' ? fotoDeFundo : null}
+                texto={
+                  carrosseis[ativo]?.slides[0] ||
+                  'Cola o teu texto no passo 1 para veres os slides a sério.'
+                }
+                handle={handle || undefined}
+              />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ── 4. prontos ────────────────────────────────── */}
-      {passo === 4 && (
-        <>
-          <p className="mb-4 text-sm text-muted">
-            {escolhidos.length === 1 ? 'Está pronto' : `Estão ${escolhidos.length} prontos`}. Clica
-            num cartão para o ver todo, slide a slide.
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {escolhidos.map((i) => {
-              const c = carrosseis[i];
-              return (
-                <div key={i} className="overflow-hidden rounded-2xl border border-sand bg-superficie">
-                  <button onClick={() => setAVer(i)} className="block w-full text-left">
-                    <SlidePreview
-                      estilo={estiloDe(i)}
-                      foto={fotoDoSlide(i, 0)}
-                      texto={c.slides[0]}
-                      handle={handle}
-                      arredondado={false}
-                    />
-                  </button>
-                  <div className="p-3">
-                    <p className="mb-2 line-clamp-1 text-sm font-medium">{c.titulo}</p>
-                    <div className="flex items-center justify-between text-xs text-muted">
-                      <span>{c.slides.length} slides</span>
-                      <button
-                        onClick={() => descarregarCarrossel(i)}
-                        disabled={!!ocupado}
-                        className="inline-flex items-center gap-1 font-medium text-rosa"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {ocupado === `c-${i}` ? 'a fechar o zip…' : 'zip'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button className="btn-ghost" onClick={() => setPasso(3)}>
-              <ArrowLeft className="h-4 w-4" /> Afinar o aspeto
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <button onClick={() => setPasso(1)} className="btn-fantasma text-sm">
+              Voltar
             </button>
             <div className="flex-1" />
-            <button
-              className="btn-ghost"
-              onClick={() => guardar(escolhidos)}
-              disabled={!!ocupado}
-            >
-              {ocupado?.startsWith('a guardar') || ocupado === 'guardar' ? (
-                <Spinner label={ocupado === 'guardar' ? 'A guardar…' : ocupado} />
-              ) : (
-                <>
-                  <Save className="h-4 w-4" /> Guardar na biblioteca
-                </>
-              )}
-            </button>
-            <button
-              className="btn-escuro"
-              onClick={() => descarregarVarios(escolhidos)}
-              disabled={!!ocupado}
-            >
-              {ocupado && !ocupado.startsWith('a guardar') && ocupado !== 'guardar' ? (
-                <Spinner label={ocupado === 'varios' ? 'A exportar…' : ocupado} />
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  {escolhidos.length === 1
-                    ? 'Descarregar em zip'
-                    : `Descarregar os ${escolhidos.length} em zip`}
-                </>
-              )}
+            <button onClick={() => setPasso(3)} className="btn-primario text-sm">
+              Continuar para os slides <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </>
       )}
 
-      {/* ── o carrossel inteiro ───────────────────────── */}
-      {aVer !== null && carrosseis[aVer] && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-6 backdrop-blur-sm"
-          onClick={() => setAVer(null)}
-        >
-          <div className="card my-6 w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-wider text-muted">
-                  {carrosseis[aVer].slides.length} slides
-                </p>
-                <h2 className="text-lg font-semibold leading-snug">{carrosseis[aVer].titulo}</h2>
+      {/* ── 3. os teus slides ─────────────────────────── */}
+      {passo === 3 && (
+        <>
+          <p className="mb-4 text-sm text-muted">
+            {escolhidosIdx.length
+              ? `${escolhidosIdx.length === 1 ? '1 carrossel' : `${escolhidosIdx.length} carrosséis`} · ${totalDeSlides} slides. Podes afinar cada um.`
+              : 'Ainda não há slides — volta ao passo 1 e analisa o texto.'}
+          </p>
+
+          {!!escolhidosIdx.length && (
+            <Card className="mb-6">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                Estilo guardado — aplicar a todos os slides
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {estilos.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => aplicarEstiloATodos(e.id)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      e.id === estiloId ? 'border-rosa font-semibold' : 'border-sand'
+                    }`}
+                  >
+                    <span className="h-4 w-4 shrink-0 rounded" style={{ background: e.corFundo }} />
+                    <span className="max-w-[140px] truncate">{e.nome}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {escolhidosIdx.map((ci) => (
+            <div key={ci} className="mb-8">
+              <div className="mb-2.5 flex flex-wrap items-center gap-3">
+                <h3 className="text-sm font-bold">{carrosseis[ci].titulo}</h3>
+                <span className="text-xs text-muted">{carrosseis[ci].slides.length} slides</span>
+                <select
+                  value={estiloPorCarrossel[ci] ?? estiloId}
+                  onChange={(e) => aplicarEstiloAoCarrossel(ci, e.target.value)}
+                  className="ml-auto rounded-xl border border-sand px-2 py-1 text-xs"
+                  aria-label="Estilo deste carrossel"
+                >
+                  {estilos.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
+                {carrosseis[ci].slides.map((slide, si) => (
+                  <CartaoDeSlide
+                    key={si}
+                    n={si + 1}
+                    texto={slide}
+                    estilo={estiloDoSlide(ci, si)}
+                    foto={fotoDoSlide(ci, si)}
+                    handle={handle || undefined}
+                    aArrastar={arrastado?.c === ci && arrastado?.i === si}
+                    aoComecarArrasto={() => setArrastado({ c: ci, i: si })}
+                    aoAcabarArrasto={() => setArrastado(null)}
+                    aoLargarAqui={() => {
+                      if (arrastado && arrastado.c === ci) moverSlide(ci, arrastado.i, si);
+                      setArrastado(null);
+                    }}
+                    aoMudarTexto={(v) => mudarTexto(ci, si, v)}
+                    aoDescarregar={() => descarregarSlide(ci, si)}
+                    aoEscolherFoto={() => setBibliotecaPara({ tipo: 'slide', c: ci, s: si })}
+                    aoAplicarFotoATodos={
+                      fotoDoSlide(ci, si) && carrosseis[ci].slides.length > 1
+                        ? () => aplicarFotoAoCarrossel(ci, fotoDoSlide(ci, si) as string)
+                        : undefined
+                    }
+                    aoTirarFoto={
+                      fotosDeSlide[chave(ci, si)]
+                        ? () =>
+                            setFotosDeSlide((p) => {
+                              const n = { ...p };
+                              delete n[chave(ci, si)];
+                              return n;
+                            })
+                        : undefined
+                    }
+                    aoMudarTamanho={(d) =>
+                      ajustar(ci, si, { d: (ajustes[chave(ci, si)]?.d ?? 0) + d })
+                    }
+                    aoAlternarNegrito={() =>
+                      ajustar(ci, si, { negrito: !estiloDoSlide(ci, si).negrito })
+                    }
+                    aoAlinhar={(a) => ajustar(ci, si, { alinhamento: a })}
+                    aoRepor={
+                      ajustes[chave(ci, si)] ? () => reporTexto(ci, si) : undefined
+                    }
+                    aoApagar={
+                      carrosseis[ci].slides.length > 1 ? () => apagarSlide(ci, si) : undefined
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <button onClick={() => setPasso(2)} className="btn-fantasma text-sm">
+              Voltar
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={descarregarTudo}
+              className="btn-secundario text-sm"
+              disabled={!escolhidosIdx.length || !!ocupado}
+            >
+              <Download className="h-4 w-4" /> Descarregar em zip
+            </button>
+            <button
+              onClick={guardarNaBiblioteca}
+              className="btn-primario text-sm"
+              disabled={!escolhidosIdx.length || !!ocupado}
+            >
+              <Save className="h-4 w-4" /> Guardar em Carrosséis
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── o editor de estilo ────────────────────────── */}
+      {rascunhoEstilo && (
+        <EditorDeEstilo
+          rascunho={rascunhoEstilo}
+          setRascunho={setRascunhoEstilo}
+          aoFechar={() => setRascunhoEstilo(null)}
+          aoGuardar={() => {
+            const existe = estilos.some((e) => e.id === rascunhoEstilo.id);
+            gravarEstilos(
+              existe
+                ? estilos.map((e) => (e.id === rascunhoEstilo.id ? rascunhoEstilo : e))
+                : [...estilos, rascunhoEstilo],
+            );
+            setEstiloId(rascunhoEstilo.id);
+            setRascunhoEstilo(null);
+          }}
+          foto={modoFundo === 'foto' ? fotoDeFundo : null}
+          texto={carrosseis[ativo]?.slides[0] ?? 'O teu texto aqui'}
+          handle={handle || undefined}
+          aoEscolherFoto={() => setBibliotecaPara({ tipo: 'fundo' })}
+          aoTirarFoto={() => escolherFoto(null)}
+        />
+      )}
+
+      {/* ── a biblioteca de fotografias ───────────────── */}
+      {bibliotecaPara && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+          <div className="cartao flex max-h-[80vh] w-full max-w-2xl flex-col p-6">
+            <div className="mb-1 flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-muted" />
+              <h2 className="text-base font-semibold">A tua biblioteca</h2>
               <button
-                className="btn-ghost !py-2 text-xs"
-                onClick={() => descarregarCarrossel(aVer)}
-                disabled={!!ocupado}
-              >
-                <Download className="h-3.5 w-3.5" /> zip
-              </button>
-              <button
-                onClick={() => setAVer(null)}
-                className="rounded-lg p-1.5 text-muted transition hover:bg-creme hover:text-ink"
+                onClick={() => setBibliotecaPara(null)}
+                className="ml-auto rounded-full p-1 text-muted hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-
-            <div className="grid max-h-[70vh] gap-3 overflow-y-auto [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
-              {carrosseis[aVer].slides.map((s, n) => (
-                <div key={n} className="overflow-hidden rounded-xl border border-sand">
-                  <SlidePreview
-                    estilo={estiloDe(aVer)}
-                    foto={fotoDoSlide(aVer, n)}
-                    texto={s}
-                    handle={handle}
-                    arredondado={false}
-                  />
-                  <p className="px-2 py-1.5 text-[11px] text-muted">Slide {n + 1}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {rascunho && (
-        <EditorDeEstilo
-          rascunho={rascunho}
-          setRascunho={setRascunho}
-          foto={aEditar !== null ? fotoDoSlide(aEditar, 0) : null}
-          texto={aEditar !== null ? carrosseis[aEditar]?.slides[0] : undefined}
-          handle={handle}
-          aoEscolherFoto={
-            aEditar !== null ? () => setAEscolherFoto({ i: aEditar, slide: null }) : undefined
-          }
-          aoCarregarFoto={
-            aEditar !== null
-              ? (f) => mudar(aEditar, { foto: URL.createObjectURL(f) })
-              : undefined
-          }
-          aoTirarFoto={aEditar !== null ? () => mudar(aEditar, { foto: null }) : undefined}
-          aoFechar={() => setRascunho(null)}
-          aoGuardar={() => {
-            const existe = estilos.some((e) => e.id === rascunho.id);
-            gravarEstilos(
-              existe
-                ? estilos.map((e) => (e.id === rascunho.id ? rascunho : e))
-                : [...estilos, rascunho],
-            );
-            // um estilo novo passa a ser o do carrossel que está aberto
-            if (!existe && aEditar !== null) mudar(aEditar, { estiloId: rascunho.id });
-            setRascunho(null);
-          }}
-        />
-      )}
-
-      {aEscolherFoto !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-sm"
-          onClick={() => setAEscolherFoto(null)}
-        >
-          <div className="card w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 text-lg font-semibold">A tua biblioteca</h2>
-            <p className="mb-3 text-sm text-muted">
-              {aEscolherFoto.slide === null
-                ? 'Esta fotografia fica em todos os slides deste carrossel.'
-                : `Esta fotografia fica só no slide ${aEscolherFoto.slide + 1}.`}
+            <p className="mb-4 text-sm text-muted">
+              {bibliotecaPara.tipo === 'fundo'
+                ? 'Esta fotografia fica no fundo de todos os slides.'
+                : `Esta fotografia fica só no slide ${bibliotecaPara.s + 1}.`}
             </p>
-            <div className="grid max-h-[55vh] grid-cols-4 gap-2 overflow-y-auto md:grid-cols-6">
-              {fotos.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => {
-                    if (f.url) {
-                      const { i, slide } = aEscolherFoto;
-                      if (slide === null) mudar(i, { foto: f.url });
-                      else mudar(i, { fotos: { ...(escolhas[i]?.fotos ?? {}), [slide]: f.url } });
-                    }
-                    setAEscolherFoto(null);
-                  }}
-                  className="overflow-hidden rounded-xl border-2 border-transparent hover:border-ink"
-                >
-                  {f.url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.url} alt="" className="aspect-[3/4] w-full object-cover" />
-                  )}
-                </button>
-              ))}
-            </div>
-            {fotos.length === 0 && (
-              <p className="mt-3 text-sm text-muted">
-                Ainda não tens fotografias — carrega-as em Biblioteca · Fotografias.
+
+            {fotos.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted">
+                Ainda não tens fotografias. Podes carregá-las em Biblioteca → Fotografias.
               </p>
+            ) : (
+              <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 overflow-y-auto">
+                {fotos.map((f) =>
+                  f.url ? (
+                    <button
+                      key={f.id}
+                      onClick={() => escolherFoto(f.url)}
+                      className="overflow-hidden rounded-xl border border-sand transition hover:border-rosa"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.url} alt="" className="aspect-square w-full object-cover" />
+                    </button>
+                  ) : null,
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -1180,15 +1061,227 @@ export default function EstudioPage() {
   );
 }
 
-/** Nome de ficheiro sem acentos nem espaços — os sistemas agradecem. */
-function limpo(titulo: string) {
+/** Uma secção que se abre e fecha, e se lembra de como ficou. */
+function Seccao({
+  id,
+  abertas,
+  alternar,
+  titulo,
+  nota,
+  children,
+}: {
+  id: string;
+  abertas: string[];
+  alternar: (id: string) => void;
+  titulo: string;
+  nota?: string;
+  children: React.ReactNode;
+}) {
+  const aberta = abertas.includes(id);
   return (
-    titulo
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-zA-Z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .toLowerCase()
-      .slice(0, 40) || 'carrossel'
+    <Card className="mb-4">
+      <button
+        onClick={() => alternar(id)}
+        className="flex w-full items-center gap-2 text-left"
+      >
+        <span className="text-sm font-semibold">{titulo}</span>
+        {nota && <span className="truncate text-xs text-muted">{nota}</span>}
+        <ChevronDown
+          className={`ml-auto h-4 w-4 text-muted transition ${aberta ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {aberta && <div className="mt-4">{children}</div>}
+    </Card>
+  );
+}
+
+function Mini({
+  label,
+  onClick,
+  icone,
+}: {
+  label: string;
+  onClick: () => void;
+  icone: React.ReactNode;
+}) {
+  return (
+    <button
+      title={label}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="rounded-lg p-1.5 text-muted transition hover:bg-creme hover:text-ink"
+    >
+      {icone}
+    </button>
+  );
+}
+
+/** Um botão pequeno da barra de texto do slide. */
+function Txt({
+  onClick,
+  ativo,
+  label,
+  children,
+}: {
+  onClick?: () => void;
+  ativo?: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs transition ${
+        ativo ? 'bg-rosa text-white' : 'text-muted hover:bg-creme hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Um slide, com tudo o que se lhe pode fazer sem sair daqui:
+ * trocar a foto, escrever por cima, mudar o tamanho da letra, o negrito e o
+ * alinhamento, arrastá-lo para outro lugar, ou deitá-lo fora.
+ */
+function CartaoDeSlide({
+  n,
+  texto,
+  estilo,
+  foto,
+  handle,
+  aArrastar,
+  aoComecarArrasto,
+  aoAcabarArrasto,
+  aoLargarAqui,
+  aoMudarTexto,
+  aoDescarregar,
+  aoEscolherFoto,
+  aoAplicarFotoATodos,
+  aoTirarFoto,
+  aoMudarTamanho,
+  aoAlternarNegrito,
+  aoAlinhar,
+  aoRepor,
+  aoApagar,
+}: {
+  n: number;
+  texto: string;
+  estilo: Estilo;
+  foto: string | null;
+  handle?: string;
+  aArrastar: boolean;
+  aoComecarArrasto: () => void;
+  aoAcabarArrasto: () => void;
+  aoLargarAqui: () => void;
+  aoMudarTexto: (v: string) => void;
+  aoDescarregar: () => void;
+  aoEscolherFoto: () => void;
+  aoAplicarFotoATodos?: () => void;
+  aoTirarFoto?: () => void;
+  aoMudarTamanho: (d: number) => void;
+  aoAlternarNegrito: () => void;
+  aoAlinhar: (a: Alinhamento) => void;
+  aoRepor?: () => void;
+  aoApagar?: () => void;
+}) {
+  const [aEscrever, setAEscrever] = useState(false);
+  const campo = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (aEscrever) campo.current?.focus();
+  }, [aEscrever]);
+
+  return (
+    <div
+      draggable
+      onDragStart={aoComecarArrasto}
+      onDragEnd={aoAcabarArrasto}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        aoLargarAqui();
+      }}
+      className={`rounded-2xl border p-2 transition ${
+        aArrastar ? 'border-rosa opacity-50' : 'border-sand'
+      }`}
+    >
+      <SlidePreview estilo={estilo} foto={foto} texto={texto} handle={handle} />
+
+      <div className="mt-2 flex items-center gap-1 px-1 text-[11px] text-muted">
+        <GripVertical className="h-3.5 w-3.5 cursor-grab" />
+        <span className="font-semibold">Slide {n}</span>
+        <span className="ml-auto flex items-center gap-0.5">
+          <Mini label="Foto deste slide" onClick={aoEscolherFoto} icone={<ImageIcon className="h-3.5 w-3.5" />} />
+          {aoAplicarFotoATodos && (
+            <Mini
+              label="Aplicar esta foto a todos os slides"
+              onClick={aoAplicarFotoATodos}
+              icone={<Copy className="h-3.5 w-3.5" />}
+            />
+          )}
+          {aoTirarFoto && (
+            <Mini label="Repor a foto do carrossel" onClick={aoTirarFoto} icone={<RotateCcw className="h-3.5 w-3.5" />} />
+          )}
+          <Mini
+            label="Editar o texto"
+            onClick={() => setAEscrever((v) => !v)}
+            icone={<Pencil className="h-3.5 w-3.5" />}
+          />
+          <Mini label="Descarregar este slide" onClick={aoDescarregar} icone={<Download className="h-3.5 w-3.5" />} />
+          {aoApagar && <Mini label="Eliminar este slide" onClick={aoApagar} icone={<Trash2 className="h-3.5 w-3.5" />} />}
+        </span>
+      </div>
+
+      {aEscrever && (
+        <textarea
+          ref={campo}
+          value={texto}
+          onChange={(e) => aoMudarTexto(e.target.value)}
+          onBlur={() => setAEscrever(false)}
+          className="input mt-2 min-h-[80px] text-[13px]"
+        />
+      )}
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-0.5 border-t border-sand px-1 pt-1.5">
+        <Txt label="Diminuir o texto" onClick={() => aoMudarTamanho(-1)}>
+          A−
+        </Txt>
+        <Txt label="Aumentar o texto" onClick={() => aoMudarTamanho(1)}>
+          A+
+        </Txt>
+        <Txt label="Negrito" onClick={aoAlternarNegrito} ativo={estilo.negrito}>
+          <Bold className="h-3.5 w-3.5" />
+        </Txt>
+        <Txt
+          label="Alinhar à esquerda"
+          onClick={() => aoAlinhar('esquerda')}
+          ativo={estilo.alinhamento === 'esquerda'}
+        >
+          <AlignLeft className="h-3.5 w-3.5" />
+        </Txt>
+        <Txt label="Centrar" onClick={() => aoAlinhar('centro')} ativo={estilo.alinhamento === 'centro'}>
+          <AlignCenter className="h-3.5 w-3.5" />
+        </Txt>
+        <Txt
+          label="Alinhar à direita"
+          onClick={() => aoAlinhar('direita')}
+          ativo={estilo.alinhamento === 'direita'}
+        >
+          <AlignRight className="h-3.5 w-3.5" />
+        </Txt>
+        {aoRepor && (
+          <Txt label="Repor o texto do estilo" onClick={aoRepor}>
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Txt>
+        )}
+      </div>
+    </div>
   );
 }

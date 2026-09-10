@@ -23,6 +23,36 @@ export interface Estilo {
   caixaLargura: number;
   /** altura da caixa, em % do slide (só quando fixa) */
   caixaAltura: number;
+  /** caixa sempre ao meio na vertical, seja qual for o tamanho do texto */
+  caixaCentrada: boolean;
+  /** negrito — pode ser mudado slide a slide */
+  negrito: boolean;
+  /** alinhamento do texto — pode ser mudado slide a slide */
+  alinhamento: Alinhamento;
+}
+
+export type Alinhamento = 'esquerda' | 'centro' | 'direita';
+
+/**
+ * O que se pode mudar num slide sozinho, sem mexer no estilo do carrossel:
+ * o tamanho relativo da letra, o negrito e o alinhamento.
+ */
+export interface AjusteDoSlide {
+  /** quanto somar ao tamanho do estilo */
+  d?: number;
+  negrito?: boolean;
+  alinhamento?: Alinhamento;
+}
+
+/** O estilo do carrossel com os ajustes deste slide por cima. */
+export function comAjuste(base: Estilo, ajuste?: AjusteDoSlide): Estilo {
+  if (!ajuste) return base;
+  return {
+    ...base,
+    tamanho: Math.max(8, Math.min(64, base.tamanho + (ajuste.d ?? 0))),
+    negrito: ajuste.negrito ?? base.negrito,
+    alinhamento: ajuste.alinhamento ?? base.alinhamento,
+  };
 }
 
 export const ESTILOS_BASE: Estilo[] = [
@@ -39,6 +69,9 @@ export const ESTILOS_BASE: Estilo[] = [
     caixaFixa: false,
     caixaLargura: 90,
     caixaAltura: 30,
+    caixaCentrada: false,
+    negrito: true,
+    alinhamento: 'esquerda',
   },
   {
     id: 'limpo',
@@ -53,6 +86,9 @@ export const ESTILOS_BASE: Estilo[] = [
     caixaFixa: false,
     caixaLargura: 90,
     caixaAltura: 26,
+    caixaCentrada: false,
+    negrito: true,
+    alinhamento: 'esquerda',
   },
   {
     id: 'preto',
@@ -67,6 +103,9 @@ export const ESTILOS_BASE: Estilo[] = [
     caixaFixa: false,
     caixaLargura: 90,
     caixaAltura: 26,
+    caixaCentrada: false,
+    negrito: true,
+    alinhamento: 'esquerda',
   },
 ];
 
@@ -107,6 +146,9 @@ export function normalizar(e: Partial<Estilo>): Estilo {
     caixaFixa: e.caixaFixa === true,
     caixaLargura: typeof e.caixaLargura === 'number' ? e.caixaLargura : 90,
     caixaAltura: typeof e.caixaAltura === 'number' ? e.caixaAltura : 30,
+    caixaCentrada: e.caixaCentrada === true,
+    negrito: e.negrito !== false,
+    alinhamento: e.alinhamento ?? 'esquerda',
   };
 }
 
