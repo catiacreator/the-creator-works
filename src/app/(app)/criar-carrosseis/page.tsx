@@ -228,6 +228,8 @@ export default function Fabrica() {
   const [bibliotecaPara, setBibliotecaPara] = useState<
     { tipo: 'fundo' } | { tipo: 'slide'; c: number; s: number } | null
   >(null);
+  /** Na biblioteca de um slide: a foto é só dele, ou do carrossel inteiro? */
+  const [fotoParaTodos, setFotoParaTodos] = useState(false);
 
   const estiloSelecionado = normalizar(
     estilos.find((e) => e.id === estiloId) ?? estilos[0] ?? ESTILOS_BASE[0],
@@ -326,12 +328,18 @@ export default function Fabrica() {
   function escolherFoto(url: string | null) {
     if (bibliotecaPara?.tipo === 'slide') {
       const { c, s } = bibliotecaPara;
-      setFotosDeSlide((p) => {
-        const n = { ...p };
-        if (url) n[chave(c, s)] = url;
-        else delete n[chave(c, s)];
-        return n;
-      });
+      if (url && fotoParaTodos) aplicarFotoAoCarrossel(c, url);
+      else
+        setFotosDeSlide((p) => {
+          const n = { ...p };
+          if (url) n[chave(c, s)] = url;
+          else delete n[chave(c, s)];
+          return n;
+        });
+      // Escolher uma fotografia é dizer que se quer fotografia. Sem isto o
+      // fundo continuava em "cor" e a foto ficava guardada sem aparecer —
+      // que é o mesmo que não acontecer nada.
+      if (url) setModoFundo('foto');
     } else {
       setFotoDeFundo(url);
       setFotosPorCarrossel({});
@@ -989,7 +997,10 @@ export default function Fabrica() {
                     }}
                     aoMudarTexto={(v) => mudarTexto(ci, si, v)}
                     aoDescarregar={() => descarregarSlide(ci, si)}
-                    aoEscolherFoto={() => setBibliotecaPara({ tipo: 'slide', c: ci, s: si })}
+                    aoEscolherFoto={() => {
+                      setFotoParaTodos(false);
+                      setBibliotecaPara({ tipo: 'slide', c: ci, s: si });
+                    }}
                     aoAplicarFotoATodos={
                       fotoDoSlide(ci, si) && carrosseis[ci].slides.length > 1
                         ? () => aplicarFotoAoCarrossel(ci, fotoDoSlide(ci, si) as string)
@@ -1085,11 +1096,26 @@ export default function Fabrica() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="mb-4 text-sm text-muted">
+            <p className="mb-3 text-sm text-muted">
               {bibliotecaPara.tipo === 'fundo'
                 ? 'Esta fotografia fica no fundo de todos os slides.'
-                : `Esta fotografia fica só no slide ${bibliotecaPara.s + 1}.`}
+                : fotoParaTodos
+                  ? 'Esta fotografia fica no fundo de todos os slides deste carrossel.'
+                  : `Esta fotografia fica só no slide ${bibliotecaPara.s + 1}.`}
             </p>
+
+            {bibliotecaPara.tipo === 'slide' &&
+              (carrosseis[bibliotecaPara.c]?.slides.length ?? 0) > 1 && (
+                <label className="mb-4 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-sand px-3 py-2 text-sm text-ink transition hover:border-rosa">
+                  <input
+                    type="checkbox"
+                    checked={fotoParaTodos}
+                    onChange={(e) => setFotoParaTodos(e.target.checked)}
+                    className="h-4 w-4 accent-rosa"
+                  />
+                  Aplicar a todos os slides deste carrossel
+                </label>
+              )}
 
             {fotos.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted">
