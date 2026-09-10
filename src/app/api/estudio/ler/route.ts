@@ -5,6 +5,7 @@ import { defaultSpec } from '@/lib/render';
 import { extrairCarrosseis } from '@/lib/extrair-slides';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -19,6 +20,7 @@ export const maxDuration = 300;
  * ao mesmo tempo que os outros.
  */
 export const POST = withUser(async ({ user, supabase, request }) => {
+  await marcarConsumo(supabase, user.email, 'ler');
   const tipoDoPedido = request.headers.get('content-type') ?? '';
   let texto = '';
   let origem: string | null = null;

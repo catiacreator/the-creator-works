@@ -2,12 +2,14 @@ import { ok, withUser } from '@/lib/api';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
 import { TIPOLOGIAS, promptDosGanchos, sistemaDosGanchos, type Gancho } from '@/lib/ganchos';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 /** Nove ganchos para um assunto, cada um por uma tipologia diferente. */
 export const POST = withUser(async ({ user, supabase, request }) => {
+  await marcarConsumo(supabase, user.email, 'ganchos');
   const body = (await request.json()) as {
     assunto: string;
     contexto?: string;

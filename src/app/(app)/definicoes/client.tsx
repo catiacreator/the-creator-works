@@ -49,6 +49,12 @@ export default function DefinicoesClient() {
   const [erroEmail, setErroEmail] = useState<string | null>(null);
   /** mudar o email da conta é coisa de admin — a lista de acessos depende dele */
   const [souAdmin, setSouAdmin] = useState(false);
+  const [consumo, setConsumo] = useState<{
+    disponivel: boolean;
+    total?: number;
+    tecto: number;
+    semTecto: boolean;
+  } | null>(null);
 
   async function load() {
     const data = await fetch('/api/settings').then((r) => r.json());
@@ -57,6 +63,10 @@ export default function DefinicoesClient() {
 
   useEffect(() => {
     load();
+    fetch('/api/consumo')
+      .then((r) => r.json())
+      .then((d) => (d.error ? undefined : setConsumo(d)))
+      .catch(() => undefined);
     setEscuro(document.documentElement.classList.contains('dark'));
     fetch('/api/eu')
       .then((r) => r.json())
@@ -232,6 +242,37 @@ export default function DefinicoesClient() {
             É por este email que entras. A app é privada: mais ninguém tem acesso.
           </p>
         </Card>
+
+        {consumo?.disponivel && (
+          <Card className="mb-4">
+            <p className="label">Pedidos à Cát.IA este mês</p>
+            {consumo.semTecto ? (
+              <p className="text-[15px]">
+                {consumo.total} <span className="text-muted">— sem tecto, és admin</span>
+              </p>
+            ) : (
+              <>
+                <p className="text-[15px]">
+                  {consumo.total} <span className="text-muted">de {consumo.tecto}</span>
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-creme">
+                  <div
+                    className="h-full rounded-full bg-rosa transition-all"
+                    style={{
+                      width: `${Math.min(100, ((consumo.total ?? 0) / consumo.tecto) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              Conta tudo o que passa pela Cát.IA: escrever carrosséis, os roteiros,
+              a Última hora, a análise de perfil. Volta a zero no dia 1. A Fábrica
+              de carrosséis, o Editor e a Biblioteca não contam — esses não passam
+              pela IA.
+            </p>
+          </Card>
+        )}
 
         {!souAdmin ? (
           <Card className="mb-4">

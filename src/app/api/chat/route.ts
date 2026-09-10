@@ -4,6 +4,7 @@ import { contextoDaMemoria } from '@/lib/memoria';
 import { contextoDoMaterial } from '@/lib/material';
 import { conversa } from '@/lib/ia';
 import { signedUrl } from '@/lib/storage';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -58,6 +59,9 @@ export const POST = withUser(async ({ user, supabase, request }) => {
   };
   const message = (body.message ?? '').trim();
   if (!message) throw new Error('Mensagem vazia.');
+
+  // antes de criar a conversa: recusada, não deixa uma linha vazia atrás
+  await marcarConsumo(supabase, user.email, 'conversa');
 
   let threadId = body.thread_id;
   if (!threadId) {
