@@ -17,11 +17,13 @@ import {
   GripVertical,
   Image as ImageIcon,
   Images,
+  Italic,
   Pencil,
   Plus,
   RotateCcw,
   Search,
   Trash2,
+  Underline,
   X,
 } from 'lucide-react';
 import JSZip from 'jszip';
@@ -29,6 +31,7 @@ import { Card, PageHeader, Spinner } from '@/components/ui';
 import { SlidePreview } from '@/components/studio/preview';
 import { EditorDeEstilo } from '@/components/studio/editor-estilo';
 import { extrairDoTexto, type CarrosselLido } from '@/lib/fabrica-extrair';
+import { envolver, semMarcas, type Marca } from '@/lib/studio-texto';
 import { descarregar, slideParaBlob } from '@/lib/studio-render';
 import {
   CORES_FUNDO,
@@ -538,7 +541,7 @@ export default function Fabrica() {
             pasta.file(`${String(si + 1).padStart(2, '0')}-${limpo(c.titulo)}.png`, blob);
           }
         }
-        pasta.file('legenda.txt', [c.titulo, '', ...c.slides].join('\n\n'));
+        pasta.file('legenda.txt', [c.titulo, '', ...c.slides.map(semMarcas)].join('\n\n'));
       }
       setOcupado('a fechar o zip');
       const blob = await zip.generateAsync({ type: 'blob' });
@@ -1384,6 +1387,28 @@ function CartaoDeSlide({
 }) {
   const [aEscrever, setAEscrever] = useState(false);
   const campo = useRef<HTMLTextAreaElement>(null);
+  const barra = useRef<HTMLDivElement>(null);
+
+  /**
+   * Marca as palavras selecionadas.
+   *
+   * As marcas vivem dentro do texto (ver studio-texto.ts), por isso marcar é
+   * escrever à volta do que está selecionado. A seleção é reposta a seguir —
+   * senão o cursor saltava para o princípio a cada carregar de botão, e não
+   * se conseguiria pôr negrito e sublinhado nas mesmas palavras.
+   */
+  function marcar(marca: Marca) {
+    const el = campo.current;
+    if (!el) return;
+    const { selectionStart: a, selectionEnd: b } = el;
+    if (a === null || b === null || a === b) return;
+    const r = envolver(texto, a, b, marca);
+    aoMudarTexto(r.texto);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(r.inicio, r.fim);
+    });
+  }
 
   useEffect(() => {
     if (aEscrever) campo.current?.focus();
@@ -1442,13 +1467,33 @@ function CartaoDeSlide({
       </div>
 
       {aEscrever && (
-        <textarea
-          ref={campo}
-          value={texto}
-          onChange={(e) => aoMudarTexto(e.target.value)}
-          onBlur={() => setAEscrever(false)}
-          className="input mt-2 min-h-[80px] text-[13px]"
-        />
+        <div className="mt-2">
+          <div ref={barra} className="mb-1.5 flex items-center gap-0.5">
+            <Txt label="Negrito nas palavras selecionadas" onClick={() => marcar('negrito')}>
+              <Bold className="h-3.5 w-3.5" />
+            </Txt>
+            <Txt label="Itálico nas palavras selecionadas" onClick={() => marcar('italico')}>
+              <Italic className="h-3.5 w-3.5" />
+            </Txt>
+            <Txt label="Sublinhado nas palavras selecionadas" onClick={() => marcar('sublinhado')}>
+              <Underline className="h-3.5 w-3.5" />
+            </Txt>
+            <span className="ml-1 text-[10px] leading-tight text-muted">
+              seleciona e carrega
+            </span>
+          </div>
+          <textarea
+            ref={campo}
+            value={texto}
+            onChange={(e) => aoMudarTexto(e.target.value)}
+            onBlur={(e) => {
+              // sair para os botões de marcar não é sair do campo
+              if (e.relatedTarget && barra.current?.contains(e.relatedTarget as Node)) return;
+              setAEscrever(false);
+            }}
+            className="input min-h-[80px] text-[13px]"
+          />
+        </div>
       )}
 
       <div className="mt-1.5 flex flex-wrap items-center gap-0.5 border-t border-sand px-1 pt-1.5">

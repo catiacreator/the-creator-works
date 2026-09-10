@@ -1,4 +1,5 @@
 import { hexParaRgba, corDoTexto, type Estilo } from './studio-estilos';
+import { lerTrechos, type Marcas } from './studio-texto';
 
 /**
  * Desenha um slide num canvas — é o mesmo desenho que se vê no ecrã e o que
@@ -22,72 +23,135 @@ function cantos(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
 }
 
 /**
- * Uma linha de texto já partida.
+ * Um pedaço de palavra com uma letra só sua.
+ *
+ * Uma palavra pode ter mais do que um: em `__Instagram__.` o nome vai
+ * sublinhado e o ponto não — mas continuam colados, sem espaço pelo meio.
+ * Por isso a palavra é a unidade que se separa das outras, e o segmento a
+ * unidade que se desenha.
+ */
+interface Segmento extends Marcas {
+  texto: string;
+  largura: number;
+}
+
+interface Palavra {
+  segmentos: Segmento[];
+  largura: number;
+}
+
+/**
+ * Uma linha já partida.
  * `ultima` marca a que fecha um parágrafo — essa nunca se justifica, senão
  * ficam três palavras esticadas de uma ponta à outra do slide.
  */
 interface Linha {
-  texto: string;
+  palavras: Palavra[];
+  largura: number;
   ultima: boolean;
+}
+
+/** A letra de um segmento: a do estilo, com o que a marca lhe acrescentar. */
+function letra(estilo: Estilo, px: number, m: Marcas) {
+  const peso = m.negrito || estilo.negrito !== false ? 700 : 400;
+  const inclinada = m.italico ? 'italic ' : '';
+  return `${inclinada}${peso} ${px}px ${estilo.fonte}, Poppins, Arial, sans-serif`;
 }
 
 function partirEmLinhas(
   ctx: CanvasRenderingContext2D,
   texto: string,
+  estilo: Estilo,
+  px: number,
   larguraMax: number,
-): Linha[] {
+): { linhas: Linha[]; espaco: number } {
+  ctx.font = letra(estilo, px, {});
+  const espaco = ctx.measureText(' ').width;
+
+  // ── do texto marcado para parágrafos de palavras ──
+  const paragrafos: Palavra[][] = [[]];
+  let emCurso: Segmento[] = [];
+
+  const fecharPalavra = () => {
+    if (!emCurso.length) return;
+    paragrafos[paragrafos.length - 1].push({
+      segmentos: emCurso,
+      largura: emCurso.reduce((a, seg) => a + seg.largura, 0),
+    });
+    emCurso = [];
+  };
+
+  for (const trecho of lerTrechos(texto)) {
+    const { texto: t, ...marcas } = trecho;
+    ctx.font = letra(estilo, px, marcas);
+    for (const pedaco of t.split(/(\s+)/)) {
+      if (!pedaco) continue;
+      if (/^\s+$/.test(pedaco)) {
+        fecharPalavra();
+        // cada mudança de linha abre um parágrafo — duas seguidas deixam
+        // uma linha em branco, como no campo onde se escreveu
+        const quebras = pedaco.match(/\n/g)?.length ?? 0;
+        for (let k = 0; k < quebras; k++) paragrafos.push([]);
+        continue;
+      }
+      emCurso.push({ ...marcas, texto: pedaco, largura: ctx.measureText(pedaco).width });
+    }
+  }
+  fecharPalavra();
+
+  // ── e daí para linhas que caibam ──
   const linhas: Linha[] = [];
-  for (const paragrafo of String(texto).split('\n')) {
-    const palavras = paragrafo.split(/\s+/).filter(Boolean);
+  for (const palavras of paragrafos) {
     if (!palavras.length) {
-      linhas.push({ texto: '', ultima: true });
+      linhas.push({ palavras: [], largura: 0, ultima: true });
       continue;
     }
-    let linha = palavras[0];
+    let atual: Palavra[] = [palavras[0]];
+    let largura = palavras[0].largura;
     for (let i = 1; i < palavras.length; i++) {
-      const tentativa = `${linha} ${palavras[i]}`;
-      if (ctx.measureText(tentativa).width > larguraMax) {
-        linhas.push({ texto: linha, ultima: false });
-        linha = palavras[i];
+      const tentativa = largura + espaco + palavras[i].largura;
+      if (tentativa > larguraMax) {
+        linhas.push({ palavras: atual, largura, ultima: false });
+        atual = [palavras[i]];
+        largura = palavras[i].largura;
       } else {
-        linha = tentativa;
+        atual.push(palavras[i]);
+        largura = tentativa;
       }
     }
-    linhas.push({ texto: linha, ultima: true });
+    linhas.push({ palavras: atual, largura, ultima: true });
   }
-  return linhas;
+  return { linhas, espaco };
 }
 
 /**
- * Escreve uma linha com as palavras esticadas até encher a largura.
+ * Escreve uma linha, palavra a palavra, a partir de onde lhe mandam.
  *
- * O canvas não sabe justificar: escreve-se palavra a palavra e reparte-se o
- * espaço que sobra pelos intervalos. Uma linha de uma palavra só fica como
- * está — não há intervalos onde pôr o espaço.
+ * O `intervalo` é o que vai entre palavras: o espaço normal, ou o espaço
+ * esticado quando a linha é para justificar. Dentro de uma palavra os
+ * segmentos ficam colados. O sublinhado é um risco por baixo — o canvas não
+ * sabe fazê-lo sozinho.
  */
-function escreverJustificado(
+function escreverLinha(
   ctx: CanvasRenderingContext2D,
-  linha: string,
+  linha: Linha,
+  estilo: Estilo,
+  px: number,
   x: number,
   y: number,
-  largura: number,
+  intervalo: number,
 ) {
-  const palavras = linha.split(/\s+/).filter(Boolean);
-  if (palavras.length < 2) {
-    ctx.fillText(linha, x, y);
-    return;
-  }
-  const soPalavras = palavras.reduce((a, p) => a + ctx.measureText(p).width, 0);
-  const intervalo = (largura - soPalavras) / (palavras.length - 1);
-  // linha já mais larga do que a caixa: escreve-se normal, sem encolher
-  if (intervalo <= 0) {
-    ctx.fillText(linha, x, y);
-    return;
-  }
   let cursor = x;
-  palavras.forEach((p, i) => {
-    ctx.fillText(p, cursor, y);
-    cursor += ctx.measureText(p).width + (i < palavras.length - 1 ? intervalo : 0);
+  linha.palavras.forEach((p, i) => {
+    for (const seg of p.segmentos) {
+      ctx.font = letra(estilo, px, seg);
+      ctx.fillText(seg.texto, cursor, y);
+      if (seg.sublinhado) {
+        ctx.fillRect(cursor, y + px * 0.16, seg.largura, Math.max(1, px * 0.055));
+      }
+      cursor += seg.largura;
+    }
+    if (i < linha.palavras.length - 1) cursor += intervalo;
   });
 }
 
@@ -143,9 +207,14 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
   const padY = 26;
   const caixaL = estilo.caixaFixa ? areaL * (estilo.caixaLargura / 100) : areaL;
 
-  const peso = estilo.negrito === false ? 400 : 700;
-  ctx.font = `${peso} ${px}px ${estilo.fonte}, Poppins, Arial, sans-serif`;
-  const linhas = partirEmLinhas(ctx, (texto || '').trim(), caixaL - padX * 2);
+  const larguraUtil = caixaL - padX * 2;
+  const { linhas, espaco } = partirEmLinhas(
+    ctx,
+    (texto || '').trim(),
+    estilo,
+    px,
+    larguraUtil,
+  );
   const alturaLinha = px * 1.28;
   const caixaA = estilo.caixaFixa
     ? areaA * (estilo.caixaAltura / 100)
@@ -169,26 +238,35 @@ export async function desenharSlide(canvas: HTMLCanvasElement, opcoes: OpcoesDoS
   const alturaTexto = linhas.length * alturaLinha;
   const comeco = caixaY + (caixaA - alturaTexto) / 2 + px * 0.82;
 
-  // onde começa a linha depende do alinhamento; o canvas faz o resto —
-  // menos no justificado, que é escrito palavra a palavra aqui em baixo
+  // escreve-se sempre da esquerda para a direita, palavra a palavra: é o
+  // alinhamento que decide onde cada linha começa, e a conta é feita aqui
   const alinhamento = estilo.alinhamento ?? 'esquerda';
-  ctx.textAlign =
-    alinhamento === 'centro' ? 'center' : alinhamento === 'direita' ? 'right' : 'left';
-  const xDoTexto =
-    alinhamento === 'centro'
-      ? caixaX + caixaL / 2
-      : alinhamento === 'direita'
-        ? caixaX + caixaL - padX
-        : caixaX + padX;
+  ctx.textAlign = 'left';
 
-  const larguraUtil = caixaL - padX * 2;
   linhas.forEach((l, i) => {
+    if (!l.palavras.length) return;
     const y = comeco + i * alturaLinha;
-    if (alinhamento === 'justificado' && !l.ultima) {
-      escreverJustificado(ctx, l.texto, caixaX + padX, y, larguraUtil);
-    } else {
-      ctx.fillText(l.texto, xDoTexto, y);
-    }
+
+    // uma linha do meio de um parágrafo justificado estica os intervalos;
+    // já mais larga do que a caixa, ou de uma palavra só, fica como está
+    const justificar =
+      alinhamento === 'justificado' &&
+      !l.ultima &&
+      l.palavras.length > 1 &&
+      l.largura < larguraUtil;
+    const intervalo = justificar
+      ? espaco + (larguraUtil - l.largura) / (l.palavras.length - 1)
+      : espaco;
+    const largura = justificar ? larguraUtil : l.largura;
+
+    const x =
+      alinhamento === 'centro'
+        ? caixaX + (caixaL - largura) / 2
+        : alinhamento === 'direita'
+          ? caixaX + caixaL - padX - largura
+          : caixaX + padX;
+
+    escreverLinha(ctx, l, estilo, px, x, y, intervalo);
   });
 
   if (handle) {
