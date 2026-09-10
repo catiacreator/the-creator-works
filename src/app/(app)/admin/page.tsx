@@ -13,6 +13,7 @@ import {
   KeyRound,
   LayoutList,
   Library,
+  Pencil,
   PenTool,
   Plus,
   Radio,
@@ -91,6 +92,14 @@ export default function AdminPage() {
   const [podeGerir, setPodeGerir] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  /** A pessoa que está a ser editada, com o que se lhe pode mudar. */
+  const [aEditar, setAEditar] = useState<{
+    id: string;
+    nome: string;
+    email: string;
+    emailAntigo: string;
+    acesso_ate: string;
+  } | null>(null);
   const [convite, setConvite] = useState<{ email: string; nome: string; papel: Papel } | null>(
     null,
   );
@@ -399,6 +408,21 @@ export default function AdminPage() {
                       }
                     >
                       {m.ativo ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                    </button>
+                    <button
+                      title="Editar o nome, o email e a data"
+                      className="rounded-lg p-2 text-muted transition hover:text-ink"
+                      onClick={() =>
+                        setAEditar({
+                          id: m.id,
+                          nome: m.nome ?? '',
+                          email: m.email,
+                          emailAntigo: m.email,
+                          acesso_ate: m.acesso_ate ?? '',
+                        })
+                      }
+                    >
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       title="Tirar o acesso de vez"
@@ -865,6 +889,85 @@ export default function AdminPage() {
       )}
 
       {/* ── convidar ───────────────────────────────── */}
+      {aEditar && (
+        <Dialogo
+          titulo="Editar"
+          texto="O nome e o email são os desta lista. A data é até quando o acesso dura — o Stripe empurra-a sozinho a cada mensalidade paga."
+          confirmar="Guardar"
+          ocupado={ocupado}
+          aoFechar={() => setAEditar(null)}
+          aoConfirmar={async () => {
+            setOcupado(true);
+            setErro(null);
+            try {
+              const corpo: Record<string, unknown> = {
+                id: aEditar.id,
+                nome: aEditar.nome,
+                acesso_ate: aEditar.acesso_ate,
+              };
+              // só se manda o email quando ele mudou mesmo: assim não se
+              // tropeça na verificação de repetidos por causa de si próprio
+              if (aEditar.email.trim().toLowerCase() !== aEditar.emailAntigo.toLowerCase()) {
+                corpo.email = aEditar.email;
+              }
+              const d = await fetch('/api/membros', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(corpo),
+              }).then((r) => r.json());
+              if (d.error) throw new Error(d.error);
+              await carregar();
+              setRecado('Guardado.');
+              setAEditar(null);
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não deu.');
+            } finally {
+              setOcupado(false);
+            }
+          }}
+        >
+          <div className="mb-4 space-y-3">
+            <div>
+              <label className="label">Nome</label>
+              <input
+                className="input"
+                autoFocus
+                value={aEditar.nome}
+                onChange={(e) => setAEditar({ ...aEditar, nome: e.target.value })}
+                placeholder="Como se chama"
+              />
+            </div>
+            <div>
+              <label className="label">E-mail</label>
+              <input
+                type="email"
+                className="input"
+                value={aEditar.email}
+                onChange={(e) => setAEditar({ ...aEditar, email: e.target.value })}
+              />
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                É por aqui que ela entra. Mudar isto muda a porta: a partir de
+                agora só entra pelo endereço novo, e o antigo deixa de servir.
+              </p>
+            </div>
+            <div>
+              <label className="label">Acesso até</label>
+              <input
+                type="date"
+                className="input"
+                value={aEditar.acesso_ate}
+                onChange={(e) => setAEditar({ ...aEditar, acesso_ate: e.target.value })}
+              />
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                Depois deste dia a app fecha-se e ela vê a página de renovação.
+                Deixa vazio para acesso sem prazo — é o caso de quem entrou por
+                código teu, não por mensalidade.
+              </p>
+            </div>
+          </div>
+        </Dialogo>
+      )}
+
       {convite && (
         <Dialogo
           titulo="Convidar alguém"

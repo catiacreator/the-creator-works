@@ -102,25 +102,31 @@ export const POST = withUser(async ({ user, supabase, request }) => {
   });
 });
 
-/** Mudar o papel, ou suspender e retomar o acesso. */
+/** Mudar o papel, o nome, o email, a data de acesso, ou suspender e retomar. */
 export const PATCH = withUser(async ({ user, supabase, request }) => {
   await exigir(supabase, user, 'gerir-pessoas');
-  const { id, papel, ativo } = (await request.json()) as {
+  const { id, papel, ativo, nome, email, acesso_ate } = (await request.json()) as {
     id?: string;
     papel?: Papel;
     ativo?: boolean;
+    nome?: string | null;
+    email?: string;
+    /** 'AAAA-MM-DD', ou vazio para tirar o prazo */
+    acesso_ate?: string | null;
   };
   if (!id) throw new Error('Falta dizer quem.');
 
   const { data: alvo } = await supabase.from('membros').select('email, papel').eq('id', id).single();
 
-  // a app não pode ficar sem dono: ninguém se despromove nem se suspende
-  if (alvo?.email?.toLowerCase() === user.email?.toLowerCase()) {
+  // a app não pode ficar sem dono: ninguém se despromove nem se suspende.
+  // Mudar o próprio nome, esse, não faz mal a ninguém.
+  const souEu = alvo?.email?.toLowerCase() === user.email?.toLowerCase();
+  if (souEu && (papel !== undefined || ativo !== undefined)) {
     throw new Error('Não podes mudar o teu próprio papel nem tirar-te o acesso.');
   }
 
   // e a dona é a dona: nem outro admin lhe pode tirar a cadeira
-  if (eADona(alvo?.email)) {
+  if (eADona(alvo?.email) && (papel !== undefined || ativo !== undefined)) {
     throw new Error('Esta é a conta dona da app. O papel dela não se muda daqui.');
   }
 
@@ -139,6 +145,48 @@ export const PATCH = withUser(async ({ user, supabase, request }) => {
   const campos: Record<string, unknown> = {};
   if (papel) campos.papel = papel;
   if (ativo !== undefined) campos.ativo = ativo;
+  if (nome !== undefined) campos.nome = nome?.trim() || null;
+
+  if (email !== undefined) {
+    const novo = email.trim().toLowerCase();
+    if (!novo.includes('@')) throw new Error('Esse email não parece um email.');
+    if (eADona(alvo?.email)) {
+      throw new Error('O email da conta dona não se muda daqui — muda-se em Definições.');
+    }
+    // o lugar muda de endereço; a conta de quem entra não. Quem já entrava
+    // pelo antigo passa a precisar de entrar pelo novo.
+    const { data: ocupado } = await supabase
+      .from('membros')
+      .select('id')
+      .ilike('email', novo)
+      .neq('id', id)
+      .maybeSingle();
+    if (ocupado) throw new Error('Já há alguém com esse email.');
+    campos.email = novo;
+  }
+
+  if (acesso_ate !== undefined) {
+    const d = (acesso_ate ?? '').trim();
+    if (!d) {
+      campos.acesso_ate = null;
+    } else {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error('A data tem de ser AAAA-MM-DD.');
+      // 31 de fevereiro passa no Date.parse — ele empurra para 3 de março em
+      // silêncio. A conta só fecha se o dia voltar a sair igual ao que entrou.
+      const [ano, mes, dia] = d.split('-').map(Number);
+      const dt = new Date(Date.UTC(ano, mes - 1, dia));
+      if (
+        dt.getUTCFullYear() !== ano ||
+        dt.getUTCMonth() !== mes - 1 ||
+        dt.getUTCDate() !== dia
+      ) {
+        throw new Error('Essa data não existe.');
+      }
+      campos.acesso_ate = d;
+    }
+  }
+
+  if (!Object.keys(campos).length) throw new Error('Não disseste o que mudar.');
 
   const { data, error } = await supabase
     .from('membros')

@@ -33,6 +33,21 @@ export interface Acesso {
 }
 
 /**
+ * Porque é que a porta está fechada.
+ *
+ * Não é a mesma coisa nunca se ter tido lugar e ter-se deixado de pagar. À
+ * primeira não se deve nada a ninguém; à segunda deve-se uma explicação e um
+ * caminho de volta — e o caminho de volta é pagar.
+ */
+export type PortaFechada = 'sem-lugar' | 'suspensa' | 'caducada';
+
+export interface SemAcesso {
+  motivo: PortaFechada;
+  /** o dia em que caducou, quando foi isso que aconteceu */
+  ate?: string | null;
+}
+
+/**
  * O papel de quem está a bater à porta.
  * Devolve null a quem não tem lugar nenhum — e é isso que fecha a porta.
  */
@@ -40,7 +55,21 @@ export async function acessoDe(
   supabase: SupabaseClient,
   email?: string | null,
 ): Promise<Acesso | null> {
-  if (!email) return null;
+  const r = await estadoDoAcesso(supabase, email);
+  return 'papel' in r ? r : null;
+}
+
+/**
+ * O mesmo, mas a dizer porque é que fechou.
+ *
+ * O middleware precisa de saber a diferença: a quem caducou mostra-se a
+ * página de renovação, a quem nunca teve lugar mostra-se a porta.
+ */
+export async function estadoDoAcesso(
+  supabase: SupabaseClient,
+  email?: string | null,
+): Promise<Acesso | SemAcesso> {
+  if (!email) return { motivo: 'sem-lugar' };
 
   try {
     const { data, error } = await supabase
@@ -52,13 +81,15 @@ export async function acessoDe(
     if (error) throw error;
 
     if (data) {
-      if (!data.ativo) return null;
+      if (!data.ativo) return { motivo: 'suspensa' };
 
-      // a validade fecha a porta sozinha: se a Hotmart deixar de avisar que
-      // a mensalidade foi paga, o prazo passa e o acesso acaba aqui, sem
+      // a validade fecha a porta sozinha: se o Stripe deixar de avisar que a
+      // mensalidade foi paga, o prazo passa e o acesso acaba aqui, sem
       // ninguém ter de o ir tirar à mão
       const ate = data.acesso_ate as string | null;
-      if (ate && ate < new Date().toISOString().slice(0, 10)) return null;
+      if (ate && ate < new Date().toISOString().slice(0, 10)) {
+        return { motivo: 'caducada', ate };
+      }
 
       return { papel: data.papel as Papel, ativo: true, ate };
     }
@@ -69,8 +100,12 @@ export async function acessoDe(
   if (eADona(email) || emailDeConstrucao(email)) {
     return { papel: 'admin', ativo: true, ate: null };
   }
-  return null;
+  return { motivo: 'sem-lugar' };
 }
 
 /** O que se mostra a quem bate à porta sem ser convidado. */
 export const RECADO_SEM_ACESSO = 'Esta app é privada. Esta conta não tem acesso.';
+
+/** O que se diz a quem deixou de pagar. */
+export const RECADO_CADUCADO =
+  'A tua assinatura está por renovar. Renova para voltares a entrar.';
