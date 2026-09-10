@@ -368,24 +368,7 @@ export default function Fabrica() {
   const [aAnalisar, setAAnalisar] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  function analisar() {
-    const t = texto.trim();
-    if (!t) {
-      setAviso({ ok: false, msg: 'Cola primeiro o texto com os slides.' });
-      return;
-    }
-    setAAnalisar(true);
-    setAviso(null);
-    const achados = extrairDoTexto(t);
-    setAAnalisar(false);
-
-    if (!achados.length) {
-      setAviso({
-        ok: false,
-        msg: 'Não encontrei slides neste texto. Costuma vir em "Slide 1: …", em lista, ou com os parágrafos separados por uma linha em branco.',
-      });
-      return;
-    }
+  function assentar(achados: CarrosselLido[], nota: string) {
     setCarrosseis(achados);
     setAjustes({});
     setFotosDeSlide({});
@@ -395,8 +378,81 @@ export default function Fabrica() {
     const slides = achados.reduce((a, c) => a + c.slides.length, 0);
     setAviso({
       ok: true,
-      msg: `${achados.length === 1 ? '1 carrossel' : `${achados.length} carrosséis`} · ${slides} slides.`,
+      msg: `${achados.length === 1 ? '1 carrossel' : `${achados.length} carrosséis`} · ${slides} slides.${nota}`,
     });
+  }
+
+  /**
+   * Lê o texto.
+   *
+   * Primeiro aqui, de graça e num instante. Mas o leitor local só acerta nos
+   * feitios que conhece: se um documento traz nove carrosséis com os títulos
+   * escritos de uma maneira que ninguém previu, ele cola-os todos num só. Por
+   * isso, quando de um texto grande sai um carrossel só, pergunta-se à Cát.IA
+   * onde é que cada um começa e acaba.
+   *
+   * Ela devolve só números de linha — o texto é recortado do original. Não há
+   * nada que ela possa reescrever pelo caminho.
+   */
+  async function analisar() {
+    const t = texto.trim();
+    if (!t) {
+      setAviso({ ok: false, msg: 'Cola primeiro o texto com os slides.' });
+      return;
+    }
+    setAAnalisar(true);
+    setAviso(null);
+    setErro(null);
+
+    const achados = extrairDoTexto(t);
+
+    // um carrossel só, mas com slides que cheguem para vários? é suspeito
+    const suspeito = achados.length <= 1 && (achados[0]?.slides.length ?? 0) > 12;
+
+    if (achados.length && !suspeito) {
+      setAAnalisar(false);
+      assentar(achados, '');
+      return;
+    }
+
+    if (!achados.length && t.length < 120) {
+      setAAnalisar(false);
+      setAviso({
+        ok: false,
+        msg: 'Não encontrei slides neste texto. Costuma vir em "Slide 1: …", em lista, ou com os parágrafos separados por uma linha em branco.',
+      });
+      return;
+    }
+
+    // a Cát.IA marca onde cada carrossel começa e acaba
+    setOcupado('a pedir à Cát.IA para separar os carrosséis');
+    try {
+      const d = await fetch('/api/estudio/separar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: t }),
+      }).then((r) => r.json());
+
+      if (d.error) throw new Error(d.error);
+      const daIA = (d.carrosseis ?? []) as CarrosselLido[];
+
+      if (daIA.length > achados.length) {
+        assentar(daIA, ' A Cát.IA separou-os.');
+      } else if (achados.length) {
+        assentar(achados, '');
+      } else {
+        setAviso({ ok: false, msg: 'Não encontrei carrosséis neste texto.' });
+      }
+    } catch (e) {
+      if (achados.length) {
+        assentar(achados, ` ${e instanceof Error ? e.message : 'A Cát.IA não pôde ajudar.'}`);
+      } else {
+        setErro(e instanceof Error ? e.message : 'Não consegui ler este texto.');
+      }
+    } finally {
+      setAAnalisar(false);
+      setOcupado(null);
+    }
   }
 
   // ── sair daqui: um zip, ou guardado em Carrosséis ──
