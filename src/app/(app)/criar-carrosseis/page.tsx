@@ -424,7 +424,47 @@ export default function Fabrica() {
 
   // ── passo 1: ler o texto ──
   const [aAnalisar, setAAnalisar] = useState(false);
+  const [aLerFicheiro, setALerFicheiro] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  /**
+   * Trazer um documento para dentro da caixa.
+   *
+   * O texto e o markdown lêem-se aqui mesmo, no browser: é instantâneo e não
+   * sai da máquina. O PDF e o Word não se conseguem abrir aqui — vão dar uma
+   * volta pelo servidor só para lhes tirar o texto de dentro, e nada fica
+   * guardado lá.
+   */
+  async function importar(f: File) {
+    setAviso(null);
+    const simples = /\.(txt|md|markdown)$/i.test(f.name) || f.type.startsWith('text/');
+    if (simples) {
+      setTexto(await f.text());
+      setAviso({ ok: true, msg: `${f.name} — o texto está aí em baixo. Agora carrega em Analisar.` });
+      return;
+    }
+
+    setALerFicheiro(true);
+    try {
+      const corpo = new FormData();
+      corpo.append('file', f);
+      const r = await fetch('/api/estudio/texto', { method: 'POST', body: corpo });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setTexto(d.texto ?? '');
+      setAviso({
+        ok: true,
+        msg: `${f.name} — o texto está aí em baixo. Confere antes de analisar: os documentos às vezes trazem lixo de cabeçalhos e números de página.`,
+      });
+    } catch (e) {
+      setAviso({
+        ok: false,
+        msg: e instanceof Error ? e.message : 'Não consegui ler esse ficheiro.',
+      });
+    } finally {
+      setALerFicheiro(false);
+    }
+  }
 
   function assentar(achados: CarrosselLido[], nota: string) {
     setCarrosseis(achados);
@@ -615,7 +655,8 @@ export default function Fabrica() {
           <Card className="mb-5">
             <label className="label">Cola o teu texto</label>
             <p className="mb-3 text-sm text-muted">
-              Cola a resposta da Cát.IA com os slides. O resto é connosco.
+              Cola a resposta da Cát.IA com os slides, ou importa um ficheiro —
+              PDF, Word, texto. O resto é connosco.
             </p>
             <textarea
               className="input min-h-[340px] text-[15px]"
@@ -682,15 +723,17 @@ export default function Fabrica() {
 
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <label className="btn-fantasma cursor-pointer text-sm">
-              <FileText className="h-4 w-4" /> Importar ficheiro
+              <FileText className="h-4 w-4" />
+              {aLerFicheiro ? 'A ler o ficheiro…' : 'Importar ficheiro'}
               <input
                 type="file"
-                accept=".txt,.md,text/plain"
+                accept=".txt,.md,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 hidden
+                disabled={aLerFicheiro}
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
-                  if (f) setTexto(await f.text());
                   e.target.value = '';
+                  if (f) await importar(f);
                 }}
               />
             </label>
