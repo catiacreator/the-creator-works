@@ -13,7 +13,7 @@ export interface Pagina {
 
 export const PAGINAS: Pagina[] = [
   { caminho: '/criar', nome: 'Criar', grupo: 'Criar' },
-  { caminho: '/criar-carrosseis', nome: 'Criar carrosséis', grupo: 'Carrosséis Creator' },
+  { caminho: '/criar-carrosseis', nome: 'Fábrica de carrosséis', grupo: 'Carrosséis Creator' },
   { caminho: '/editor', nome: 'Editor', grupo: 'Carrosséis Creator' },
   { caminho: '/biblioteca', nome: 'Biblioteca', grupo: 'Biblioteca' },
   { caminho: '/chat', nome: 'Agente Cát.IA', grupo: 'Trabalho' },

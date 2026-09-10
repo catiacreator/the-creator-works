@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Type, MessageSquare, Smile, Image as ImageIcon, Square, Palette, Upload, Layers, LayoutTemplate,
+  Anchor,
 } from 'lucide-react';
 import { PaletaCores } from './cores';
 import { EscolherFoto } from './escolher-foto';
+import { Ganchos } from './ganchos';
 import { useEditor } from '@/lib/editor-store';
 
 const STICKERS = ['✨','🔥','🩷','👀','📌','⚡️','🎯','💬','✅','❌','☝️','🫶','😮','🤯','📈','🧠'];
 
-type Aba = 'templates' | 'fundo' | 'texto' | 'balao' | 'sticker' | 'imagem' | 'forma';
+type Aba = 'templates' | 'fundo' | 'texto' | 'ganchos' | 'balao' | 'sticker' | 'imagem' | 'forma';
 
 export function BarraFerramentas({ userId }: { userId: string }) {
   const [aba, setAba] = useState<Aba>('templates');
@@ -102,6 +104,7 @@ export function BarraFerramentas({ userId }: { userId: string }) {
     { id: 'templates', label: 'Templates', icone: LayoutTemplate },
     { id: 'fundo',   label: 'Fundo',    icone: Palette },
     { id: 'texto',   label: 'Texto',    icone: Type },
+    { id: 'ganchos', label: 'Ganchos',  icone: Anchor },
     { id: 'balao',   label: 'Balões',   icone: MessageSquare },
     { id: 'imagem',  label: 'Imagem',   icone: ImageIcon },
     { id: 'sticker', label: 'Stickers', icone: Smile },
@@ -112,7 +115,7 @@ export function BarraFerramentas({ userId }: { userId: string }) {
     <div className="w-64 shrink-0 border-r border-edLinha bg-edSuperficie/30 flex flex-col">
       <div className="grid grid-cols-3 gap-1 p-2 border-b border-edLinha">
         {ABAS.map(({ id, label, icone: Icone }) => (
-          <button key={id} onClick={() => setAba(id)}
+          <button key={id} onClick={() => setAba(id)} data-tour={id === 'ganchos' ? 'ganchos' : undefined}
             className={`flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] transition ${
               aba === id ? 'bg-brand/15 text-brand-soft' : 'text-edSuave hover:text-white'
             }`}>
@@ -247,6 +250,18 @@ export function BarraFerramentas({ userId }: { userId: string }) {
                 x: 8, y: 58, w: 80, h: 20, rot: 0, cor: '#141010', fundo: 'transparent',
                 tamanho: 36, peso: 400, alinhamento: 'left', raio: 0 } as any)} />
           </div>
+        )}
+
+        {aba === 'ganchos' && (
+          <Ganchos
+            usar={(texto) =>
+              adicionar({
+                tipo: 'texto', fonte: 'Poppins', texto, x: 8, y: 14, w: 84, h: 26, rot: 0,
+                cor: '#141010', fundo: 'transparent', tamanho: 76, peso: 800,
+                alinhamento: 'left', raio: 0,
+              } as any)
+            }
+          />
         )}
 
         {aba === 'balao' && (

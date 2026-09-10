@@ -37,21 +37,33 @@ export function SlidePreview({
           <div
             className="absolute left-0 flex overflow-hidden px-3 py-2.5 leading-snug"
             style={{
-              top: estilo.caixaFixa
-                ? `${(estilo.caixaY / 100) * Math.max(0, 100 - estilo.caixaAltura)}%`
-                : `${estilo.caixaY}%`,
-              transform: estilo.caixaFixa ? 'none' : `translateY(-${estilo.caixaY}%)`,
+              top: estilo.caixaCentrada
+                ? '50%'
+                : estilo.caixaFixa
+                  ? `${(estilo.caixaY / 100) * Math.max(0, 100 - estilo.caixaAltura)}%`
+                  : `${estilo.caixaY}%`,
+              transform: estilo.caixaCentrada
+                ? 'translateY(-50%)'
+                : estilo.caixaFixa
+                  ? 'none'
+                  : `translateY(-${estilo.caixaY}%)`,
               width: estilo.caixaFixa ? `${estilo.caixaLargura}%` : '100%',
               height: estilo.caixaFixa ? `${estilo.caixaAltura}%` : 'auto',
               alignItems: estilo.caixaFixa ? 'center' : 'flex-start',
               background: hexParaRgba(estilo.corCaixa, estilo.opacidadeCaixa),
               borderRadius: estilo.raio,
               fontSize: estilo.tamanho * 0.62,
-              fontWeight: 700,
+              fontWeight: estilo.negrito === false ? 400 : 700,
               color: corDoTexto(estilo),
+              textAlign:
+                estilo.alinhamento === 'centro'
+                  ? 'center'
+                  : estilo.alinhamento === 'direita'
+                    ? 'right'
+                    : 'left',
             }}
           >
-            <span className="line-clamp-6">{texto}</span>
+            <span className="line-clamp-6 w-full">{texto}</span>
           </div>
         </div>
 
