@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Images,
   Pencil,
+  Plus,
   RotateCcw,
   Save,
   Search,
@@ -230,6 +231,8 @@ export default function Fabrica() {
   >(null);
   /** Na biblioteca de um slide: a foto é só dele, ou do carrossel inteiro? */
   const [fotoParaTodos, setFotoParaTodos] = useState(false);
+  /** O slide acabado de acrescentar, para abrir logo a escrita nele. */
+  const [slideNovo, setSlideNovo] = useState<{ c: number; s: number } | null>(null);
 
   const estiloSelecionado = normalizar(
     estilos.find((e) => e.id === estiloId) ?? estilos[0] ?? ESTILOS_BASE[0],
@@ -280,6 +283,27 @@ export default function Fabrica() {
         i === ci ? { ...c, slides: c.slides.map((s, j) => (j === si ? valor : s)) } : c,
       ),
     );
+  }
+
+  /** Um slide novo, vazio, a seguir a outro — para escrever ali mesmo. */
+  function adicionarSlide(ci: number, depoisDe: number) {
+    const total = carrosseis[ci]?.slides.length ?? 0;
+    const onde = Math.min(Math.max(depoisDe + 1, 0), total);
+    // o -1 é o lugar do novo: não vem de lado nenhum, por isso não traz
+    // foto nem ajustes, e empurra para a frente os que estavam a seguir
+    const ordem = Array.from({ length: total }, (_, i) => i);
+    ordem.splice(onde, 0, -1);
+    setCarrosseis((p) =>
+      p.map((c, i) => {
+        if (i !== ci) return c;
+        const slides = [...c.slides];
+        slides.splice(onde, 0, '');
+        return { ...c, slides };
+      }),
+    );
+    setFotosDeSlide((p) => renumerar(p, ci, ordem));
+    setAjustes((p) => renumerar(p, ci, ordem));
+    setSlideNovo({ c: ci, s: onde });
   }
 
   function apagarSlide(ci: number, si: number) {
@@ -965,10 +989,16 @@ export default function Fabrica() {
               <div className="mb-2.5 flex flex-wrap items-center gap-3">
                 <h3 className="text-sm font-bold">{carrosseis[ci].titulo}</h3>
                 <span className="text-xs text-muted">{carrosseis[ci].slides.length} slides</span>
+                <button
+                  onClick={() => adicionarSlide(ci, carrosseis[ci].slides.length - 1)}
+                  className="ml-auto flex items-center gap-1 rounded-xl border border-sand px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-rosa"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Adicionar slide
+                </button>
                 <select
                   value={estiloPorCarrossel[ci] ?? estiloId}
                   onChange={(e) => aplicarEstiloAoCarrossel(ci, e.target.value)}
-                  className="ml-auto rounded-xl border border-sand px-2 py-1 text-xs"
+                  className="rounded-xl border border-sand px-2 py-1 text-xs"
                   aria-label="Estilo deste carrossel"
                 >
                   {estilos.map((e) => (
@@ -997,6 +1027,8 @@ export default function Fabrica() {
                     }}
                     aoMudarTexto={(v) => mudarTexto(ci, si, v)}
                     aoDescarregar={() => descarregarSlide(ci, si)}
+                    novo={slideNovo?.c === ci && slideNovo?.s === si}
+                    aoAdicionarASeguir={() => adicionarSlide(ci, si)}
                     aoEscolherFoto={() => {
                       setFotoParaTodos(false);
                       setBibliotecaPara({ tipo: 'slide', c: ci, s: si });
@@ -1253,6 +1285,8 @@ function CartaoDeSlide({
   aoAlinhar,
   aoRepor,
   aoApagar,
+  aoAdicionarASeguir,
+  novo,
 }: {
   n: number;
   texto: string;
@@ -1267,6 +1301,9 @@ function CartaoDeSlide({
   aoDescarregar: () => void;
   aoEscolherFoto: () => void;
   aoAplicarFotoATodos?: () => void;
+  aoAdicionarASeguir: () => void;
+  /** Acabou de nascer: abre logo o campo de escrita. */
+  novo?: boolean;
   aoTirarFoto?: () => void;
   aoMudarTamanho: (d: number) => void;
   aoAlternarNegrito: () => void;
@@ -1280,6 +1317,10 @@ function CartaoDeSlide({
   useEffect(() => {
     if (aEscrever) campo.current?.focus();
   }, [aEscrever]);
+
+  useEffect(() => {
+    if (novo) setAEscrever(true);
+  }, [novo]);
 
   return (
     <div
@@ -1297,10 +1338,10 @@ function CartaoDeSlide({
     >
       <SlidePreview estilo={estilo} foto={foto} texto={texto} handle={handle} />
 
-      <div className="mt-2 flex items-center gap-1 px-1 text-[11px] text-muted">
-        <GripVertical className="h-3.5 w-3.5 cursor-grab" />
-        <span className="font-semibold">Slide {n}</span>
-        <span className="ml-auto flex items-center gap-0.5">
+      <div className="mt-2 flex flex-wrap items-center gap-1 px-1 text-[11px] text-muted">
+        <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab" />
+        <span className="whitespace-nowrap font-semibold">Slide {n}</span>
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-0.5">
           <Mini label="Foto deste slide" onClick={aoEscolherFoto} icone={<ImageIcon className="h-3.5 w-3.5" />} />
           {aoAplicarFotoATodos && (
             <Mini
@@ -1318,6 +1359,11 @@ function CartaoDeSlide({
             icone={<Pencil className="h-3.5 w-3.5" />}
           />
           <Mini label="Descarregar este slide" onClick={aoDescarregar} icone={<Download className="h-3.5 w-3.5" />} />
+          <Mini
+            label="Acrescentar um slide a seguir a este"
+            onClick={aoAdicionarASeguir}
+            icone={<Plus className="h-3.5 w-3.5" />}
+          />
           {aoApagar && <Mini label="Eliminar este slide" onClick={aoApagar} icone={<Trash2 className="h-3.5 w-3.5" />} />}
         </span>
       </div>
