@@ -5,8 +5,10 @@ import {
   AlignJustify,
   AlignLeft,
   AlignRight,
+  Bold,
   Image as ImageIcon,
   Images,
+  Type,
   X,
 } from 'lucide-react';
 import { SlidePreview } from './preview';
@@ -24,6 +26,12 @@ const ALINHAMENTOS: Array<{ id: Alinhamento; nome: string; icone: React.ReactNod
   { id: 'centro', nome: 'Centro', icone: <AlignCenter className="h-4 w-4" /> },
   { id: 'direita', nome: 'Direita', icone: <AlignRight className="h-4 w-4" /> },
   { id: 'justificado', nome: 'Justificado', icone: <AlignJustify className="h-4 w-4" /> },
+];
+
+/** Normal ou negrito — o que a letra do estilo faz por defeito. */
+const ESPESSURAS: Array<{ negrito: boolean; nome: string; icone: React.ReactNode }> = [
+  { negrito: false, nome: 'Normal', icone: <Type className="h-4 w-4" /> },
+  { negrito: true, nome: 'Negrito', icone: <Bold className="h-4 w-4" /> },
 ];
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
@@ -183,6 +191,33 @@ export function EditorDeEstilo({
                 />
               </Campo>
             </div>
+
+            <Campo label="Espessura da letra">
+              <div className="flex flex-wrap gap-2">
+                {ESPESSURAS.map((e) => {
+                  const atual = (rascunho.negrito !== false) === e.negrito;
+                  return (
+                    <button
+                      key={e.nome}
+                      onClick={() => set({ negrito: e.negrito })}
+                      aria-pressed={atual}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                        atual
+                          ? 'border-rosa bg-rosaSuave font-semibold text-rosa'
+                          : 'border-sand text-muted hover:border-ink/40'
+                      }`}
+                    >
+                      {e.icone}
+                      {e.nome}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                Fica guardada no estilo. Em cada slide continuas a poder trocar
+                pelo B da barra, sem mexer no estilo.
+              </p>
+            </Campo>
 
             <Campo label="Alinhamento do texto">
               <div className="flex flex-wrap gap-2">

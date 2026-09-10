@@ -1,6 +1,7 @@
 'use client';
 
 import { corDoTexto, hexParaRgba, normalizar, type Estilo } from '@/lib/studio-estilos';
+import { lerTrechos } from '@/lib/studio-texto';
 
 /**
  * A pré-visualização de um slide.
@@ -65,7 +66,20 @@ export function SlidePreview({
                       : 'left',
             }}
           >
-            <span className="line-clamp-6 w-full whitespace-pre-line">{texto}</span>
+            <span className="line-clamp-6 w-full whitespace-pre-line">
+              {lerTrechos(texto).map((t, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontWeight: t.negrito ? 700 : undefined,
+                    fontStyle: t.italico ? 'italic' : undefined,
+                    textDecoration: t.sublinhado ? 'underline' : undefined,
+                  }}
+                >
+                  {t.texto}
+                </span>
+              ))}
+            </span>
           </div>
         </div>
 
