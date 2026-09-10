@@ -65,7 +65,7 @@ export function SlidePreview({
                       : 'left',
             }}
           >
-            <span className="line-clamp-6 w-full">{texto}</span>
+            <span className="line-clamp-6 w-full whitespace-pre-line">{texto}</span>
           </div>
         </div>
 

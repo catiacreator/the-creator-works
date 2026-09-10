@@ -36,6 +36,17 @@
   --sand: 232 228 222;
   --muted: 138 124 99;
   --rosa-suave: 251 218 231;
+
+  /* As cores do editor têm de valer alguma coisa fora dele: um cartão do
+     editor que apareça na app (a biblioteca de fotografias, por exemplo)
+     ficava sem fundo nenhum, porque estas variáveis só existiam dentro
+     de .editor-tema. Aqui valem o que vale a app — e acompanham o modo
+     escuro, porque apontam para as variáveis de cima. */
+  --ed-fundo: var(--paper);
+  --ed-superficie: var(--superficie);
+  --ed-linha: var(--sand);
+  --ed-texto: var(--ink);
+  --ed-suave: var(--muted);
 }
 
 /*

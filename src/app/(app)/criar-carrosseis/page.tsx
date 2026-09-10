@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Images,
   Pencil,
+  Plus,
   RotateCcw,
   Save,
   Search,
@@ -228,6 +229,10 @@ export default function Fabrica() {
   const [bibliotecaPara, setBibliotecaPara] = useState<
     { tipo: 'fundo' } | { tipo: 'slide'; c: number; s: number } | null
   >(null);
+  /** Na biblioteca de um slide: a foto é só dele, ou do carrossel inteiro? */
+  const [fotoParaTodos, setFotoParaTodos] = useState(false);
+  /** O slide acabado de acrescentar, para abrir logo a escrita nele. */
+  const [slideNovo, setSlideNovo] = useState<{ c: number; s: number } | null>(null);
 
   const estiloSelecionado = normalizar(
     estilos.find((e) => e.id === estiloId) ?? estilos[0] ?? ESTILOS_BASE[0],
@@ -280,6 +285,27 @@ export default function Fabrica() {
     );
   }
 
+  /** Um slide novo, vazio, a seguir a outro — para escrever ali mesmo. */
+  function adicionarSlide(ci: number, depoisDe: number) {
+    const total = carrosseis[ci]?.slides.length ?? 0;
+    const onde = Math.min(Math.max(depoisDe + 1, 0), total);
+    // o -1 é o lugar do novo: não vem de lado nenhum, por isso não traz
+    // foto nem ajustes, e empurra para a frente os que estavam a seguir
+    const ordem = Array.from({ length: total }, (_, i) => i);
+    ordem.splice(onde, 0, -1);
+    setCarrosseis((p) =>
+      p.map((c, i) => {
+        if (i !== ci) return c;
+        const slides = [...c.slides];
+        slides.splice(onde, 0, '');
+        return { ...c, slides };
+      }),
+    );
+    setFotosDeSlide((p) => renumerar(p, ci, ordem));
+    setAjustes((p) => renumerar(p, ci, ordem));
+    setSlideNovo({ c: ci, s: onde });
+  }
+
   function apagarSlide(ci: number, si: number) {
     const total = carrosseis[ci]?.slides.length ?? 0;
     if (total <= 1) {
@@ -326,12 +352,18 @@ export default function Fabrica() {
   function escolherFoto(url: string | null) {
     if (bibliotecaPara?.tipo === 'slide') {
       const { c, s } = bibliotecaPara;
-      setFotosDeSlide((p) => {
-        const n = { ...p };
-        if (url) n[chave(c, s)] = url;
-        else delete n[chave(c, s)];
-        return n;
-      });
+      if (url && fotoParaTodos) aplicarFotoAoCarrossel(c, url);
+      else
+        setFotosDeSlide((p) => {
+          const n = { ...p };
+          if (url) n[chave(c, s)] = url;
+          else delete n[chave(c, s)];
+          return n;
+        });
+      // Escolher uma fotografia é dizer que se quer fotografia. Sem isto o
+      // fundo continuava em "cor" e a foto ficava guardada sem aparecer —
+      // que é o mesmo que não acontecer nada.
+      if (url) setModoFundo('foto');
     } else {
       setFotoDeFundo(url);
       setFotosPorCarrossel({});
@@ -957,10 +989,16 @@ export default function Fabrica() {
               <div className="mb-2.5 flex flex-wrap items-center gap-3">
                 <h3 className="text-sm font-bold">{carrosseis[ci].titulo}</h3>
                 <span className="text-xs text-muted">{carrosseis[ci].slides.length} slides</span>
+                <button
+                  onClick={() => adicionarSlide(ci, carrosseis[ci].slides.length - 1)}
+                  className="ml-auto flex items-center gap-1 rounded-xl border border-sand px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-rosa"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Adicionar slide
+                </button>
                 <select
                   value={estiloPorCarrossel[ci] ?? estiloId}
                   onChange={(e) => aplicarEstiloAoCarrossel(ci, e.target.value)}
-                  className="ml-auto rounded-xl border border-sand px-2 py-1 text-xs"
+                  className="rounded-xl border border-sand px-2 py-1 text-xs"
                   aria-label="Estilo deste carrossel"
                 >
                   {estilos.map((e) => (
@@ -989,7 +1027,12 @@ export default function Fabrica() {
                     }}
                     aoMudarTexto={(v) => mudarTexto(ci, si, v)}
                     aoDescarregar={() => descarregarSlide(ci, si)}
-                    aoEscolherFoto={() => setBibliotecaPara({ tipo: 'slide', c: ci, s: si })}
+                    novo={slideNovo?.c === ci && slideNovo?.s === si}
+                    aoAdicionarASeguir={() => adicionarSlide(ci, si)}
+                    aoEscolherFoto={() => {
+                      setFotoParaTodos(false);
+                      setBibliotecaPara({ tipo: 'slide', c: ci, s: si });
+                    }}
                     aoAplicarFotoATodos={
                       fotoDoSlide(ci, si) && carrosseis[ci].slides.length > 1
                         ? () => aplicarFotoAoCarrossel(ci, fotoDoSlide(ci, si) as string)
@@ -1073,8 +1116,8 @@ export default function Fabrica() {
 
       {/* ── a biblioteca de fotografias ───────────────── */}
       {bibliotecaPara && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-          <div className="cartao flex max-h-[80vh] w-full max-w-2xl flex-col p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-sm">
+          <div className="card flex max-h-[80vh] w-full max-w-2xl flex-col shadow-lift">
             <div className="mb-1 flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-muted" />
               <h2 className="text-base font-semibold">A tua biblioteca</h2>
@@ -1085,11 +1128,26 @@ export default function Fabrica() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="mb-4 text-sm text-muted">
+            <p className="mb-3 text-sm text-muted">
               {bibliotecaPara.tipo === 'fundo'
                 ? 'Esta fotografia fica no fundo de todos os slides.'
-                : `Esta fotografia fica só no slide ${bibliotecaPara.s + 1}.`}
+                : fotoParaTodos
+                  ? 'Esta fotografia fica no fundo de todos os slides deste carrossel.'
+                  : `Esta fotografia fica só no slide ${bibliotecaPara.s + 1}.`}
             </p>
+
+            {bibliotecaPara.tipo === 'slide' &&
+              (carrosseis[bibliotecaPara.c]?.slides.length ?? 0) > 1 && (
+                <label className="mb-4 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-sand px-3 py-2 text-sm text-ink transition hover:border-rosa">
+                  <input
+                    type="checkbox"
+                    checked={fotoParaTodos}
+                    onChange={(e) => setFotoParaTodos(e.target.checked)}
+                    className="h-4 w-4 accent-rosa"
+                  />
+                  Aplicar a todos os slides deste carrossel
+                </label>
+              )}
 
             {fotos.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted">
@@ -1227,6 +1285,8 @@ function CartaoDeSlide({
   aoAlinhar,
   aoRepor,
   aoApagar,
+  aoAdicionarASeguir,
+  novo,
 }: {
   n: number;
   texto: string;
@@ -1241,6 +1301,9 @@ function CartaoDeSlide({
   aoDescarregar: () => void;
   aoEscolherFoto: () => void;
   aoAplicarFotoATodos?: () => void;
+  aoAdicionarASeguir: () => void;
+  /** Acabou de nascer: abre logo o campo de escrita. */
+  novo?: boolean;
   aoTirarFoto?: () => void;
   aoMudarTamanho: (d: number) => void;
   aoAlternarNegrito: () => void;
@@ -1254,6 +1317,10 @@ function CartaoDeSlide({
   useEffect(() => {
     if (aEscrever) campo.current?.focus();
   }, [aEscrever]);
+
+  useEffect(() => {
+    if (novo) setAEscrever(true);
+  }, [novo]);
 
   return (
     <div
@@ -1271,10 +1338,10 @@ function CartaoDeSlide({
     >
       <SlidePreview estilo={estilo} foto={foto} texto={texto} handle={handle} />
 
-      <div className="mt-2 flex items-center gap-1 px-1 text-[11px] text-muted">
-        <GripVertical className="h-3.5 w-3.5 cursor-grab" />
-        <span className="font-semibold">Slide {n}</span>
-        <span className="ml-auto flex items-center gap-0.5">
+      <div className="mt-2 flex flex-wrap items-center gap-1 px-1 text-[11px] text-muted">
+        <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab" />
+        <span className="whitespace-nowrap font-semibold">Slide {n}</span>
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-0.5">
           <Mini label="Foto deste slide" onClick={aoEscolherFoto} icone={<ImageIcon className="h-3.5 w-3.5" />} />
           {aoAplicarFotoATodos && (
             <Mini
@@ -1292,6 +1359,11 @@ function CartaoDeSlide({
             icone={<Pencil className="h-3.5 w-3.5" />}
           />
           <Mini label="Descarregar este slide" onClick={aoDescarregar} icone={<Download className="h-3.5 w-3.5" />} />
+          <Mini
+            label="Acrescentar um slide a seguir a este"
+            onClick={aoAdicionarASeguir}
+            icone={<Plus className="h-3.5 w-3.5" />}
+          />
           {aoApagar && <Mini label="Eliminar este slide" onClick={aoApagar} icone={<Trash2 className="h-3.5 w-3.5" />} />}
         </span>
       </div>
