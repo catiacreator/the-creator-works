@@ -1073,8 +1073,8 @@ export default function Fabrica() {
 
       {/* ── a biblioteca de fotografias ───────────────── */}
       {bibliotecaPara && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-          <div className="cartao flex max-h-[80vh] w-full max-w-2xl flex-col p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6 backdrop-blur-sm">
+          <div className="card flex max-h-[80vh] w-full max-w-2xl flex-col shadow-lift">
             <div className="mb-1 flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-muted" />
               <h2 className="text-base font-semibold">A tua biblioteca</h2>
