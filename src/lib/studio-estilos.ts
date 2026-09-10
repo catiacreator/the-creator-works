@@ -31,7 +31,7 @@ export interface Estilo {
   alinhamento: Alinhamento;
 }
 
-export type Alinhamento = 'esquerda' | 'centro' | 'direita';
+export type Alinhamento = 'esquerda' | 'centro' | 'direita' | 'justificado';
 
 /**
  * O que se pode mudar num slide sozinho, sem mexer no estilo do carrossel:

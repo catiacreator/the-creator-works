@@ -1,13 +1,30 @@
 'use client';
 
-import { X, Images, Image as ImageIcon } from 'lucide-react';
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Image as ImageIcon,
+  Images,
+  X,
+} from 'lucide-react';
 import { SlidePreview } from './preview';
 import {
   CORES_CAIXA,
   CORES_FUNDO,
   FONTES,
+  type Alinhamento,
   type Estilo,
 } from '@/lib/studio-estilos';
+
+/** Os quatro alinhamentos, com o desenho que se lhes reconhece. */
+const ALINHAMENTOS: Array<{ id: Alinhamento; nome: string; icone: React.ReactNode }> = [
+  { id: 'esquerda', nome: 'Esquerda', icone: <AlignLeft className="h-4 w-4" /> },
+  { id: 'centro', nome: 'Centro', icone: <AlignCenter className="h-4 w-4" /> },
+  { id: 'direita', nome: 'Direita', icone: <AlignRight className="h-4 w-4" /> },
+  { id: 'justificado', nome: 'Justificado', icone: <AlignJustify className="h-4 w-4" /> },
+];
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -166,6 +183,33 @@ export function EditorDeEstilo({
                 />
               </Campo>
             </div>
+
+            <Campo label="Alinhamento do texto">
+              <div className="flex flex-wrap gap-2">
+                {ALINHAMENTOS.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => set({ alinhamento: a.id })}
+                    title={a.nome}
+                    aria-label={a.nome}
+                    aria-pressed={(rascunho.alinhamento ?? 'esquerda') === a.id}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                      (rascunho.alinhamento ?? 'esquerda') === a.id
+                        ? 'border-rosa bg-rosaSuave font-semibold text-rosa'
+                        : 'border-sand text-muted hover:border-ink/40'
+                    }`}
+                  >
+                    {a.icone}
+                    {a.nome}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                Justificado estica as palavras até encherem a linha. A última
+                linha de cada parágrafo fica como está — senão ficavam três
+                palavras esticadas de ponta a ponta.
+              </p>
+            </Campo>
 
             <Campo label={`Onde fica a caixa — ${rascunho.caixaY}%`}>
               <input
