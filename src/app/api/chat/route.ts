@@ -4,6 +4,7 @@ import { contextoDaMemoria } from '@/lib/memoria';
 import { contextoDoMaterial } from '@/lib/material';
 import { conversa } from '@/lib/ia';
 import { signedUrl } from '@/lib/storage';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -59,6 +60,9 @@ export const POST = withUser(async ({ user, supabase, request }) => {
   const message = (body.message ?? '').trim();
   if (!message) throw new Error('Mensagem vazia.');
 
+  // antes de criar a conversa: recusada, não deixa uma linha vazia atrás
+  await marcarConsumo(supabase, user.email, 'conversa');
+
   let threadId = body.thread_id;
   if (!threadId) {
     const { data, error } = await supabase
@@ -74,26 +78,42 @@ export const POST = withUser(async ({ user, supabase, request }) => {
     .from('chat_messages')
     .insert({ thread_id: threadId, user_id: user.id, role: 'user', content: message });
 
-  const { data: history } = await supabase
+  // Só as últimas trocas. Tudo o que vai aqui é reenviado ao modelo a cada
+  // resposta, por isso quarenta mensagens numa conversa longa eram quarenta
+  // mensagens pagas outra vez — e o princípio de uma conversa raramente
+  // ajuda a responder ao que se está a perguntar agora.
+  const { data: recentes } = await supabase
     .from('chat_messages')
     .select('role, content')
     .eq('thread_id', threadId)
-    .order('created_at')
-    .limit(40);
+    .order('created_at', { ascending: false })
+    .limit(16);
+  const history = (recentes ?? []).slice().reverse();
 
   const settings = await getSettings(supabase, user.id);
 
   // o que ela carregou em Material entra como matéria-prima, e o que a
   // Cát.IA já aprendeu dela entra como lei
+  //
+  // O material é o maior pedaço de todos, e vai inteiro a cada resposta. Na
+  // primeira mensagem faz sentido: é aí que ela diz sobre o que quer falar, e
+  // as palavras dela escolhem os documentos certos.
+  //
+  // Nas seguintes — "muda o gancho", "mais curto", "gosto mais do primeiro" —
+  // não há palavras que escolham nada, e o que ia eram dezenas de milhares de
+  // caracteres de documentos à sorte. Caro, e pior: enche o pedido de ruído.
+  // Por isso a partir da segunda vai um orçamento apertado.
+  const primeira = history.filter((m) => m.role === 'user').length <= 1;
+
   const [material, memoria] = await Promise.all([
-    contextoDoMaterial(supabase, user.id, message),
+    contextoDoMaterial(supabase, user.id, message, primeira ? undefined : 5_000),
     contextoDaMemoria(supabase, user.id),
   ]);
 
   const reply = await conversa({
     settings,
     material: [memoria, material].filter(Boolean).join('\n\n') || null,
-    historico: (history ?? [])
+    historico: history
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
   });

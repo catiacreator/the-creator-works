@@ -2,6 +2,7 @@ import { ok, withUser } from '@/lib/api';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
 import { regrasDoGancho } from '@/lib/ganchos';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -13,6 +14,7 @@ export const maxDuration = 180;
  * escolha dela. Por isso vai pelo caminho rápido: são oito frases curtas.
  */
 export const POST = withUser(async ({ user, supabase, request }) => {
+  await marcarConsumo(supabase, user.email, 'ultima-hora');
   const body = (await request.json()) as {
     gancho: string;
     assunto?: string;

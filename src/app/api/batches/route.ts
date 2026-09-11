@@ -1,5 +1,6 @@
 import { ok, withUser } from '@/lib/api';
 import { splitIntoChunks } from '@/lib/extract';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -63,6 +64,9 @@ export const POST = withUser(async ({ user, supabase, request }) => {
 
   // ajusta ao número pedido (repete ciclicamente se faltar material)
   const finalBriefs = Array.from({ length: quantity }, (_, i) => briefs[i % briefs.length]);
+
+  // um lote são tantos pedidos à Cát.IA quantos os carrosséis que traz
+  await marcarConsumo(supabase, user.email, 'carrossel', finalBriefs.length);
 
   // ── lote ───────────────────────────────────────────────────
   const { data: batch, error: batchError } = await supabase

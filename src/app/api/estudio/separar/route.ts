@@ -1,6 +1,7 @@
 import { ok, withUser } from '@/lib/api';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -74,6 +75,7 @@ function slidesDoPedaco(linhas: string[]): string[] {
 }
 
 export const POST = withUser(async ({ user, supabase, request }) => {
+  await marcarConsumo(supabase, user.email, 'separar');
   const { texto } = (await request.json()) as { texto?: string };
   const cru = (texto ?? '').trim();
   if (!cru) throw new Error('Cola primeiro o texto.');

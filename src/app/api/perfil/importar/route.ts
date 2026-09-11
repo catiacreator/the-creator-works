@@ -4,6 +4,7 @@ import { briefingDoTexto } from '@/lib/documento-mestre';
 import { TODOS_OS_CAMPOS, type Briefing } from '@/lib/briefing';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -16,6 +17,7 @@ export const maxDuration = 120;
  * um Word), a Cát.IA lê o texto e arruma as respostas pelas perguntas.
  */
 export const POST = withUser(async ({ user, supabase, request }) => {
+  await marcarConsumo(supabase, user.email, 'perfil');
   const form = await request.formData();
   const ficheiro = form.get('ficheiro');
   if (!(ficheiro instanceof File)) throw new Error('Falta o ficheiro.');

@@ -1,4 +1,5 @@
 import { ok, withUser } from '@/lib/api';
+import { marcarConsumo } from '@/lib/consumo';
 
 export const runtime = 'nodejs';
 
@@ -85,6 +86,12 @@ export const POST = withUser(async ({ user, supabase, request }) => {
       .single();
     if (error) throw new Error(error.message);
     return ok({ carousel: data });
+  }
+
+  // daqui para baixo é a Cát.IA que escreve — a não ser que se peça
+  // expressamente para repartir o texto sem ela
+  if (body.mode !== 'texto') {
+    await marcarConsumo(supabase, user.email, 'carrossel');
   }
 
   const { data: carousel, error } = await supabase
