@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClienteDeVendas } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
   // chave de serviço: os códigos de sistema deixaram de valer para o
   // browser, e um webhook fala com a base de dados como servidor
-  const supabase = createAdminClient();
+  const supabase = createClienteDeVendas();
 
   // ── deixou de pagar: fecha-se a porta ────────────
   if (RETIRA.has(evento)) {
