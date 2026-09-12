@@ -354,10 +354,22 @@ export default function DefinicoesClient() {
           descricao="Com que conta entras, e os pedidos deste mês"
           abre="conta"
         />
+        {/*
+          O número à vista, sem ser preciso abrir a porta.
+          Um contador escondido atrás de um clique não serve para nada — quem
+          quer saber quantos créditos lhe restam quer sabê-lo agora, não a
+          seguir a procurar.
+        */}
         <Porta
           icone={Coins}
           titulo="Créditos"
-          descricao={`O que gasta e quanto — ${TECTO_CREDITOS} por mês`}
+          descricao={
+            consumo?.disponivel && !consumo.semTecto
+              ? `${Math.max(0, TECTO_CREDITOS - (consumo.total ?? 0))} de ${TECTO_CREDITOS} por gastar este mês`
+              : consumo?.semTecto
+                ? 'Sem tecto, és admin — vê o que cada coisa custa'
+                : `O que gasta e quanto — ${TECTO_CREDITOS} por mês`
+          }
           abre="creditos"
         />
         <Porta
