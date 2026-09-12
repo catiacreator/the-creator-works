@@ -144,10 +144,10 @@ export const GUIAS: Record<string, Guia> = {
   '/definicoes': {
     titulo: 'Como funciona esta página',
     passos: [
-      'Cada linha abre um assunto: a conta, o briefing, a voz, a memória, o aspeto.',
+      'Cada linha abre um assunto: a conta, os créditos, o briefing, a voz, a memória, o aspeto.',
+      'Em Créditos vês quantos te restam e quanto custa cada coisa.',
       'A voz da marca entra em tudo o que a app escreve por ti.',
-      'Mudar de email pede confirmação no endereço novo — até lá entras com o de sempre.',
-      'Entra-se com email e palavra-passe, ou com o Google.',
+      'A conta é a do CarouselSnap — o email e a palavra-passe mudam-se lá.',
     ],
   },
 };
