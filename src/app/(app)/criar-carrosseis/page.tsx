@@ -481,16 +481,35 @@ export default function Fabrica() {
   }
 
   /**
-   * Lê o texto.
-   *
-   * Primeiro aqui, de graça e num instante. Mas o leitor local só acerta nos
-   * feitios que conhece: se um documento traz nove carrosséis com os títulos
-   * escritos de uma maneira que ninguém previu, ele cola-os todos num só. Por
-   * isso, quando de um texto grande sai um carrossel só, pergunta-se à Cát.IA
-   * onde é que cada um começa e acaba.
+   * Pede à Cát.IA para marcar onde cada carrossel começa e acaba.
    *
    * Ela devolve só números de linha — o texto é recortado do original. Não há
    * nada que ela possa reescrever pelo caminho.
+   */
+  async function separarComIA(t: string): Promise<CarrosselLido[]> {
+    setOcupado('a pedir à Cát.IA para separar os carrosséis');
+    try {
+      const d = await fetch('/api/estudio/separar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: t }),
+      }).then((r) => r.json());
+      if (d.error) throw new Error(d.error);
+      return (d.carrosseis ?? []) as CarrosselLido[];
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  /**
+   * Lê o texto.
+   *
+   * Primeiro aqui, de graça e num instante. Mas o leitor local só acerta nos
+   * feitios que conhece, e engana-se de duas maneiras: cola tudo num carrossel
+   * só quando os títulos vêm escritos de uma maneira que ninguém previu, ou
+   * parte de mais quando o documento tem rótulos pelo meio. Nos dois casos
+   * pergunta-se à Cát.IA — e, se nem assim ficar bem, há o botão de baixo para
+   * ela voltar a tentar quando tu mandares.
    */
   async function analisar() {
     const t = texto.trim();
@@ -503,9 +522,12 @@ export default function Fabrica() {
     setErro(null);
 
     const achados = extrairDoTexto(t);
+    const slides = achados.reduce((a, c) => a + c.slides.length, 0);
 
-    // um carrossel só, mas com slides que cheguem para vários? é suspeito
-    const suspeito = achados.length <= 1 && (achados[0]?.slides.length ?? 0) > 12;
+    // dois feitios de erro que se veem só pelos números
+    const tudoColado = achados.length <= 1 && slides > 12;
+    const partidoDeMais = achados.length >= 4 && slides / achados.length < 1.6;
+    const suspeito = tudoColado || partidoDeMais;
 
     if (achados.length && !suspeito) {
       setAAnalisar(false);
@@ -522,19 +544,11 @@ export default function Fabrica() {
       return;
     }
 
-    // a Cát.IA marca onde cada carrossel começa e acaba
-    setOcupado('a pedir à Cát.IA para separar os carrosséis');
     try {
-      const d = await fetch('/api/estudio/separar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: t }),
-      }).then((r) => r.json());
+      const daIA = await separarComIA(t);
+      const melhor = tudoColado ? daIA.length > achados.length : daIA.length >= 1;
 
-      if (d.error) throw new Error(d.error);
-      const daIA = (d.carrosseis ?? []) as CarrosselLido[];
-
-      if (daIA.length > achados.length) {
+      if (melhor && daIA.length) {
         assentar(daIA, ' A Cát.IA separou-os.');
       } else if (achados.length) {
         assentar(achados, '');
@@ -549,7 +563,29 @@ export default function Fabrica() {
       }
     } finally {
       setAAnalisar(false);
-      setOcupado(null);
+    }
+  }
+
+  /**
+   * "Não é isto." — quando o leitor se engana e ela vê que se enganou.
+   *
+   * É o mesmo pedido que a análise faz sozinha quando desconfia, mas aqui é
+   * ela que manda. Vale um pedido do mês, e por isso está num botão e não a
+   * acontecer sempre.
+   */
+  async function voltarASeparar() {
+    const t = texto.trim();
+    if (!t) return;
+    setErro(null);
+    setAAnalisar(true);
+    try {
+      const daIA = await separarComIA(t);
+      if (!daIA.length) throw new Error('A Cát.IA não encontrou carrosséis neste texto.');
+      assentar(daIA, ' A Cát.IA voltou a separá-los.');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'A Cát.IA não pôde ajudar.');
+    } finally {
+      setAAnalisar(false);
     }
   }
 
@@ -690,6 +726,20 @@ export default function Fabrica() {
                     {escolhidosIdx.length} selecionado{escolhidosIdx.length === 1 ? '' : 's'}
                   </span>
                 </div>
+
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-creme px-3 py-2.5">
+                  <span className="text-xs leading-relaxed text-muted">
+                    Não é assim que o documento está dividido?
+                  </span>
+                  <button
+                    onClick={voltarASeparar}
+                    disabled={aAnalisar}
+                    className="text-xs font-semibold text-rosa underline disabled:opacity-50"
+                  >
+                    {aAnalisar ? 'A separar…' : 'Pede à Cát.IA para separar outra vez'}
+                  </button>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   {carrosseis.map((c, i) => (
                     <div

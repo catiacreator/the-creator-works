@@ -2,6 +2,7 @@ import { ok, withUser } from '@/lib/api';
 import { getSettings } from '@/lib/pipeline';
 import { rapido } from '@/lib/ia';
 import { marcarConsumo } from '@/lib/consumo';
+import { slidesDoPedaco } from '@/lib/fabrica-extrair';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -22,56 +23,16 @@ export const maxDuration = 120;
  * É de propósito que ela não devolve texto nenhum: assim não há nada que ela
  * possa reescrever, encurtar ou inventar. Os slides que saem daqui são,
  * palavra por palavra, os que entraram.
+ *
+ * O recorte dos slides dentro de cada pedaço é o mesmo do leitor da Fábrica —
+ * `slidesDoPedaco`, partilhado de propósito, para não haver duas leituras a
+ * divergirem uma da outra.
  */
 
 interface Marca {
   titulo?: string;
   inicio?: number;
   fim?: number;
-}
-
-/** Lê os slides de um pedaço de texto que já se sabe ser um só carrossel. */
-function slidesDoPedaco(linhas: string[]): string[] {
-  const slides: string[] = [];
-  let espera = false;
-
-  for (const linha of linhas) {
-    const l = linha.trim();
-    if (!l) continue;
-    if (/^-{3,}$/.test(l) || /^={3,}$/.test(l)) continue;
-
-    // "Slide 1: o texto" (com ou sem ** à volta do marcador)
-    const marcado = l.match(/^[—–\-*#\s]*Slide\s*\d+\s*[:\-—–.)]\s*\**\s*(.+?)\**\s*$/i);
-    if (marcado) {
-      slides.push(marcado[1].replace(/\*/g, '').trim());
-      espera = false;
-      continue;
-    }
-
-    // "Slide 1" sozinho — o texto vem a seguir
-    if (/^[—–\-*#\s]*Slide\s*\d+\s*[:\-—–.)]?\s*\**\s*$/i.test(l)) {
-      espera = true;
-      continue;
-    }
-    if (espera) {
-      slides.push(l.replace(/\*/g, '').trim());
-      espera = false;
-      continue;
-    }
-
-    const ponto = l.match(/^[-•*—–]\s+(.{2,})$/);
-    const numero = l.match(/^\d{1,3}[.)]\s+(.{2,})$/);
-    const corpo = ponto?.[1] || numero?.[1];
-    if (corpo) slides.push(corpo.replace(/\*/g, '').trim());
-  }
-
-  // nada marcado: cada linha com substância vale por um slide
-  if (!slides.length) {
-    return linhas
-      .map((l) => l.trim().replace(/\*/g, '').trim())
-      .filter((l) => l.length > 2 && !/^-{3,}$/.test(l));
-  }
-  return slides;
 }
 
 export const POST = withUser(async ({ user, supabase, request }) => {
@@ -114,6 +75,16 @@ Um carrossel novo começa sempre que:
 
 Atenção ao mais importante: se a numeração dos slides recomeça em 1, isso é
 quase sempre um carrossel novo, mesmo que não haja título nenhum à vista.
+
+E ao contrário, que é onde se erra mais: rótulos de secção — "Gancho",
+"Desenvolvimento", "Corpo", "CTA", "Legenda", "Imagem" — têm o feitio de um
+título e não são um. Se por cima do rótulo os slides continuam a contar (…3,
+4, 5) em vez de recomeçarem em 1, o rótulo está DENTRO do carrossel e não
+abre nada. O mesmo vale para uma linha em maiúsculas que seja só o cabeçalho
+do documento, o nome do mês, ou um número de página.
+
+Conta antes de responder: quantos carrosséis é que este documento tem mesmo?
+Se cada bloco que marcaste tem um slide só, partiste de mais.
 `.trim();
 
   const pedido = `Aqui está o documento, uma linha por número.
@@ -148,8 +119,21 @@ Regras dos números:
     );
   }
 
+  // Põe os blocos por ordem e tira-lhes as sobreposições. Ela quase sempre
+  // devolve isto certo, mas quando se engana nem que seja numa linha os
+  // carrosséis saem com o fim do anterior colado à cabeça.
+  const arrumadas = marcas
+    .filter((m) => Number.isFinite(Number(m.inicio)))
+    .sort((a, b) => Number(a.inicio ?? 0) - Number(b.inicio ?? 0));
+  arrumadas.forEach((m, i) => {
+    const proxima = arrumadas[i + 1];
+    if (proxima && Number(m.fim ?? 0) >= Number(proxima.inicio ?? 0)) {
+      m.fim = Number(proxima.inicio) - 1;
+    }
+  });
+
   // recorta do original — o que sai daqui nunca passou pela IA
-  const carrosseis = marcas
+  const carrosseis = arrumadas
     .map((m, i) => {
       const inicio = Math.max(0, Math.min(linhas.length - 1, Number(m.inicio ?? 0)));
       const fim = Math.max(inicio, Math.min(linhas.length - 1, Number(m.fim ?? linhas.length - 1)));
