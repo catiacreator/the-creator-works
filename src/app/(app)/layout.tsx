@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Nav } from '@/components/nav';
+import { carouselSnap } from '@/lib/passagem';
 import { Manutencao } from '@/components/manutencao';
 import { VerComo } from '@/components/ver-como';
 import { JobRunner } from '@/components/job-runner';
@@ -105,6 +106,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         permissoes={permissoes}
         escondidas={souAdmin ? [] : escondidas}
         emManutencao={emManutencao}
+        carouselSnap={carouselSnap()}
       />
       <main className="flex-1 overflow-x-hidden bg-paper px-8 pb-12 pt-8">
         <div className="mx-auto max-w-5xl">

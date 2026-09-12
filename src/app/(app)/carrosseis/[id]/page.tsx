@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Download, PenTool, Image as ImageIcon, Trash2, FileImage, Presentation } from 'lucide-react';
 import { Card, Dialogo, PageHeader, Spinner, StatusPill } from '@/components/ui';
+import { LevarTexto } from '@/components/levar-texto';
 import type { CarouselRow, PhotoRow, SlideRow } from '@/lib/types';
 
 type Slide = SlideRow & { url: string | null };
@@ -123,6 +124,12 @@ export default function CarrosselPage() {
                 </a>
               </div>
             </div>
+
+            {/* o desenho faz-se no CarouselSnap: o texto tem de poder sair daqui */}
+            <LevarTexto
+              carrossel={carousel ?? {}}
+              slides={slides.map((s) => ({ idx: s.idx, fields: s.fields }))}
+            />
 
             <Link className="btn-ghost" href={`/editor/${id}`}>
               <PenTool className="h-4 w-4" /> Abrir no editor

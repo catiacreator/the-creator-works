@@ -12,7 +12,6 @@ import {
   Library,
   UserRound,
   UserSearch,
-  PenTool,
   Brain,
   Crown,
   Settings,
@@ -24,7 +23,7 @@ import {
   Trash2,
   Clock,
   Radio,
-  Flame,
+  ArrowLeft,
 } from 'lucide-react';
 
 /**
@@ -38,13 +37,8 @@ const GRUPOS: Array<{
   {
     itens: [{ href: '/criar', label: 'Criar', icone: Sparkles }],
   },
-  {
-    titulo: '🔥 Carrosséis Creator',
-    itens: [
-      { href: '/criar-carrosseis', label: 'Fábrica de carrosséis', icone: Flame },
-      { href: '/editor', label: 'Editor', icone: PenTool },
-    ],
-  },
+  // Os carrosséis fazem-se no CarouselSnap. O que era o grupo "Carrosséis
+  // Creator" — a Fábrica e o Editor — saiu daqui.
   {
     itens: [{ href: '/biblioteca', label: 'Biblioteca', icone: Library }],
   },
@@ -78,6 +72,7 @@ export function Nav({
   permissoes,
   escondidas,
   emManutencao,
+  carouselSnap = 'https://carouselsnap.lovable.app',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
@@ -88,6 +83,8 @@ export function Nav({
   escondidas?: string[];
   /** páginas em obras — aparecem, com a etiqueta */
   emManutencao?: string[];
+  /** para onde volta o botão laranja */
+  carouselSnap?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -294,6 +291,27 @@ export function Nav({
           </div>
         </div>
       )}
+
+      {/* ── a volta ao CarouselSnap ────────────────── */}
+      {/*
+        Esta app vive dentro do CarouselSnap, e quem entra por lá tem de ter
+        sempre o caminho de volta à vista. Laranja de propósito: é a única
+        coisa nesta barra que não é desta app, e não se deve confundir com o
+        resto.
+      */}
+      <div className="px-3 pb-2 pt-1">
+        <a
+          href={carouselSnap}
+          className={clsx(
+            'flex items-center gap-2 rounded-xl bg-[#F97316] px-3 py-2.5 text-sm font-semibold text-white shadow-lift transition hover:bg-[#EA580C]',
+            fechada ? 'justify-center px-0' : 'w-full',
+          )}
+          title="Voltar para o CarouselSnap"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          {!fechada && 'Voltar para o CarouselSnap'}
+        </a>
+      </div>
 
       {/* ── ajuda e sair ───────────────────────────── */}
       <div className={clsx('space-y-0.5 border-t border-sand p-3', fechada && 'text-center')}>

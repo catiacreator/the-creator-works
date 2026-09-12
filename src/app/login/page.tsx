@@ -181,8 +181,14 @@ export default function LoginPage() {
           </form>
         )}
 
-        <p className="mt-6 text-center text-xs text-muted">
-          Esta app é privada.
+        <p className="mt-6 text-center text-xs leading-relaxed text-muted">
+          Esta app é privada e abre-se a partir do CarouselSnap.
+          <br />
+          É a primeira vez que entras?{' '}
+          <a href="/assinar" className="underline-offset-2 hover:text-ink hover:underline">
+            Começa por aqui
+          </a>
+          .
         </p>
 
         {dev && (
