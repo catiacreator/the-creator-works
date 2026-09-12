@@ -40,7 +40,22 @@ export default function DefinicoesClient() {
   const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [painel, setPainel] = useState<Painel | null>(null);
+  /**
+   * Qual das portas está aberta.
+   *
+   * Vive no endereço e não só na memória da página: assim `/creditos` e
+   * `/definicoes?painel=creditos` são links a sério — abrem já na tabela —,
+   * o botão de voltar do browser funciona, e dá para mandar a alguém.
+   */
+  const [painel, setPainel] = useState<Painel | null>(
+    (params.get('painel') as Painel | null) ?? null,
+  );
+
+  /** Abrir uma porta, deixando o endereço a dizer qual. */
+  function abrir(p: Painel | null) {
+    setPainel(p);
+    router.replace(p ? `/definicoes?painel=${p}` : '/definicoes', { scroll: false });
+  }
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [escuro, setEscuro] = useState(false);
@@ -137,7 +152,7 @@ export default function DefinicoesClient() {
         {conteudo}
       </Link>
     ) : (
-      <button className={classe} onClick={() => setPainel(abre!)}>
+      <button className={classe} onClick={() => abrir(abre!)}>
         {conteudo}
       </button>
     );
@@ -146,7 +161,7 @@ export default function DefinicoesClient() {
   /** O cabeçalho de dentro de uma porta. */
   const Voltar = () => (
     <button
-      onClick={() => setPainel(null)}
+      onClick={() => abrir(null)}
       className="mb-4 flex items-center gap-1.5 text-sm text-muted transition hover:text-ink"
     >
       <ChevronLeft className="h-4 w-4" />
@@ -256,22 +271,6 @@ export default function DefinicoesClient() {
         </Card>
 
         <Card className="mb-4">
-          <p className="label">Os {TECTO_CREDITOS} créditos de um mês dão para</p>
-          <ul className="mt-1 space-y-1.5 text-sm">
-            {DA_PARA.map((d) => (
-              <li key={d.o_que} className="flex gap-2">
-                <span className="w-10 shrink-0 text-right font-semibold">{d.quantos}</span>
-                <span className="text-muted">{d.o_que}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs leading-relaxed text-muted">
-            Um de cada vez, claro — na prática misturas. Serve para dar a
-            escala: um carrossel por dia útil gasta pouco mais de metade do mês.
-          </p>
-        </Card>
-
-        <Card className="mb-4">
           <p className="label">Quanto custa cada coisa</p>
           <div className="mt-1 divide-y divide-sand">
             {TABELA.map((l) => (
@@ -289,6 +288,22 @@ export default function DefinicoesClient() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="label">Os {TECTO_CREDITOS} créditos de um mês dão para</p>
+          <ul className="mt-1 space-y-1.5 text-sm">
+            {DA_PARA.map((d) => (
+              <li key={d.o_que} className="flex gap-2">
+                <span className="w-10 shrink-0 text-right font-semibold">{d.quantos}</span>
+                <span className="text-muted">{d.o_que}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            Um de cada vez, claro — na prática misturas. Serve para dar a
+            escala: um carrossel por dia útil gasta pouco mais de metade do mês.
+          </p>
         </Card>
 
         <Card>

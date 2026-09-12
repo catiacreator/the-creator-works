@@ -55,9 +55,10 @@ export async function marcarConsumo(
       restam > 0
         ? `Isto custa ${creditos} crédito${creditos === 1 ? '' : 's'} e só te ${
             restam === 1 ? 'resta 1' : `restam ${restam}`
-          } este mês. O contador volta a zero no dia 1.`
+          } este mês. Vê em Definições › Créditos o que cada coisa custa. O contador volta a zero no dia 1.`
         : `Chegaste aos ${TECTO_CREDITOS} créditos deste mês. O contador volta a zero no dia 1. ` +
-          'A Fábrica de carrosséis, o Editor e a Biblioteca continuam a funcionar — esses não gastam créditos.',
+          'Vê em Definições › Créditos o que cada coisa custa. A Fábrica de carrosséis, ' +
+          'o Editor e a Biblioteca continuam a funcionar — esses não gastam créditos.',
     );
   }
 }
