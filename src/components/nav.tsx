@@ -12,7 +12,6 @@ import {
   Library,
   UserRound,
   UserSearch,
-  PenTool,
   Brain,
   Crown,
   Settings,
@@ -24,7 +23,6 @@ import {
   Trash2,
   Clock,
   Radio,
-  Flame,
 } from 'lucide-react';
 
 /**
@@ -38,13 +36,8 @@ const GRUPOS: Array<{
   {
     itens: [{ href: '/criar', label: 'Criar', icone: Sparkles }],
   },
-  {
-    titulo: '🔥 Carrosséis Creator',
-    itens: [
-      { href: '/criar-carrosseis', label: 'Fábrica de carrosséis', icone: Flame },
-      { href: '/editor', label: 'Editor', icone: PenTool },
-    ],
-  },
+  // Os carrosséis fazem-se no CarouselSnap. O que era o grupo "Carrosséis
+  // Creator" — a Fábrica e o Editor — saiu daqui.
   {
     itens: [{ href: '/biblioteca', label: 'Biblioteca', icone: Library }],
   },

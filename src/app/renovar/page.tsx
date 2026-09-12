@@ -1,9 +1,9 @@
-import { precos } from '@/lib/assinatura';
+import { carouselSnap } from '@/lib/passagem';
 import { RenovarCliente } from './renovar-cliente';
 
-/** Os links vêm do ambiente, lidos a cada pedido — ver src/lib/assinatura.ts. */
+/** O endereço do CarouselSnap vem do ambiente, lido a cada pedido. */
 export const dynamic = 'force-dynamic';
 
 export default function RenovarPage() {
-  return <RenovarCliente precos={precos()} />;
+  return <RenovarCliente snap={carouselSnap()} />;
 }

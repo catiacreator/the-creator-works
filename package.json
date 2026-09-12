@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "palavra-passe": "node scripts/definir-palavra-passe.mjs",
     "verificar": "NEXT_DIST_DIR=.next-build next build",
-    "verificar-leitor": "node scripts/verificar-leitor.mjs"
+    "verificar-leitor": "node scripts/verificar-leitor.mjs",
+    "verificar-passagem": "node scripts/verificar-passagem.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -146,11 +146,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignorado: 'sem email' });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  // chave de serviço: os códigos de sistema deixaram de valer para o
+  // browser, e um webhook fala com a base de dados como servidor
+  const supabase = createAdminClient();
 
   // ── deixou de pagar: fecha-se a porta ────────────
   if (DEIXOU.has(tipo)) {
