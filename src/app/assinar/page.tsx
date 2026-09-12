@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ExternalLink, Lock } from 'lucide-react';
 import { INCLUI, TECTO } from '@/lib/assinatura';
+import { INDEPENDENTES } from '@/lib/creditos';
 import { carouselSnap } from '@/lib/passagem';
 
 export const metadata: Metadata = {
@@ -73,6 +74,7 @@ export default function AssinarPage({
             ))}
           </ul>
           <p className="mt-2">{TECTO}.</p>
+          <p className="mt-2">{INDEPENDENTES}</p>
         </div>
       </div>
 

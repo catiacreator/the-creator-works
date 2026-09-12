@@ -150,6 +150,21 @@ export function custo(acao: Acao, quantas = 1): number {
   return (CUSTOS[acao] ?? 1) * Math.max(1, quantas);
 }
 
+/**
+ * Os dois contadores não se falam.
+ *
+ * Quem entra aqui pelo CarouselSnap traz de lá uma subscrição, e é natural
+ * pensar que os créditos são os mesmos. Não são: são duas apps, duas contas
+ * de gastos, dois tectos. Gastar aqui não tira nada de lá, e gastar lá não
+ * tira nada daqui.
+ *
+ * Está escrito porque é a confusão óbvia — e uma pessoa que a faça só dá por
+ * ela quando bate numa parede que não estava à espera.
+ */
+export const INDEPENDENTES =
+  'Estes créditos são só do Creator Works. Os do CarouselSnap contam à parte: ' +
+  'gastar aqui não tira nada de lá, e gastar lá não tira nada daqui.';
+
 /** O que não gasta crédito nenhum, dito por palavras para a app poder mostrá-lo. */
 export const DE_GRACA = [
   'A Fábrica de carrosséis, quando o documento já vem escrito em slides',
