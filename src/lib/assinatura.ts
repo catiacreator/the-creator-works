@@ -12,6 +12,8 @@
  * vez. Assim troca-se no painel da Vercel e vale no pedido seguinte.
  */
 
+import { TECTO_CREDITOS } from './creditos';
+
 export interface Preco {
   /** o que se mostra */
   valor: string;
@@ -52,8 +54,10 @@ export const INCLUI = [
 /** Quantas fotografias e templates cabem. */
 export const GUARDA = ['10 fotografias', '5 templates', 'estilos sem limite'];
 
-/** O tecto de pedidos à Cát.IA, dito por palavras. */
-export const TECTO = '200 pedidos à Cát.IA por mês';
+/** O tecto, dito por palavras. O número vive em creditos.ts. */
+export const TECTO = `${TECTO_CREDITOS} créditos por mês — dá para cerca de ${Math.floor(
+  TECTO_CREDITOS / 3,
+)} carrosséis escritos de raiz`;
 
 /** Há para onde mandar quem quer pagar? */
 export function haOndePagar(lista: Preco[]) {

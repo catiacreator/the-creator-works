@@ -20,7 +20,6 @@ export const maxDuration = 300;
  * ao mesmo tempo que os outros.
  */
 export const POST = withUser(async ({ user, supabase, request }) => {
-  await marcarConsumo(supabase, user.email, 'ler');
   const tipoDoPedido = request.headers.get('content-type') ?? '';
   let texto = '';
   let origem: string | null = null;
@@ -62,6 +61,12 @@ export const POST = withUser(async ({ user, supabase, request }) => {
     maximo: 120,
   });
   if (!pedacos.length) throw new Error('Este documento não dá para nenhum carrossel.');
+
+  // Só aqui se cobra, e por isto: o caminho de cima não chega a falar com a
+  // IA — o documento já vinha escrito em slides — e cobrar por ele era cobrar
+  // por nada. E cobra-se um por cada carrossel que vai sair, porque é um
+  // pedido à IA por cada pedaço, não um pelo documento todo.
+  await marcarConsumo(supabase, user.email, 'ler', pedacos.length);
 
   const settings = await getSettings(supabase, user.id);
   const sistema = `
