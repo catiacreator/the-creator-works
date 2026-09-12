@@ -19,6 +19,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/configurar', request.url));
   }
 
+  // A porta de serviço passa sempre, e antes de tudo o resto.
+  //
+  // É a porta de quem ficou de fora: se ela chegar aqui com uma sessão velha
+  // — de uma conta suspensa, de um prazo que passou — as regras abaixo
+  // punham-na na rua ou mandavam-na para a renovação, e a página que ela foi
+  // abrir de propósito nunca chegava a aparecer. Uma saída de emergência que
+  // só funciona quando não é precisa não é uma saída de emergência.
+  if (
+    request.nextUrl.pathname === '/admin-login' ||
+    request.nextUrl.pathname === '/api/admin-login'
+  ) {
+    return NextResponse.next();
+  }
+
   // o layout precisa de saber a página para decidir se deixa passar
   request.headers.set('x-caminho', request.nextUrl.pathname);
 

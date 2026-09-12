@@ -29,6 +29,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
+import { PortaDeServico } from './porta-de-servico';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
 import { TABELA } from '@/lib/creditos';
 import {
@@ -673,6 +674,8 @@ export default function AdminPage() {
 
       {aba === 'codigos' && (
         <>
+          <PortaDeServico />
+
           <Card className="mb-4">
             <h2 className="mb-1 font-medium">Como se entra nesta app</h2>
             <p className="text-sm leading-relaxed text-muted">
