@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  LogOut,
   Moon,
   Coins,
   Info,
@@ -97,13 +96,6 @@ export default function DefinicoesClient() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     load();
-  }
-
-  async function sair() {
-    const { createClient } = await import('@/lib/supabase/client');
-    await createClient().auth.signOut();
-    router.push('/login');
-    router.refresh();
   }
 
   function trocarTema(novo: boolean) {
@@ -425,13 +417,6 @@ export default function DefinicoesClient() {
         />
       </div>
 
-      <button
-        onClick={sair}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-[1.25rem] border border-rosa/40 px-5 py-4 font-medium text-rosa transition hover:bg-rosaSuave/40"
-      >
-        <LogOut className="h-4 w-4" />
-        Sair da conta
-      </button>
     </>
   );
 }

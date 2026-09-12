@@ -17,7 +17,6 @@ import {
   Crown,
   Settings,
   ShieldCheck,
-  LogOut,
   PanelLeftClose,
   PanelLeft,
   MessageSquarePlus,
@@ -120,13 +119,6 @@ export function Nav({
     await fetch(`/api/chat?thread=${id}`, { method: 'DELETE' });
     setConversas((c) => c.filter((x) => x.id !== id));
     if (aberta === id) router.push('/chat');
-  }
-
-  async function signOut() {
-    const { createClient } = await import('@/lib/supabase/client');
-    await createClient().auth.signOut();
-    router.push('/login');
-    router.refresh();
   }
 
   function alternar() {
@@ -327,17 +319,14 @@ export function Nav({
       >
         <BotaoDeTema fechada={fechada} />
         <Ajuda fechada={fechada} />
-        <button
-          onClick={signOut}
-          className={clsx(
-            'flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition hover:bg-creme hover:text-ink',
-            fechada ? 'justify-center px-0' : 'w-full',
-          )}
-          title="Sair"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          {!fechada && 'Sair'}
-        </button>
+        {/*
+          Não há "Sair" aqui.
+          Quem entra pelo CarouselSnap não tem palavra-passe nesta app — sair
+          era ficar do lado de fora sem chave, e o caminho de volta é o botão
+          laranja aqui em cima. Para quem precisa mesmo de trocar de conta, o
+          botão continua nas Definições, que é onde se vai de propósito e não
+          por engano.
+        */}
       </div>
     </aside>
   );

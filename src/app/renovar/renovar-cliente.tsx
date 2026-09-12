@@ -78,10 +78,6 @@ export function RenovarCliente({ snap }: { snap: string }) {
           </p>
         )}
       </div>
-
-      <a href="/login" className="mt-6 text-center text-xs text-muted underline">
-        Sair desta conta
-      </a>
     </main>
   );
 }
