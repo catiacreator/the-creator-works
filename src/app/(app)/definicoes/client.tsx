@@ -8,10 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  KeyRound,
   LogOut,
-  Mail,
   Moon,
+  Coins,
   Palette,
   Save,
   Sun,
@@ -19,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
+import { DA_PARA, DE_GRACA, TABELA, TECTO_CREDITOS } from '@/lib/creditos';
 
 /**
  * Definições.
@@ -33,7 +33,7 @@ interface Settings {
   brand_voice: string;
 }
 
-type Painel = 'voz' | 'conta' | 'aspeto';
+type Painel = 'voz' | 'conta' | 'creditos' | 'aspeto';
 
 export default function DefinicoesClient() {
   const params = useSearchParams();
@@ -44,11 +44,6 @@ export default function DefinicoesClient() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [escuro, setEscuro] = useState(false);
-  const [novoEmail, setNovoEmail] = useState('');
-  const [recadoEmail, setRecadoEmail] = useState<string | null>(null);
-  const [erroEmail, setErroEmail] = useState<string | null>(null);
-  /** mudar o email da conta é coisa de admin — a lista de acessos depende dele */
-  const [souAdmin, setSouAdmin] = useState(false);
   const [consumo, setConsumo] = useState<{
     disponivel: boolean;
     total?: number;
@@ -70,10 +65,7 @@ export default function DefinicoesClient() {
     setEscuro(document.documentElement.classList.contains('dark'));
     fetch('/api/eu')
       .then((r) => r.json())
-      .then((d) => {
-        setEmail(d.email ?? null);
-        setSouAdmin(d.papel === 'admin');
-      })
+      .then((d) => setEmail(d.email ?? null))
       .catch(() => {});
   }, []);
 
@@ -96,45 +88,6 @@ export default function DefinicoesClient() {
     await createClient().auth.signOut();
     router.push('/login');
     router.refresh();
-  }
-
-  /**
-   * Mudar o email da conta.
-   *
-   * O Supabase manda um link de confirmação para o endereço novo — só depois
-   * de o abrir é que a troca acontece. E há uma travagem antes disso: se o
-   * email novo não estiver na lista de quem pode entrar, a troca deixava-a
-   * fechada de fora na página seguinte. Mais vale recusar aqui.
-   */
-  async function mudarEmail() {
-    const alvo = novoEmail.trim().toLowerCase();
-    setErroEmail(null);
-    setRecadoEmail(null);
-
-    if (!alvo || !alvo.includes('@')) return setErroEmail('Escreve o email novo.');
-    if (alvo === (email ?? '').toLowerCase()) return setErroEmail('Esse já é o teu email.');
-    // trocar para um email que não está na lista de pessoas era a maneira mais
-    // fácil de ficar fechada de fora — o servidor confirma antes de enviar
-    const check = await fetch(`/api/membros/existe?email=${encodeURIComponent(alvo)}`).then((r) =>
-      r.json(),
-    );
-    if (!check.existe) {
-      return setErroEmail(
-        'Este email ainda não tem acesso à app — se trocasses agora, ficavas fechada de fora. ' +
-          'Convida-o primeiro no Admin, com o papel de admin.',
-      );
-    }
-
-    setBusy(true);
-    const { createClient } = await import('@/lib/supabase/client');
-    const { error } = await createClient().auth.updateUser(
-      { email: alvo },
-      { emailRedirectTo: `${window.location.origin}/auth/callback?next=/definicoes` },
-    );
-    setBusy(false);
-    if (error) return setErroEmail(error.message);
-    setRecadoEmail(alvo);
-    setNovoEmail('');
   }
 
   function trocarTema(novo: boolean) {
@@ -234,94 +187,122 @@ export default function DefinicoesClient() {
     return (
       <>
         <Voltar />
-        <PageHeader title="A tua conta" subtitle="Com que email entras, e como." />
+        <PageHeader title="A tua conta" subtitle="Com que conta estás aqui dentro." />
+        {/*
+          Já não há aqui email para trocar nem palavra-passe para definir: a
+          conta é a do CarouselSnap, e é lá que se muda. Deixar cá os botões
+          era oferecer uma troca que não passa de cá para lá — e uma pessoa
+          que trocasse o email aqui ficava com duas contas que não se
+          reconhecem.
+        */}
         <Card className="mb-4">
           <p className="label">E-mail</p>
           <p className="text-[15px]">{email ?? '—'}</p>
-          <p className="mt-2 text-xs text-muted">
-            É por este email que entras. A app é privada: mais ninguém tem acesso.
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            É a conta com que entraste pelo CarouselSnap. Para mudares de email
+            ou de palavra-passe, é lá que se faz — esta app não tem conta
+            própria.
           </p>
         </Card>
 
-        {consumo?.disponivel && (
-          <Card className="mb-4">
-            <p className="label">Pedidos à Cát.IA este mês</p>
-            {consumo.semTecto ? (
-              <p className="text-[15px]">
-                {consumo.total} <span className="text-muted">— sem tecto, és admin</span>
-              </p>
-            ) : (
-              <>
-                <p className="text-[15px]">
-                  {consumo.total} <span className="text-muted">de {consumo.tecto}</span>
-                </p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-creme">
-                  <div
-                    className="h-full rounded-full bg-rosa transition-all"
-                    style={{
-                      width: `${Math.min(100, ((consumo.total ?? 0) / consumo.tecto) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Conta tudo o que passa pela Cát.IA: escrever carrosséis, os roteiros,
-              a Última hora, a análise de perfil. Volta a zero no dia 1. A Fábrica
-              de carrosséis, o Editor e a Biblioteca não contam — esses não passam
-              pela IA.
-            </p>
-          </Card>
-        )}
 
-        {!souAdmin ? (
-          <Card className="mb-4">
-            <h2 className="mb-1 font-medium">Mudar de email</h2>
-            <p className="text-sm leading-relaxed text-muted">
-              O email é a chave que te dá acesso a esta app, e quem gere essas chaves é a admin.
-              Se precisares de mudar o teu, fala com ela.
-            </p>
-          </Card>
-        ) : (
+      </>
+    );
+  }
+
+  if (painel === 'creditos') {
+    const gastos = consumo?.total ?? 0;
+    const restam = Math.max(0, TECTO_CREDITOS - gastos);
+
+    return (
+      <>
+        <Voltar />
+        <PageHeader
+          title="Créditos"
+          subtitle="O que gasta, quanto gasta, e o que não gasta nada."
+        />
+
+        {/*
+          Primeiro o número, depois o que ele dá.
+          Uma barra de progresso sozinha não responde à única pergunta que se
+          faz ao ver um número destes — "isto dá para quê?" — e por isso vem
+          logo a seguir a conta feita.
+        */}
         <Card className="mb-4">
-          <h2 className="mb-1 font-medium">Mudar de email</h2>
-          <p className="mb-3 text-sm text-muted">
-            Enviamos um link para o endereço novo. A troca só acontece depois de o abrires — até
-            lá, entras com o de sempre.
-          </p>
-
-          {recadoEmail ? (
-            <div className="rounded-xl border border-sand bg-creme/60 px-4 py-3 text-sm">
-              Link enviado para <strong>{recadoEmail}</strong>. Abre-o nesse email para confirmar a
-              troca.
-            </div>
+          {consumo?.semTecto ? (
+            <>
+              <p className="label">Gastos este mês</p>
+              <p className="text-[15px]">
+                {gastos} <span className="text-muted">— sem tecto, és admin</span>
+              </p>
+            </>
           ) : (
             <>
-              <input
-                type="email"
-                className="input mb-2"
-                value={novoEmail}
-                onChange={(e) => setNovoEmail(e.target.value)}
-                placeholder="o.email.novo@exemplo.com"
-              />
-              {erroEmail && <p className="mb-2 text-sm text-rose-700">{erroEmail}</p>}
-              <button className="btn-ghost w-full" onClick={mudarEmail} disabled={busy}>
-                <Mail className="h-4 w-4" />
-                {busy ? 'A enviar…' : 'Enviar link de confirmação'}
-              </button>
+              <p className="label">Este mês</p>
+              <p className="text-2xl font-semibold">
+                {restam} <span className="text-[15px] font-normal text-muted">créditos por gastar</span>
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {gastos} de {TECTO_CREDITOS} gastos · volta a {TECTO_CREDITOS} no dia 1
+              </p>
+              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-creme">
+                <div
+                  className="h-full rounded-full bg-rosa transition-all"
+                  style={{ width: `${Math.min(100, (gastos / TECTO_CREDITOS) * 100)}%` }}
+                />
+              </div>
             </>
           )}
         </Card>
-        )}
-        <Card>
-          <h2 className="mb-1 font-medium">Palavra-passe</h2>
-          <p className="mb-3 text-sm text-muted">
-            Para entrares sem esperar pelo link do email.
+
+        <Card className="mb-4">
+          <p className="label">Os {TECTO_CREDITOS} créditos de um mês dão para</p>
+          <ul className="mt-1 space-y-1.5 text-sm">
+            {DA_PARA.map((d) => (
+              <li key={d.o_que} className="flex gap-2">
+                <span className="w-10 shrink-0 text-right font-semibold">{d.quantos}</span>
+                <span className="text-muted">{d.o_que}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            Um de cada vez, claro — na prática misturas. Serve para dar a
+            escala: um carrossel por dia útil gasta pouco mais de metade do mês.
           </p>
-          <Link href="/palavra-passe" className="btn-ghost w-full">
-            <KeyRound className="h-4 w-4" />
-            Definir palavra-passe
-          </Link>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="label">Quanto custa cada coisa</p>
+          <div className="mt-1 divide-y divide-sand">
+            {TABELA.map((l) => (
+              <div key={l.acao} className="flex gap-3 py-3 first:pt-1 last:pb-1">
+                <span className="mt-0.5 w-10 shrink-0 text-right text-[15px] font-semibold">
+                  {l.custo}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-snug">{l.nome}</p>
+                  <p className="text-xs text-muted">{l.onde}</p>
+                  {l.nota && (
+                    <p className="mt-1 text-xs leading-relaxed text-muted">{l.nota}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <p className="label">Não gasta crédito nenhum</p>
+          <ul className="mt-1 space-y-1 text-sm leading-relaxed text-muted">
+            {DE_GRACA.map((x) => (
+              <li key={x}>· {x}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            A regra é simples: gasta o que passa pela IA. O que é só teu —
+            desenhar, guardar, exportar, reler — não gasta nada, por mais que o
+            faças.
+          </p>
         </Card>
       </>
     );
@@ -370,8 +351,14 @@ export default function DefinicoesClient() {
         <Porta
           icone={UserRound}
           titulo="A tua conta"
-          descricao="Email e palavra-passe"
+          descricao="Com que conta entras, e os pedidos deste mês"
           abre="conta"
+        />
+        <Porta
+          icone={Coins}
+          titulo="Créditos"
+          descricao={`O que gasta e quanto — ${TECTO_CREDITOS} por mês`}
+          abre="creditos"
         />
         <Porta
           icone={FileText}
