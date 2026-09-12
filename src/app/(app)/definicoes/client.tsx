@@ -11,6 +11,7 @@ import {
   LogOut,
   Moon,
   Coins,
+  Info,
   Palette,
   Save,
   Sun,
@@ -18,7 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
-import { DA_PARA, DE_GRACA, TABELA, TECTO_CREDITOS } from '@/lib/creditos';
+import { DA_PARA, DE_GRACA, INDEPENDENTES, TABELA, TECTO_CREDITOS } from '@/lib/creditos';
 
 /**
  * Definições.
@@ -269,6 +270,17 @@ export default function DefinicoesClient() {
             </>
           )}
         </Card>
+
+        {/*
+          A confusão óbvia, dita antes de acontecer: quem entra pelo
+          CarouselSnap traz de lá uma subscrição e é natural pensar que os
+          créditos são os mesmos. Quem a fizer só dá por ela ao bater numa
+          parede que não estava à espera.
+        */}
+        <div className="mb-4 flex gap-3 rounded-xl bg-creme px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-rosa" />
+          <p className="text-sm leading-relaxed text-muted">{INDEPENDENTES}</p>
+        </div>
 
         <Card className="mb-4">
           <p className="label">Quanto custa cada coisa</p>
