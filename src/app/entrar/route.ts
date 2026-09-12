@@ -60,7 +60,8 @@ export async function GET(request: Request) {
   const leitura = lerPassagem(bilhete, segredo);
   if (!leitura.ok) return naoEntra(origin, leitura.porque);
 
-  const { e: email, n: nome, j } = leitura.recado;
+  const { u: snap, n: nome, j } = leitura.recado;
+  let email = leitura.recado.e;
 
   // para onde ia a pessoa. Só caminhos desta app — um endereço completo aqui
   // dentro era uma maneira de usar a nossa porta para mandar alguém para
@@ -78,6 +79,61 @@ export async function GET(request: Request) {
   });
   if (erroDoBilhete) return naoEntra(origin, `gastar_passagem: ${erroDoBilhete.message}`);
   if (!primeira) return naoEntra(origin, 'bilhete já usado');
+
+  // ── 2b. quem é esta pessoa, se o CarouselSnap disser ─────
+  //
+  // O id do CarouselSnap é que diz quem ela é; o email é só um dado dela.
+  // Quando o email muda de lá, o que NÃO pode mudar aqui é o id da conta do
+  // Supabase — tudo o que é dela está preso a esse id, e criar outra conta
+  // era perder-lhe a biblioteca, a memória e o briefing de uma vez.
+  //
+  // Por isso: renomeia-se a conta que já existe. E se a renomeação falhar,
+  // para-se aqui em vez de continuar — continuar era abrir-lhe uma conta
+  // vazia e deixá-la a pensar que perdeu tudo.
+  if (snap) {
+    const { data: conhecida } = await admin.rpc('ver_passagem', { c: CODIGO, snap });
+    const antiga = (Array.isArray(conhecida) ? conhecida[0] : conhecida) as
+      | { email: string; auth_id: string | null }
+      | undefined;
+
+    if (antiga?.email && antiga.email.toLowerCase() !== email) {
+      const anterior = antiga.email.toLowerCase();
+
+      // o id da conta: guardado, ou descoberto pelo email antigo
+      let idDaConta = antiga.auth_id;
+      if (!idDaConta) {
+        const { data: procurada } = await admin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: anterior,
+        });
+        idDaConta = procurada?.user?.id ?? null;
+      }
+
+      if (!idDaConta) return naoEntra(origin, `mudou de email e não achei a conta de ${anterior}`);
+
+      const { error: erroDoNome } = await admin.auth.admin.updateUserById(idDaConta, {
+        email,
+        email_confirm: true,
+      });
+      if (erroDoNome) return naoEntra(origin, `mudar email da conta: ${erroDoNome.message}`);
+
+      const { data: renomeado } = await admin.rpc('renomear_membro', {
+        c: CODIGO,
+        snap,
+        novo: email,
+      });
+      if (renomeado === false) {
+        // o email novo já é de outra pessoa aqui — juntar as duas seria pior
+        return naoEntra(origin, `email ${email} já pertence a outro membro`);
+      }
+
+      console.log(`[passagem] ${anterior} passou a ${email} (mesma conta)`);
+    } else if (antiga?.email) {
+      // é ela, e o email não mudou — usa-se o que está cá, para o resto do
+      // caminho não depender de maiúsculas ou espaços do outro lado
+      email = antiga.email.toLowerCase();
+    }
+  }
 
   // ── 3. dar o lugar ───────────────────────────────────────
   const { data: papel, error: erroDoLugar } = await admin.rpc('resgatar_codigo', {
@@ -113,6 +169,15 @@ export async function GET(request: Request) {
   if (erroDoLink || !hash) {
     return naoEntra(origin, `generateLink: ${erroDoLink?.message ?? 'sem token'}`);
   }
+
+  // guarda quem é quem, a cada entrada e não só na primeira: é assim que as
+  // linhas antigas vão ganhando o id sem ninguém as arranjar à mão
+  await admin.rpc('ligar_passagem', {
+    c: CODIGO,
+    e: email,
+    snap: snap ?? '',
+    auth: link?.user?.id ?? null,
+  });
 
   // o link mágico é resgatado aqui mesmo, no mesmo pedido: nunca chega a sair
   // daqui, nunca vai parar a uma caixa de correio, nunca é visto por ninguém

@@ -16,12 +16,18 @@ import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
  *
  * O recado é um JSON pequeno:
  *
- *     { "e": "alguem@exemplo.com", "n": "Nome", "ate": 1770000060, "j": "uuid" }
+ *     { "u": "id-no-snap", "e": "alguem@exemplo.com", "n": "Nome",
+ *       "ate": 1770000060, "j": "uuid" }
  *
- *     e    o email da pessoa, que é o que as duas apps têm em comum
+ *     u    o id da pessoa no CarouselSnap — é ISTO que diz quem ela é
+ *     e    o email dela, que muda quando ela o mudar de lá
  *     n    o nome, se o souberem (opcional, só serve para dizer olá)
  *     ate  o segundo em que o bilhete deixa de valer
  *     j    um número só dele, para não poder ser usado duas vezes
+ *
+ * O `u` é opcional só para a ligação poder começar a funcionar antes de o
+ * outro lado o mandar. Sem ele, a identidade volta a ser o email — e quem
+ * mudar de email passa a ser outra pessoa aqui dentro.
  *
  * Três cuidados, e nenhum deles é acessório:
  *
@@ -55,6 +61,8 @@ export const VALIDADE = 60;
 export const DIAS_POR_PASSAGEM = 7;
 
 export interface Recado {
+  /** o id da pessoa no CarouselSnap, quando ele o manda */
+  u?: string;
   /** email */
   e: string;
   /** nome, se o souberem */
@@ -88,7 +96,7 @@ function assinar(corpo: string, segredo: string) {
 export function escreverPassagem(
   email: string,
   segredo: string,
-  extras: { nome?: string; validade?: number } = {},
+  extras: { nome?: string; validade?: number; id?: string } = {},
 ): string {
   const recado: Recado = {
     e: email.trim().toLowerCase(),
@@ -96,6 +104,7 @@ export function escreverPassagem(
     j: randomUUID(),
   };
   if (extras.nome) recado.n = extras.nome.trim();
+  if (extras.id) recado.u = extras.id.trim();
 
   const corpo = base64url(Buffer.from(JSON.stringify(recado), 'utf8'));
   return `${corpo}.${assinar(corpo, segredo)}`;
@@ -146,12 +155,39 @@ export function lerPassagem(bilhete: string, segredo: string): Leitura {
   const j = String(recado.j ?? '').trim();
   if (j.length < 8) return { ok: false, porque: 'sem número de bilhete' };
 
-  return { ok: true, recado: { e: email, n: recado.n?.trim() || undefined, ate, j } };
+  return {
+    ok: true,
+    recado: {
+      u: String(recado.u ?? '').trim() || undefined,
+      e: email,
+      n: recado.n?.trim() || undefined,
+      ate,
+      j,
+    },
+  };
 }
 
-/** O sítio de onde vêm as pessoas. Lido a cada pedido, do lado do servidor. */
+/**
+ * O CarouselSnap, e os dois sítios dele que nos interessam.
+ *
+ * Não é o mesmo endereço para toda a gente, e enganar-se nisto manda a pessoa
+ * para o lugar errado no pior momento:
+ *
+ *   **A porta da rua** (`carouselSnap()`) é para quem ainda não tem nada —
+ *   chegou aqui por engano ou com um bilhete que não presta. Leva à página
+ *   pública, onde se assina.
+ *
+ *   **O lugar dela lá dentro** (`voltarAoCarouselSnap()`) é para quem já é
+ *   cliente e só quer atravessar a rua de volta. Leva direito ao /main, sem
+ *   passar pela página de vendas de uma coisa que ela já comprou.
+ */
 export function carouselSnap(): string {
-  return process.env.CAROUSELSNAP_URL?.trim() || 'https://carouselsnap.lovable.app';
+  return (process.env.CAROUSELSNAP_URL?.trim() || 'https://carouselsnap.app').replace(/\/+$/, '');
+}
+
+/** Para onde volta quem já está cá dentro. */
+export function voltarAoCarouselSnap(): string {
+  return process.env.CAROUSELSNAP_VOLTAR?.trim() || `${carouselSnap()}/main`;
 }
 
 /** Está a passagem ligada? Sem segredo não entra ninguém por aqui. */
