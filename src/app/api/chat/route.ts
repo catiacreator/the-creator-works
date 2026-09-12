@@ -5,6 +5,7 @@ import { contextoDoMaterial } from '@/lib/material';
 import { conversa } from '@/lib/ia';
 import { signedUrl } from '@/lib/storage';
 import { marcarConsumo } from '@/lib/consumo';
+import { GUARDA_CONVERSAS, podarConversas } from '@/lib/conversas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -14,12 +15,15 @@ export const GET = withUser(async ({ user, supabase, request }) => {
   const threadId = searchParams.get('thread');
 
   if (!threadId) {
+    // só as que se guardam: as mais antigas já foram apagadas, mas se alguma
+    // escapou à poda não vale a pena mostrá-la
     const { data } = await supabase
       .from('chat_threads')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    return ok({ threads: data ?? [] });
+      .order('created_at', { ascending: false })
+      .limit(GUARDA_CONVERSAS);
+    return ok({ threads: data ?? [], guarda: GUARDA_CONVERSAS });
   }
 
   const { data: messages } = await supabase
@@ -72,6 +76,10 @@ export const POST = withUser(async ({ user, supabase, request }) => {
       .single();
     if (error) throw new Error(error.message);
     threadId = data.id;
+
+    // abriu-se uma conversa nova: as que passaram das dez vão fora, e as
+    // mensagens delas atrás (a chave estrangeira está em cascata)
+    await podarConversas(supabase, user.id);
   }
 
   await supabase

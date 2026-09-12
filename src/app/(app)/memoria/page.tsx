@@ -29,7 +29,7 @@ const data = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
 
 /**
- * Memória da Cát.IA.
+ * Memória do teu agente.
  *
  * O briefing diz quem ela é; isto diz o que a Cát.IA já aprendeu a fazer com
  * ela. Três separadores: o que sabe, o que ela anda a vender, e as histórias
@@ -95,7 +95,7 @@ export default function MemoriaPage() {
   return (
     <>
       <PageHeader
-        title="Memória da Cát.IA"
+        title="Memória do teu agente"
         subtitle="O que ela já sabe de ti, e passa a respeitar em tudo o que escreve."
       />
 

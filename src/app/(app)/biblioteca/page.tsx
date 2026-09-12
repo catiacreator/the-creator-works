@@ -2,7 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Camera, FileText, Images, LayoutTemplate, ArrowRight } from 'lucide-react';
+import {
+  Camera,
+  FileText,
+  Images,
+  LayoutTemplate,
+  MessagesSquare,
+  ArrowRight,
+} from 'lucide-react';
 import { PageHeader } from '@/components/ui';
 
 /**
@@ -39,6 +46,13 @@ const CARTOES = [
     icone: FileText,
     conta: 'material',
   },
+  {
+    href: '/conversas',
+    label: 'Históricos de conversas',
+    curto: 'As últimas dez conversas com a Cát.IA',
+    icone: MessagesSquare,
+    conta: 'conversas',
+  },
 ] as const;
 
 export default function BibliotecaPage() {
@@ -46,17 +60,19 @@ export default function BibliotecaPage() {
 
   useEffect(() => {
     (async () => {
-      const [c, t, f, m] = await Promise.all([
+      const [c, t, f, m, k] = await Promise.all([
         fetch('/api/carousels').then((r) => r.json()),
         fetch('/api/templates').then((r) => r.json()),
         fetch('/api/photos').then((r) => r.json()),
         fetch('/api/sources').then((r) => r.json()),
+        fetch('/api/chat').then((r) => r.json()),
       ]);
       setContas({
         carrosseis: (c.carousels ?? []).length,
         templates: (t.templates ?? []).length,
         fotos: (f.photos ?? []).length,
         material: (m.sources ?? []).length,
+        conversas: (k.threads ?? []).length,
       });
     })();
   }, []);

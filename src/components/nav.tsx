@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { Ajuda } from './ajuda';
 import { BotaoDeTema } from './tema';
 import { permissaoDaPagina, type Permissao } from '@/lib/papeis';
+import { NA_BARRA } from '@/lib/conversas';
 import {
   Sparkles,
   Library,
@@ -45,7 +46,7 @@ const GRUPOS: Array<{
   {
     itens: [
       { href: '/chat', label: 'Agente Cát.IA', icone: Crown },
-      { href: '/memoria', label: 'Memória da Cát.IA', icone: Brain },
+      { href: '/memoria', label: 'Memória do teu agente', icone: Brain },
       { href: '/ultima-hora', label: 'Última hora', icone: Radio },
       { href: '/analise', label: 'Análise de perfil', icone: UserSearch },
     ],
@@ -95,7 +96,7 @@ export function Nav({
   const carregarConversas = useCallback(() => {
     fetch('/api/chat')
       .then((r) => r.json())
-      .then((d) => setConversas((d.threads ?? []).slice(0, 12)));
+      .then((d) => setConversas((d.threads ?? []).slice(0, NA_BARRA)));
   }, []);
 
   useEffect(() => {
@@ -135,9 +136,12 @@ export function Nav({
   }
 
   return (
+    // A barra não acompanha o rolar da página: fica presa ao topo, da altura
+    // do ecrã. É o que mantém o botão de voltar ao CarouselSnap sempre à
+    // vista, por mais comprida que seja a página ao lado.
     <aside
       className={clsx(
-        'flex shrink-0 flex-col border-r border-sand bg-superficie transition-all',
+        'sticky top-0 flex h-screen shrink-0 flex-col border-r border-sand bg-superficie transition-all',
         fechada ? 'w-[68px]' : 'w-64',
       )}
     >
@@ -176,7 +180,8 @@ export function Nav({
       </div>
 
       {/* ── secções ────────────────────────────────── */}
-      <nav className="space-y-4 px-3">
+      {/* rolam por dentro quando o ecrã é baixo, para não empurrarem o fundo */}
+      <nav className="min-h-0 shrink space-y-4 overflow-y-auto px-3">
         {GRUPOS.map((grupo, i) => {
           // fora do menu o que este papel não pode ver
           const itens = grupo.itens.filter((l) => {
@@ -299,7 +304,7 @@ export function Nav({
         coisa nesta barra que não é desta app, e não se deve confundir com o
         resto.
       */}
-      <div className="px-3 pb-2 pt-1">
+      <div className="mt-auto shrink-0 px-3 pb-2 pt-2">
         <a
           href={carouselSnap}
           className={clsx(
@@ -314,7 +319,12 @@ export function Nav({
       </div>
 
       {/* ── ajuda e sair ───────────────────────────── */}
-      <div className={clsx('space-y-0.5 border-t border-sand p-3', fechada && 'text-center')}>
+      <div
+        className={clsx(
+          'shrink-0 space-y-0.5 border-t border-sand p-3',
+          fechada && 'text-center',
+        )}
+      >
         <BotaoDeTema fechada={fechada} />
         <Ajuda fechada={fechada} />
         <button
