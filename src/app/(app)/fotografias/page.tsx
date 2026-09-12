@@ -1,9 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FolderPlus, Pencil, Trash2, Upload, X, ZoomIn, Download } from 'lucide-react';
+import {
+  FolderPlus,
+  Image as ImageIcon,
+  Pencil,
+  Trash2,
+  Upload,
+  X,
+  ZoomIn,
+  Download,
+} from 'lucide-react';
 import { Wizard } from '@/components/wizard';
 import { Card, Dialogo, Empty, PageHeader, Spinner } from '@/components/ui';
+import { TECTO_FOTOS } from '@/lib/limites';
 import type { FolderRow, PhotoRow } from '@/lib/types';
 
 type Photo = PhotoRow & { url: string | null };
@@ -154,6 +164,33 @@ export default function BibliotecaPage() {
       />
 
       <Wizard destaque="fotos" />
+
+      {/*
+        O tecto dito antes de se bater nele.
+        Um limite que só aparece como erro depois de a pessoa escolher as
+        fotografias é um limite mal contado — por isso está aqui em cima, com
+        a conta feita, e muda de tom quando está cheio.
+      */}
+      <div
+        className={`mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl px-4 py-3 text-sm leading-relaxed ${
+          photos.length >= TECTO_FOTOS
+            ? 'border border-rosa/30 bg-rosaSuave text-ink'
+            : 'bg-creme text-muted'
+        }`}
+      >
+        <ImageIcon className="h-4 w-4 shrink-0" />
+        <span>
+          <strong className="text-ink">
+            {photos.length} de {TECTO_FOTOS}
+          </strong>{' '}
+          fotografias guardadas.
+        </span>
+        <span>
+          {photos.length >= TECTO_FOTOS
+            ? 'Está cheio: para acrescentares outra, apaga primeiro uma destas.'
+            : `Guardam-se até ${TECTO_FOTOS} — depois disso é preciso apagar para acrescentar.`}
+        </span>
+      </div>
 
       {error && (
         <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">

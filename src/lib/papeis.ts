@@ -18,7 +18,7 @@ export type Permissao =
   | 'editor' //        Editor
   | 'biblioteca' //    Biblioteca (templates, fotografias, material, carrosséis feitos)
   | 'chat' //          Agente Cát.IA
-  | 'memoria' //       Memória da Cát.IA
+  | 'memoria' //       Memória do teu agente
   | 'ultima-hora' //   Última hora
   | 'analise' //       Análise de perfil
   | 'ver-pessoas' //   ver quem tem acesso
@@ -93,7 +93,7 @@ export const NOMES_DAS_PERMISSOES: Record<Permissao, string> = {
   editor: 'Editor',
   biblioteca: 'Biblioteca',
   chat: 'Agente Cát.IA',
-  memoria: 'Memória da Cát.IA',
+  memoria: 'Memória do teu agente',
   'ultima-hora': 'Última hora',
   analise: 'Análise de perfil',
   'ver-pessoas': 'Ver quem tem acesso',
@@ -155,6 +155,7 @@ const PORTAS: Array<[string, Permissao]> = [
   ['/fotografias', 'biblioteca'],
   ['/material', 'biblioteca'],
   ['/carrosseis', 'biblioteca'],
+  ['/conversas', 'biblioteca'],
   ['/painel', 'biblioteca'],
   ['/chat', 'chat'],
   ['/memoria', 'memoria'],

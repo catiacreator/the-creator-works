@@ -387,7 +387,7 @@ export default function DefinicoesClient() {
         />
         <Porta
           icone={Brain}
-          titulo="Memória da Cát.IA"
+          titulo="Memória do teu agente"
           descricao="Regras, campanhas e histórias"
           href="/memoria"
         />
