@@ -19,3 +19,16 @@ export const TECTO_FOTOS = 10;
 
 /** Quantos templates cabem. */
 export const TECTO_TEMPLATES = 5;
+
+/**
+ * O tamanho mínimo do código da porta de serviço.
+ *
+ * Está aqui e não em `chave-admin.ts` por uma razão prática: o cartão do
+ * Admin precisa de dizer o número à Cátia antes de ela escrever o código, e
+ * `chave-admin.ts` mexe em `crypto` — importá-lo num componente de browser
+ * era arrastar o módulo de criptografia do Node para dentro do bundle.
+ *
+ * Doze não é um número escolhido por bonito: é o ponto a partir do qual nem o
+ * travão das cinco tentativas nem a força bruta lá chegam.
+ */
+export const MINIMO_CHAVE_ADMIN = 12;

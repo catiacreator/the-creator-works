@@ -13,7 +13,6 @@ import {
   Library,
   UserRound,
   UserSearch,
-  Brain,
   Crown,
   Settings,
   ShieldCheck,
@@ -45,7 +44,9 @@ const GRUPOS: Array<{
   {
     itens: [
       { href: '/chat', label: 'Agente Cát.IA', icone: Crown },
-      { href: '/memoria', label: 'Memória do teu agente', icone: Brain },
+      // A memória não está aqui: chega-se a ela pelas Definições, que é onde
+      // já estava e onde faz mais sentido — é uma coisa que se afina de vez
+      // em quando, não um sítio onde se trabalha.
       { href: '/ultima-hora', label: 'Última hora', icone: Radio },
       { href: '/analise', label: 'Análise de perfil', icone: UserSearch },
     ],
