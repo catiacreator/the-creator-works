@@ -24,7 +24,7 @@ Em **Settings → Environment Variables**, no projeto `the-creator-works`:
 | Nome | O que é |
 |---|---|
 | `PASSAGEM_SEGREDO` | O segredo partilhado. Inventa uma linha comprida e aleatória — 40 caracteres ou mais. Tem de ser **exatamente a mesma** nas duas apps. |
-| `CAROUSELSNAP_URL` | `https://carouselsnap.lovable.app` |
+| `CAROUSELSNAP_URL` | `https://carouselsnap.app` — a porta da rua, para quem ainda não é cliente. O botão de voltar usa o `/main` daqui; se um dia for outro sítio, põe `CAROUSELSNAP_VOLTAR` com o endereço completo. |
 | `SUPABASE_SERVICE_ROLE_KEY` | A chave *service_role* do Supabase, se ainda lá não estiver. É ela que deixa abrir a sessão sem email. |
 
 Para inventar o segredo, num terminal:
@@ -46,7 +46,11 @@ No **SQL Editor** do projeto do Creator Works, o conteúdo de:
 supabase/migrations/024_carouselsnap.sql
 ```
 
-E, se ainda não correste, também o `022_consumos.sql` e o `023_stripe.sql`.
+E o `026_identidade.sql`, que é o que faz a pessoa ser identificada pelo id
+e não pelo email.
+
+E, se ainda não correste, também o `022_consumos.sql`, o `023_stripe.sql` e o
+`025_financeiro.sql`.
 
 ---
 
@@ -64,7 +68,12 @@ Cola isto no Lovable, tal e qual:
 > 1. Confirma que quem a chama tem sessão e subscrição ativa. Se não tiver,
 >    devolve 403.
 > 2. Monta este objeto:
->    `{ "e": <email da pessoa>, "n": <nome, se souberes>, "ate": <agora em segundos + 60>, "j": <crypto.randomUUID()> }`
+>    `{ "u": <id da pessoa no CarouselSnap>, "e": <email dela>, "n": <nome, se souberes>, "ate": <agora em segundos + 60>, "j": <crypto.randomUUID()> }`
+>
+>    O `u` é o mais importante: é ele que diz ao Creator Works QUEM é a
+>    pessoa. Manda o id estável dela — o `user.id` do Supabase serve — e não
+>    o email. Se um dia ela mudar de email, o id não muda e ela continua a ser
+>    a mesma pessoa do outro lado, com a biblioteca e a memória dela intactas.
 > 3. Converte-o para JSON, depois para **base64url** (base64 normal, com `+`
 >    trocado por `-`, `/` por `_`, e sem os `=` do fim). A isto chama-se CORPO.
 > 4. Calcula `HMAC-SHA256(CORPO, PASSAGEM_SEGREDO)` e passa o resultado
@@ -106,6 +115,7 @@ Deno.serve(async (req) => {
   if (sub?.status !== 'active') return new Response('sem subscrição', { status: 403 });
 
   const recado = {
+    u: user.id, // ← o id estável. É ISTO que diz quem ela é.
     e: user.email.toLowerCase(),
     n: user.user_metadata?.full_name ?? undefined,
     ate: Math.floor(Date.now() / 1000) + 60,
@@ -160,6 +170,23 @@ esta porta. É uma corrente, e cada elo só fala com o seguinte.
 O webhook `/api/webhooks/hotmart` desta app continua a existir e a funcionar,
 mas deixa de ser o caminho normal: passa a ser rede de segurança, para o caso
 de precisares de dar acesso a alguém sem passar pelo CarouselSnap.
+
+---
+
+## Sobre o email mudar
+
+Se alguém mudar de email no CarouselSnap, o bilhete seguinte traz o email
+novo e o mesmo `u`. Esta app reconhece-a pelo `u`, **renomeia a conta que já
+existe** e segue em frente — ela nem dá por isso, e não perde nada.
+
+Isto só funciona se o `u` vier no bilhete. Sem ele, a identidade volta a ser
+o email, e quem mudar de email passa a ser outra pessoa aqui dentro: conta
+nova, biblioteca vazia, briefing por responder. Por isso o `u` não é um
+extra — é a peça que evita a única perda de dados possível nesta ligação.
+
+Se a renomeação falhar por alguma razão, a app **recusa a entrada** em vez de
+abrir uma conta nova. Mais vale uma pessoa a bater à porta do que uma pessoa
+a pensar que perdeu o trabalho todo.
 
 ---
 

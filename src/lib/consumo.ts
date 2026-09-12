@@ -40,10 +40,15 @@ export async function marcarConsumo(
 
   const creditos = custo(acao, quantas);
 
+  // dois números diferentes, e por isso dois campos: `quantos` é o custo em
+  // créditos, `vezes` é quantas vezes a coisa aconteceu. Um carrossel são 3
+  // créditos e 1 vez — sem os separar, o painel não sabia dizer "1469
+  // carrosséis", só "4407 de qualquer coisa".
   const { data, error } = await supabase.rpc('marcar_consumo', {
     acao,
     tecto: TECTO_CREDITOS,
     quantos: creditos,
+    vezes: Math.max(1, quantas),
   });
 
   if (error) return; // migração por correr, ou a base em baixo: não trava

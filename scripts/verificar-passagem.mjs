@@ -56,6 +56,35 @@ caso('dois bilhetes seguidos têm números diferentes', true, () => {
   return a;
 });
 
+caso('bilhete com o id do CarouselSnap', true, () => {
+  const r = lerPassagem(escreverPassagem('a@b.com', SEGREDO, { id: 'snap-123' }), SEGREDO);
+  if (r.ok && r.recado.u !== 'snap-123') {
+    return { ok: false, porque: `id mal lido: ${JSON.stringify(r.recado)}` };
+  }
+  return r;
+});
+
+caso('sem id, continua a entrar (a ligação funciona antes de o outro lado o mandar)', true, () => {
+  const r = lerPassagem(escreverPassagem('a@b.com', SEGREDO), SEGREDO);
+  if (r.ok && r.recado.u !== undefined) {
+    return { ok: false, porque: 'inventou um id que não veio' };
+  }
+  return r;
+});
+
+caso('o id também é assinado — mexer nele estraga o bilhete', false, () => {
+  const bom = escreverPassagem('a@b.com', SEGREDO, { id: 'snap-123' });
+  const [corpo, assinatura] = bom.split('.');
+  const mexido = Buffer.from(
+    JSON.stringify({
+      ...JSON.parse(Buffer.from(corpo, 'base64url').toString('utf8')),
+      u: 'snap-outro',
+    }),
+    'utf8',
+  ).toString('base64url');
+  return lerPassagem(`${mexido}.${assinatura}`, SEGREDO);
+});
+
 // ── as tentativas de forjar ──────────────────────────────────
 caso('assinado com outro segredo', false, () =>
   lerPassagem(escreverPassagem('intruso@exemplo.com', OUTRO), SEGREDO),

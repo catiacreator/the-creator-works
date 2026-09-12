@@ -8,6 +8,7 @@ import {
   Crown,
   Eye,
   EyeOff,
+  Coins,
   Copy,
   Flame,
   KeyRound,
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
+import { TABELA } from '@/lib/creditos';
 import {
   INTOCAVEIS,
   MATRIZ_PADRAO,
@@ -42,7 +44,21 @@ import {
   type Permissao,
 } from '@/lib/papeis';
 
-type Aba = 'pessoas' | 'papeis' | 'paginas' | 'codigos';
+type Aba = 'pessoas' | 'financeiro' | 'papeis' | 'paginas' | 'codigos';
+
+interface Contas {
+  disponivel: boolean;
+  tecto: number;
+  pessoas: number;
+  oferecidos?: number;
+  meses?: Array<{
+    mes: string;
+    pessoas: number;
+    creditos: number;
+    porAcao: Record<string, number>;
+    vezesAcao: Record<string, number>;
+  }>;
+}
 
 interface Codigo {
   codigo: string;
@@ -108,6 +124,17 @@ export default function AdminPage() {
   const [matriz, setMatriz] = useState<Matriz>(MATRIZ_PADRAO);
   const [paginas, setPaginas] = useState<EstadoDasPaginas>({});
   const [aba, setAba] = useState<Aba>('pessoas');
+  const [contas, setContas] = useState<Contas | null>(null);
+
+  // as contas só se vão buscar quando alguém abre o separador — não é
+  // informação que faça falta para gerir pessoas, e é uma consulta pesada
+  useEffect(() => {
+    if (aba !== 'financeiro' || contas) return;
+    fetch('/api/admin/financeiro')
+      .then((r) => r.json())
+      .then((d) => setContas(d.error ? { disponivel: false, tecto: 0, pessoas: 0 } : d))
+      .catch(() => setContas({ disponivel: false, tecto: 0, pessoas: 0 }));
+  }, [aba, contas]);
   const [codigos, setCodigos] = useState<Codigo[] | null>(null);
   const [novo, setNovo] = useState<{ papel: Papel; nota: string; usos_max: number } | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
@@ -263,6 +290,7 @@ export default function AdminPage() {
         set={setAba}
         opcoes={[
           { id: 'pessoas', label: 'Pessoas', icone: Users },
+          { id: 'financeiro', label: 'Financeiro', icone: Coins },
           { id: 'papeis', label: 'Papéis e permissões', icone: ShieldCheck },
           { id: 'paginas', label: 'Páginas', icone: LayoutList },
           { id: 'codigos', label: 'Códigos', icone: KeyRound },
@@ -440,6 +468,9 @@ export default function AdminPage() {
       ))}
 
       {/* ── o que cada papel pode ──────────────────── */}
+      {/* ── financeiro: o que se ofereceu e o que se usou ─── */}
+      {aba === 'financeiro' && <Financeiro contas={contas} />}
+
       {aba === 'papeis' && (
       <Card>
         <div className="mb-3 flex items-center gap-2">
@@ -1071,6 +1102,127 @@ export default function AdminPage() {
           Estás a ver esta página como suporte: podes ver quem tem acesso, mas não mudar papéis.
         </p>
       )}
+    </>
+  );
+}
+
+/**
+ * O separador Financeiro.
+ *
+ * Duas perguntas que não são a mesma, e por isso dois cartões:
+ *
+ *   **créditos oferecidos** — o que está em cima da mesa: o tecto vezes as
+ *   pessoas com lugar. Não diz nada sobre o que foi usado.
+ *
+ *   **gerações** — o que aconteceu mesmo. E aqui a conta que interessa é
+ *   quantas VEZES, não quantos créditos: "1469 carrosséis" diz alguma coisa,
+ *   "4407 créditos em carrosséis" não diz.
+ *
+ * As duas aparecem lado a lado porque a comparação entre elas é a única que
+ * importa — quanto do que se ofereceu é que está a ser usado.
+ */
+function Financeiro({ contas }: { contas: Contas | null }) {
+  if (!contas) return <Spinner label="A fazer as contas…" />;
+
+  if (!contas.disponivel) {
+    return (
+      <Empty>
+        Ainda não há contas para mostrar. Isto precisa da migração{' '}
+        <code className="rounded bg-creme px-1.5 py-0.5 text-xs">022_consumos.sql</code> e da{' '}
+        <code className="rounded bg-creme px-1.5 py-0.5 text-xs">025_financeiro.sql</code> corridas
+        no Supabase — sem elas não se regista gasto nenhum.
+      </Empty>
+    );
+  }
+
+  const meses = contas.meses ?? [];
+  const esteMes = meses[0];
+
+  // as vezes de todas as ações, somadas e por ordem
+  const porTipo = Object.entries(esteMes?.vezesAcao ?? {})
+    .map(([acao, vezes]) => ({
+      acao,
+      vezes: Number(vezes ?? 0),
+      creditos: Number(esteMes?.porAcao?.[acao] ?? 0),
+      nome: TABELA.find((l) => l.acao === acao)?.nome ?? acao,
+    }))
+    .filter((x) => x.vezes > 0)
+    .sort((a, b) => b.vezes - a.vezes);
+
+  const totalVezes = porTipo.reduce((a, x) => a + x.vezes, 0);
+  const maior = Math.max(1, ...porTipo.map((x) => x.vezes));
+
+  return (
+    <>
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <p className="label">Créditos oferecidos</p>
+          <p className="text-4xl font-semibold tracking-tight">{contas.oferecidos ?? 0}</p>
+          <p className="mt-1 text-sm text-muted">
+            {contas.pessoas} {contas.pessoas === 1 ? 'pessoa' : 'pessoas'} × {contas.tecto} por mês
+          </p>
+        </Card>
+
+        <Card>
+          <p className="label">Gerações este mês</p>
+          <p className="text-4xl font-semibold tracking-tight">{totalVezes}</p>
+          <p className="mt-1 text-sm text-muted">
+            {esteMes?.creditos ?? 0} créditos gastos, de {contas.oferecidos ?? 0}
+          </p>
+        </Card>
+      </div>
+
+      <Card className="mb-5">
+        <p className="label mb-3">Gerações por tipo</p>
+        {!porTipo.length ? (
+          <p className="text-sm text-muted">Este mês ainda ninguém gerou nada.</p>
+        ) : (
+          <div className="divide-y divide-sand">
+            {porTipo.map((x) => (
+              <div key={x.acao} className="py-3 first:pt-0 last:pb-0">
+                <div className="mb-1.5 flex items-baseline gap-3">
+                  <span className="min-w-0 flex-1 truncate text-sm">{x.nome}</span>
+                  <span className="shrink-0 text-sm font-semibold">{x.vezes}×</span>
+                  <span className="w-20 shrink-0 text-right text-xs text-muted">
+                    {x.creditos} cr.
+                  </span>
+                </div>
+                {/* a barra é a mesma conta, para se ver a proporção sem a ler */}
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-creme">
+                  <div
+                    className="h-full rounded-full bg-rosa"
+                    style={{ width: `${(x.vezes / maior) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {meses.length > 1 && (
+        <Card>
+          <p className="label mb-2">Os meses anteriores</p>
+          <div className="divide-y divide-sand">
+            {meses.slice(1).map((m) => (
+              <div key={m.mes} className="flex items-baseline gap-3 py-2.5 text-sm">
+                <span className="flex-1">{m.mes}</span>
+                <span className="text-muted">
+                  {m.pessoas} {m.pessoas === 1 ? 'pessoa' : 'pessoas'}
+                </span>
+                <span className="w-24 text-right font-medium">{m.creditos} créditos</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <p className="mt-4 text-xs leading-relaxed text-muted">
+        As gerações contam as vezes; os créditos contam o custo. Não são o mesmo
+        número — um carrossel são 3 créditos e 1 geração. Quem começou a usar a
+        app antes da migração 025 tem o custo registado mas não as vezes, e por
+        isso pode não aparecer aqui.
+      </p>
     </>
   );
 }

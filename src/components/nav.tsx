@@ -73,7 +73,7 @@ export function Nav({
   permissoes,
   escondidas,
   emManutencao,
-  carouselSnap = 'https://carouselsnap.lovable.app',
+  carouselSnap = 'https://carouselsnap.app/main',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
