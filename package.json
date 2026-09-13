@@ -13,7 +13,8 @@
     "verificar": "NEXT_DIST_DIR=.next-build next build",
     "verificar-leitor": "node scripts/verificar-leitor.mjs",
     "verificar-passagem": "node scripts/verificar-passagem.mjs",
-    "verificar-chave-admin": "node scripts/verificar-chave-admin.mjs"
+    "verificar-chave-admin": "node scripts/verificar-chave-admin.mjs",
+    "verificar-acesso": "node scripts/verificar-acesso.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
