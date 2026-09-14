@@ -22,6 +22,29 @@
 alter table public.consumos
   add column if not exists vezes_acao jsonb not null default '{}'::jsonb;
 
+-- ── duas funções da 022 que têm de sair primeiro ─────────────
+--
+-- O `create or replace function` do Postgres substitui o CORPO de uma função.
+-- Não lhe muda a assinatura — e as duas daqui mudam de assinatura:
+--
+--   consumo_do_mes()   ganha uma coluna no que devolve (`vezes_acao`).
+--                      Mudar o tipo de retorno é proibido a um replace, e o
+--                      Postgres recusa a migração inteira com
+--                      «cannot change return type of existing function».
+--
+--   marcar_consumo()   ganha um parâmetro (`vezes`). Aqui é pior, porque não
+--                      dá erro: uma lista de parâmetros diferente é uma
+--                      função DIFERENTE, e ficavam duas com o mesmo nome. Com
+--                      valores por omissão nas duas, uma chamada com três
+--                      argumentos passa a servir ambas — e o Postgres recusa-a
+--                      por ser ambígua. Um erro que só aparece em produção, na
+--                      primeira pessoa que gastar um crédito.
+--
+-- Por isso saem as duas antes de se voltarem a escrever. Não se perde nada:
+-- são funções, não são dados, e o que contam está na tabela `consumos`.
+drop function if exists public.consumo_do_mes();
+drop function if exists public.marcar_consumo(text, int, int);
+
 /**
  * Marcar mais um gasto, e dizer se ainda cabia.
  *
