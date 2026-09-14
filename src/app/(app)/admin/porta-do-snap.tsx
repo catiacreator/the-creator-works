@@ -18,6 +18,12 @@ interface Estado {
   carouselSnap: string;
   /** o identificador do projeto do Supabase que esta app usa */
   projeto: string | null;
+  /** porque é que cada variável não está a ser lida, quando não está */
+  diagnostico?: {
+    chave: string;
+    segredo: string;
+    nomes: string[];
+  };
 }
 
 /**
@@ -153,6 +159,57 @@ export function PortaDoSnap() {
               </span>
             </li>
           </ul>
+
+          {/*
+            O porquê, quando uma variável está no painel e a app não a lê.
+
+            Só aparece quando falta alguma: com tudo posto é ruído. Mostra
+            contagens de caracteres e nomes, nunca valores.
+          */}
+          {estado.diagnostico && faltam > 0 && (
+            <details className="mb-4 rounded-xl bg-creme/70 px-4 py-3 text-xs leading-relaxed text-muted">
+              <summary className="cursor-pointer font-medium text-ink">
+                Está no painel da Vercel mas aparece a vermelho?
+              </summary>
+              <p className="mt-2">
+                É isto que a app vê, agora, no ambiente onde está a correr:
+              </p>
+              <ul className="mt-2 space-y-1">
+                <li>
+                  <code className="font-mono text-ink">SUPABASE_SERVICE_ROLE_KEY</code> —{' '}
+                  {estado.diagnostico.chave}
+                </li>
+                <li>
+                  <code className="font-mono text-ink">PASSAGEM_SEGREDO</code> —{' '}
+                  {estado.diagnostico.segredo}
+                </li>
+              </ul>
+              <p className="mt-2">
+                Os nomes que existem aqui:{' '}
+                {estado.diagnostico.nomes.length ? (
+                  estado.diagnostico.nomes.map((n, i) => (
+                    <span key={n}>
+                      {i > 0 && ', '}
+                      <code className="font-mono text-ink">{n}</code>
+                    </span>
+                  ))
+                ) : (
+                  <em>nenhum</em>
+                )}
+                .
+              </p>
+              <p className="mt-2">
+                &quot;Não existe&quot; com a variável à vista no painel quer dizer que o nome
+                guardado não é exactamente este — um espaço a mais no fim, um underscore a
+                menos. &quot;Está vazia&quot; quer dizer que foi criada e o valor ficou por
+                colar. E um número de caracteres pequeno de mais é uma chave cortada ou trocada
+                (a <em>service_role</em> do Supabase passa dos 200).
+              </p>
+              <p className="mt-2">
+                Nunca se mostra o valor de nada — só o tamanho e os nomes.
+              </p>
+            </details>
+          )}
 
           <a href="/api/porta/testar" className="btn-fantasma">
             <ExternalLink className="h-4 w-4" />

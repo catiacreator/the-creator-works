@@ -58,6 +58,40 @@ export const GET = withUser(async ({ user, supabase }) => {
   const segredo = Boolean(process.env.PASSAGEM_SEGREDO?.trim());
   const chaveDeServico = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
 
+  /**
+   * Porque é que uma variável não está a ser lida.
+   *
+   * «Falta na Vercel» é verdade e não chega, quando ela está no painel à
+   * vista. As três razões possíveis pedem três arranjos diferentes, e sem
+   * saber qual é anda-se a tentar à sorte:
+   *
+   *   não existe          — o nome no painel não é este. Um espaço a mais no
+   *                         fim do nome, um underscore a menos, e a Vercel
+   *                         guarda uma variável que a app nunca pede.
+   *   existe mas vazia    — foi criada e o valor ficou por colar.
+   *   existe com N        — está lá. Se o N for pequeno de mais para o que
+   *                         devia ser, foi colada cortada ou é a chave errada.
+   *
+   * Contam-se caracteres, nunca se mostra nenhum. E listam-se os NOMES das
+   * variáveis parecidas — que não são segredo — porque é assim que um nome
+   * mal escrito aparece: ao lado do certo, escrito de outra maneira.
+   */
+  function comoEsta(nome: string) {
+    const bruta = process.env[nome];
+    if (bruta === undefined) return 'não existe neste ambiente';
+    if (!bruta.trim()) return 'existe, mas está vazia';
+    return `existe, com ${bruta.trim().length} caracteres`;
+  }
+
+  const diagnostico = {
+    chave: comoEsta('SUPABASE_SERVICE_ROLE_KEY'),
+    segredo: comoEsta('PASSAGEM_SEGREDO'),
+    // os nomes que lá estão, para um nome mal escrito saltar à vista
+    nomes: Object.keys(process.env)
+      .filter((n) => /supabase|passagem|carousel/i.test(n))
+      .sort(),
+  };
+
   const pecas: Peca[] = [
     {
       id: 'segredo',
@@ -148,6 +182,7 @@ export const GET = withUser(async ({ user, supabase }) => {
     desteLado,
     supabase: url || null,
     projeto,
+    diagnostico,
     endereco: `/entrar?t=BILHETE`,
     carouselSnap: carouselSnap(),
     voltar: voltarAoCarouselSnap(),
