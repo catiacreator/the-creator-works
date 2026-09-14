@@ -119,7 +119,9 @@ export const GET = withUser(async ({ user, supabase }) => {
     const admin = createAdminClient();
     const [passagens, consumos, snapId, chaves, stripe, vezes] = await Promise.all([
       existeTabela(admin, 'passagens', 'bilhete'),
-      existeTabela(admin, 'consumos', 'acao'),
+      // a coluna chama-se `por_acao`, não `acao` — procurar o nome errado
+      // fazia o cartão dizer que a 022 faltava quando ela tinha corrido bem
+      existeTabela(admin, 'consumos', 'por_acao'),
       existeTabela(admin, 'membros', 'snap_id'),
       existeTabela(admin, 'chaves_admin', 'email'),
       existeTabela(admin, 'membros', 'stripe_cliente'),
