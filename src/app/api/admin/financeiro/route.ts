@@ -1,6 +1,7 @@
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { TECTO_CREDITOS } from '@/lib/creditos';
+import { migracaoEmFalta } from '@/lib/migracoes';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,8 +37,14 @@ export const GET = withUser(async ({ user, supabase }) => {
   const { data, error } = await supabase.rpc('consumo_de_todos', { meses: 6 });
   if (error) {
     // a migração ainda não correu: melhor dizer que não há contas do que
-    // mostrar zeros que parecem contas
-    return ok({ disponivel: false, tecto: TECTO_CREDITOS, pessoas: pessoas ?? 0 });
+    // mostrar zeros que parecem contas. E dizer QUAL falta, que é a
+    // diferença entre um aviso e uma instrução
+    return ok({
+      disponivel: false,
+      porque: migracaoEmFalta(error),
+      tecto: TECTO_CREDITOS,
+      pessoas: pessoas ?? 0,
+    });
   }
 
   interface Linha {
