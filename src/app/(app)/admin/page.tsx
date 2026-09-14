@@ -31,6 +31,7 @@ import {
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { PortaDeServico } from './porta-de-servico';
 import { PortaDoSnap } from './porta-do-snap';
+import { AcessoATodos } from './acesso-a-todos';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
 import { TABELA } from '@/lib/creditos';
 import {
@@ -323,6 +324,10 @@ export default function AdminPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
+      )}
+
+      {aba === 'pessoas' && podeGerir && membros && membros.length > 0 && (
+        <AcessoATodos aoMudar={carregar} />
       )}
 
       {aba === 'pessoas' && (!membros ? (
