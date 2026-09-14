@@ -127,10 +127,27 @@ export const GET = withUser(async ({ user, supabase }) => {
 
   const desteLado = pecas.every((p) => p.feito);
 
+  /**
+   * Qual é a base de dados desta app.
+   *
+   * Parece um pormenor e não é: quem tem vários projetos no Supabase, todos
+   * com nomes parecidos, não tem como saber em qual é que corre as migrações.
+   * Correr no projeto errado é mexer na base de dados de outra app.
+   *
+   * O endereço responde a isso sem ambiguidade — o pedaço antes do
+   * `.supabase.co` é o identificador do projeto, e aparece em Settings → API
+   * de cada um. Não é segredo nenhum: já vai no browser de toda a gente que
+   * abre a app.
+   */
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? '';
+  const projeto = url.match(/^https?:\/\/([^.]+)\./)?.[1] ?? null;
+
   return ok({
     pecas,
     entradas,
     desteLado,
+    supabase: url || null,
+    projeto,
     endereco: `/entrar?t=BILHETE`,
     carouselSnap: carouselSnap(),
     voltar: voltarAoCarouselSnap(),

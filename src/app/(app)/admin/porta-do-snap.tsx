@@ -16,6 +16,8 @@ interface Estado {
   entradas: number | null;
   desteLado: boolean;
   carouselSnap: string;
+  /** o identificador do projeto do Supabase que esta app usa */
+  projeto: string | null;
 }
 
 /**
@@ -80,6 +82,27 @@ export function PortaDoSnap() {
 
       {estado && (
         <>
+          {/*
+            Qual é a base de dados desta app.
+
+            Parece um pormenor e não é: quem tem vários projetos no Supabase,
+            todos com nomes parecidos, não tem como saber em qual é que corre
+            as migrações — e correr no projeto errado é mexer na base de dados
+            de outra app. Este identificador aparece em Settings → API de cada
+            projeto, e há de bater com um só.
+          */}
+          {estado.projeto && (
+            <p className="mb-3 rounded-xl bg-creme/70 px-4 py-3 text-xs leading-relaxed text-muted">
+              As migrações correm-se no projeto do Supabase cujo Project URL
+              começa por{' '}
+              <code className="rounded bg-superficie px-1.5 py-0.5 font-mono text-ink">
+                {estado.projeto}
+              </code>
+              . É o que esta app usa. Em Settings → API de cada projeto vês qual
+              é qual.
+            </p>
+          )}
+
           <ul className="mb-4 space-y-2">
             {estado.pecas.map((p) => (
               <li key={p.id} className="flex gap-2.5 text-sm">
