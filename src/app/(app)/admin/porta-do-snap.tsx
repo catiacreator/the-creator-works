@@ -44,7 +44,11 @@ export function PortaDoSnap() {
       .catch(() => setErro('Não deu para ver o estado da porta.'));
   }, []);
 
-  const faltam = (estado?.pecas ?? []).filter((p) => !p.feito);
+  // a conta inclui a peça do outro lado: o número tem de bater com os
+  // círculos vermelhos que se veem por baixo, senão parece que falta uma coisa
+  // e mostram-se duas
+  const semBotao = Boolean(estado) && !(estado!.entradas && estado!.entradas > 0);
+  const faltam = (estado?.pecas ?? []).filter((p) => !p.feito).length + (semBotao ? 1 : 0);
 
   return (
     <Card className="mb-4">
@@ -57,7 +61,7 @@ export function PortaDoSnap() {
               estado.desteLado ? 'bg-rosa text-white' : 'bg-manteiga text-ink'
             }`}
           >
-            {estado.desteLado ? 'este lado pronto' : `faltam ${faltam.length}`}
+            {estado.desteLado && !semBotao ? 'pronta' : `faltam ${faltam}`}
           </span>
         )}
       </div>

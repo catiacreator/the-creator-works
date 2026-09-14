@@ -132,6 +132,15 @@ export default function AdminPage() {
 
   // as contas só se vão buscar quando alguém abre o separador — não é
   // informação que faça falta para gerir pessoas, e é uma consulta pesada
+  // a porta de teste devolve aqui com o recado no endereço, em vez de deixar
+  // a pessoa num ecrã de JSON
+  useEffect(() => {
+    const porta = new URLSearchParams(window.location.search).get('porta');
+    if (!porta) return;
+    setRecado(porta);
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
   useEffect(() => {
     if (aba !== 'financeiro' || contas) return;
     fetch('/api/admin/financeiro')
