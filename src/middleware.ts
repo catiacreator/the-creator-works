@@ -80,6 +80,20 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/renovar', request.url));
     }
 
+    // Não sabemos — a base de dados não respondeu. Deixa-se passar a sessão
+    // que já estava aberta e não se toca em nada.
+    //
+    // Isto é de propósito mais frouxo do que o resto: para se ser afetado é
+    // preciso já ter uma sessão válida desta app, e o pior que pode acontecer
+    // é alguém a quem o lugar foi tirado continuar lá dentro enquanto a base
+    // de dados estiver em baixo. O contrário — fechar por não saber — custa
+    // muito mais: põe na rua toda a gente que está a pagar, e destrói-lhes a
+    // sessão ao mesmo tempo.
+    if ('motivo' in estado && estado.motivo === 'nao-sei') {
+      console.error('[acesso] a deixar passar sem saber:', pathname);
+      return response;
+    }
+
     if ('motivo' in estado) {
       await supabase.auth.signOut();
       if (pathname.startsWith('/api/')) {

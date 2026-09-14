@@ -5,7 +5,8 @@ import { voltarAoCarouselSnap } from '@/lib/passagem';
 import { Manutencao } from '@/components/manutencao';
 import { VerComo } from '@/components/ver-como';
 import { JobRunner } from '@/components/job-runner';
-import { acessoDe } from '@/lib/acesso';
+import { estadoDoAcesso } from '@/lib/acesso';
+import { NaoDaAgora } from '@/components/nao-da-agora';
 import { briefingCompleto, type Briefing } from '@/lib/briefing';
 import {
   paginaInicial,
@@ -34,7 +35,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // o papel decide o que ela vê; sem papel não se chega aqui (o middleware
   // fecha a porta antes), mas se chegasse ficava sem nada
-  const acesso = await acessoDe(supabase, user.email);
+  const oAcesso = await estadoDoAcesso(supabase, user.email);
+
+  // A base de dados não respondeu. O middleware já decidiu deixar passar a
+  // sessão; aqui a decisão é o que se lhe mostra — e o que NÃO se lhe mostra
+  // é a app como se ela não tivesse nada. Sem papel, o briefing vinha vazio e
+  // ela ia parar ao Sobre mim por responder, a pensar que tinha perdido o
+  // trabalho todo. Mais vale dizer a verdade: não dá agora.
+  if ('motivo' in oAcesso && oAcesso.motivo === 'nao-sei') return <NaoDaAgora />;
+
+  const acesso = 'papel' in oAcesso ? oAcesso : null;
   const papel = acesso?.papel ?? null;
   const matriz = await carregarMatriz(supabase);
 

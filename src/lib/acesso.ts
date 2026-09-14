@@ -39,7 +39,7 @@ export interface Acesso {
  * primeira não se deve nada a ninguém; à segunda deve-se uma explicação e um
  * caminho de volta — e o caminho de volta é pagar.
  */
-export type PortaFechada = 'sem-lugar' | 'suspensa' | 'caducada';
+export type PortaFechada = 'sem-lugar' | 'suspensa' | 'caducada' | 'nao-sei';
 
 export interface SemAcesso {
   motivo: PortaFechada;
@@ -93,8 +93,22 @@ export async function estadoDoAcesso(
 
       return { papel: data.papel as Papel, ativo: true, ate };
     }
-  } catch {
-    // a tabela ainda não existe (migração por correr) — a dona entra à mesma
+  } catch (e) {
+    // Não conseguimos perguntar. Isto NÃO é a mesma coisa que a resposta ser
+    // «não tem lugar», e a diferença é a coisa mais cara desta função: quem
+    // não tem lugar é posto na rua e perde a sessão. Se um soluço da base de
+    // dados contasse como não ter lugar, um segundo mau punha toda a gente
+    // fora da app e obrigava-a a entrar de novo — pessoas que pagaram, a ver
+    // escrito que não têm acesso.
+    //
+    // Por isso diz-se «não sei», e quem chamou decide. O middleware deixa
+    // passar a sessão que já estava aberta; as permissões, essas, continuam a
+    // negar, porque conceder sem saber era outra coisa.
+    console.error('[acesso] não deu para ler a tabela membros:', e);
+    if (eADona(email) || emailDeConstrucao(email)) {
+      return { papel: 'admin', ativo: true, ate: null };
+    }
+    return { motivo: 'nao-sei' };
   }
 
   if (eADona(email) || emailDeConstrucao(email)) {

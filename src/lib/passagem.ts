@@ -88,10 +88,14 @@ function assinar(corpo: string, segredo: string) {
 /**
  * Escrever um bilhete.
  *
- * Isto não corre em produção — quem escreve os bilhetes a sério é o
- * CarouselSnap, do lado dele. Está aqui para os testes poderem provar que a
- * conferência funciona, e para servir de referência exata a quem escrever o
- * outro lado: é este o feitio que tem de sair de lá.
+ * Quem escreve os bilhetes a sério é o CarouselSnap, do lado dele. Isto está
+ * aqui por duas razões: os testes provarem que a conferência funciona, e
+ * servir de referência exata a quem escrever o outro lado — é este o feitio
+ * que tem de sair de lá.
+ *
+ * E por uma terceira, que corre mesmo em produção: `/api/porta/testar` usa-a
+ * para a admin poder experimentar a porta sem depender do CarouselSnap, e
+ * saber de que lado está o problema quando há um.
  */
 export function escreverPassagem(
   email: string,
