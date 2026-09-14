@@ -1,6 +1,7 @@
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { inventarCodigo, prepararChave, queixaDoCodigo } from '@/lib/chave-admin';
+import { erroDaBaseDeDados } from '@/lib/migracoes';
 
 export const runtime = 'nodejs';
 
@@ -26,7 +27,7 @@ export const GET = withUser(async ({ user, supabase }) => {
   await exigirAdmin(supabase, user.email);
 
   const { data, error } = await supabase.rpc('ver_chave_admin');
-  if (error) throw new Error(error.message);
+  if (error) throw erroDaBaseDeDados(error);
 
   const linha = (Array.isArray(data) ? data[0] : data) as
     | { tem: boolean; criada_em: string | null; ultimo_uso: string | null; erros_hoje: number }
@@ -59,7 +60,7 @@ export const POST = withUser(async ({ user, supabase, request }) => {
 
   const { sal, resumo } = prepararChave(codigo);
   const { data, error } = await supabase.rpc('guardar_chave_admin', { sal, resumo });
-  if (error) throw new Error(error.message);
+  if (error) throw erroDaBaseDeDados(error);
   if (data === false) throw new Error('Não deu para guardar a chave.');
 
   // a única vez que o código sai daqui. Não fica guardado em lado nenhum —
@@ -72,6 +73,6 @@ export const DELETE = withUser(async ({ user, supabase }) => {
   await exigirAdmin(supabase, user.email);
 
   const { error } = await supabase.rpc('apagar_chave_admin');
-  if (error) throw new Error(error.message);
+  if (error) throw erroDaBaseDeDados(error);
   return ok({ ok: true });
 });

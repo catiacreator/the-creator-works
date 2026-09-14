@@ -50,6 +50,8 @@ type Aba = 'pessoas' | 'financeiro' | 'papeis' | 'paginas' | 'codigos';
 
 interface Contas {
   disponivel: boolean;
+  /** qual migração falta, quando a app consegue dizê-lo ao certo */
+  porque?: string | null;
   tecto: number;
   pessoas: number;
   oferecidos?: number;
@@ -1136,6 +1138,9 @@ function Financeiro({ contas }: { contas: Contas | null }) {
         <code className="rounded bg-creme px-1.5 py-0.5 text-xs">022_consumos.sql</code> e da{' '}
         <code className="rounded bg-creme px-1.5 py-0.5 text-xs">025_financeiro.sql</code> corridas
         no Supabase — sem elas não se regista gasto nenhum.
+        {contas.porque && (
+          <span className="mt-2 block text-xs leading-relaxed">{contas.porque}</span>
+        )}
       </Empty>
     );
   }
