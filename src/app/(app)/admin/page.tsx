@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { PortaDeServico } from './porta-de-servico';
+import { PortaDoSnap } from './porta-do-snap';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
 import { TABELA } from '@/lib/creditos';
 import {
@@ -674,6 +675,7 @@ export default function AdminPage() {
 
       {aba === 'codigos' && (
         <>
+          <PortaDoSnap />
           <PortaDeServico />
 
           <Card className="mb-4">
