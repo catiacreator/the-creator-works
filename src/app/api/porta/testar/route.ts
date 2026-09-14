@@ -25,6 +25,11 @@ export const dynamic = 'force-dynamic';
  * um bilhete para outra pessoa, e quem o pede já está lá dentro — não ganha
  * acesso nenhum que não tivesse.
  */
+/** De volta ao Admin, com o recado à vista. */
+function devolver(origem: string, recado: string) {
+  return NextResponse.redirect(`${origem}/admin?porta=${encodeURIComponent(recado)}`);
+}
+
 export async function GET(request: Request) {
   const { origin } = new URL(request.url);
 
@@ -38,12 +43,13 @@ export async function GET(request: Request) {
 
   const segredo = process.env.PASSAGEM_SEGREDO?.trim();
   if (!segredo) {
-    return NextResponse.json(
-      {
-        error:
-          'Falta o PASSAGEM_SEGREDO na Vercel. Sem ele não há bilhete para escrever nem para conferir.',
-      },
-      { status: 503 },
+    // Devolve-se ao Admin com o recado, e não um JSON em cima de fundo branco.
+    // Carregar num botão e cair num ecrã de código é sentir que se partiu
+    // alguma coisa — quando o que aconteceu foi a app responder certo a uma
+    // pergunta legítima.
+    return devolver(
+      origin,
+      'Falta o PASSAGEM_SEGREDO na Vercel. Sem ele não há bilhete para escrever nem para conferir. Põe-no e faz Redeploy.',
     );
   }
 

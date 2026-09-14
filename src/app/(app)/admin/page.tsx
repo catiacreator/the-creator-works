@@ -31,6 +31,7 @@ import {
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { PortaDeServico } from './porta-de-servico';
 import { PortaDoSnap } from './porta-do-snap';
+import { AcessoATodos } from './acesso-a-todos';
 import { PAGINAS, type EstadoDasPaginas } from '@/lib/paginas';
 import { TABELA } from '@/lib/creditos';
 import {
@@ -132,6 +133,15 @@ export default function AdminPage() {
 
   // as contas só se vão buscar quando alguém abre o separador — não é
   // informação que faça falta para gerir pessoas, e é uma consulta pesada
+  // a porta de teste devolve aqui com o recado no endereço, em vez de deixar
+  // a pessoa num ecrã de JSON
+  useEffect(() => {
+    const porta = new URLSearchParams(window.location.search).get('porta');
+    if (!porta) return;
+    setRecado(porta);
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
   useEffect(() => {
     if (aba !== 'financeiro' || contas) return;
     fetch('/api/admin/financeiro')
@@ -314,6 +324,10 @@ export default function AdminPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
+      )}
+
+      {aba === 'pessoas' && podeGerir && membros && membros.length > 0 && (
+        <AcessoATodos aoMudar={carregar} />
       )}
 
       {aba === 'pessoas' && (!membros ? (
