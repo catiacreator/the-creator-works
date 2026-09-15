@@ -72,7 +72,7 @@ export function Nav({
   permissoes,
   escondidas,
   emManutencao,
-  carouselSnap = '/snap',
+  carouselSnap = 'https://carouselsnap.app/main',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
@@ -276,10 +276,10 @@ export function Nav({
 
       {/* ── a volta ao CarouselSnap ────────────────── */}
       {/*
-        O CarouselSnap é a página principal, e é de lá que se vem para aqui.
-        Quem está cá dentro tem de ter sempre o caminho de volta à vista.
-        Laranja de propósito: é a única coisa nesta barra que não é desta
-        app, e não se deve confundir com o resto.
+        Esta app vive dentro do CarouselSnap, e quem entra por lá tem de ter
+        sempre o caminho de volta à vista. Laranja de propósito: é a única
+        coisa nesta barra que não é desta app, e não se deve confundir com o
+        resto.
       */}
       <div className="mt-auto shrink-0 px-3 pb-2 pt-2">
         <a
