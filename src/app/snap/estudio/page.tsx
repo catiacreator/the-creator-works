@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Loader2, Package } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Check, Download, Loader2, Package, Save } from 'lucide-react';
 import { TEMPLATES, limparSlide, type TemplateSlide } from '@/snap/templates';
 import type { SlideDoDrop } from '@/snap/drop-content';
 import { carrosselParaZip, descarregar, slideParaPng } from '@/snap/exportar';
+import { desenhoDe, guardarCarrossel, meusCarrosseis } from '@/snap/carrosseis';
+import { migracaoEmFalta } from '@/lib/migracoes';
 
 /**
  * O estúdio do CarouselSnap: os 18 templates a desenhar de verdade.
@@ -20,11 +23,14 @@ import { carrosselParaZip, descarregar, slideParaPng } from '@/snap/exportar';
  * um título com marcação lá dentro executava. Os templates ficam como ela os
  * escreveu; quem trata disso é a porta, não eles.
  *
- * Os slides vêm do Drop Content, pela memória do separador. Não é elegante e
- * é honesto: ainda não há onde os guardar deste lado, e inventar uma tabela
- * agora era decidir o modelo de dados do Snap a correr, no fim de um dia
- * grande. Enquanto não houver, ao menos não se perde o caminho entre os dois
- * ecrãs — que é o que importa hoje.
+ * Os slides vêm do Drop Content pela memória do separador, e daqui podem ir
+ * para a tabela `carousel_history` — a do Snap, copiada coluna a coluna na
+ * migração 030. A memória do separador continua a ser a ponte entre os dois
+ * ecrãs (é imediata e não gasta nada); guardar é uma decisão de quem está a
+ * trabalhar, e não uma coisa que aconteça sozinha a cada rascunho.
+ *
+ * Com `?c=<id>` na morada, abre um carrossel guardado em vez do que está na
+ * memória — é assim que a lista em /snap/carrosseis volta a entrar aqui.
  */
 
 const GUARDADO = 'snap-slides';
@@ -45,15 +51,46 @@ export default function EstudioPage() {
   const caixas = useRef<(HTMLDivElement | null)[]>([]);
   const [aExportar, setAExportar] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [aGuardar, setAGuardar] = useState(false);
+  const [guardadoAgora, setGuardadoAgora] = useState(false);
+
+  const params = useSearchParams();
+  const pedido = params.get('c');
 
   useEffect(() => {
+    // um carrossel guardado ganha à memória do separador: se ela pediu
+    // aquele, é aquele que quer ver
+    if (pedido) {
+      let vivo = true;
+      meusCarrosseis()
+        .then((linhas) => {
+          if (!vivo) return;
+          const achado = linhas.find((l) => l.id === pedido);
+          if (!achado) {
+            setErro('Não encontrei esse carrossel. Pode ter sido apagado.');
+            return;
+          }
+          setMeus(achado.carousel_data);
+          const desenho = desenhoDe(achado);
+          if (desenho.templateId && TEMPLATES.some((t) => t.id === desenho.templateId)) {
+            setTemplateId(desenho.templateId);
+          }
+          if (desenho.c1) setC1(desenho.c1);
+          if (desenho.c2) setC2(desenho.c2);
+        })
+        .catch((e) => setErro(migracaoEmFalta(e) ?? 'Não consegui abrir esse carrossel.'));
+      return () => {
+        vivo = false;
+      };
+    }
+
     try {
       const cru = window.sessionStorage.getItem(GUARDADO);
       if (cru) setMeus(JSON.parse(cru) as SlideDoDrop[]);
     } catch {
       /* memória do separador fechada ou cheia: fica-se com os de exemplo */
     }
-  }, []);
+  }, [pedido]);
 
   const template = useMemo(
     () => TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0],
@@ -92,6 +129,25 @@ export default function EstudioPage() {
       setErro(e instanceof Error ? e.message : 'Não consegui exportar este slide.');
     } finally {
       setAExportar(null);
+    }
+  }
+
+  async function guardar() {
+    if (!meus?.length) return;
+    setAGuardar(true);
+    setErro(null);
+    try {
+      await guardarCarrossel({ titulo: '', slides: meus, templateId, c1, c2 });
+      setGuardadoAgora(true);
+      // o visto desaparece sozinho: é uma confirmação, não um estado
+      window.setTimeout(() => setGuardadoAgora(false), 2500);
+    } catch (e) {
+      setErro(
+        migracaoEmFalta(e) ??
+          (e instanceof Error ? e.message : 'Não consegui guardar este carrossel.'),
+      );
+    } finally {
+      setAGuardar(false);
     }
   }
 
@@ -178,10 +234,40 @@ export default function EstudioPage() {
           Voltar às cores do template
         </button>
 
+        {/*
+          Guardar só aparece quando há trabalho dela na página. Com os slides
+          de exemplo do template não havia o que guardar, e um botão que não
+          faz nada é pior do que um botão que não está lá.
+        */}
+        {Boolean(meus?.length) && (
+          <button
+            onClick={guardar}
+            disabled={aGuardar}
+            className="ml-auto flex items-center gap-1.5 rounded-full border border-snapBorda bg-snapCartao px-4 py-2 text-[12.5px] font-medium text-snapTexto transition-colors hover:border-snapDestaque disabled:opacity-60"
+          >
+            {aGuardar ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                A guardar
+              </>
+            ) : guardadoAgora ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Guardado
+              </>
+            ) : (
+              <>
+                <Save className="h-3.5 w-3.5" />
+                Guardar
+              </>
+            )}
+          </button>
+        )}
+
         <button
           onClick={tudo}
           disabled={Boolean(aExportar)}
-          className="ml-auto flex items-center gap-1.5 rounded-full bg-snapDestaque px-4 py-2 text-[12.5px] font-medium text-snapSobreDestaque transition-opacity hover:opacity-90 disabled:opacity-60"
+          className={`${meus?.length ? '' : 'ml-auto '}flex items-center gap-1.5 rounded-full bg-snapDestaque px-4 py-2 text-[12.5px] font-medium text-snapSobreDestaque transition-opacity hover:opacity-90 disabled:opacity-60`}
         >
           {aExportar && aExportar.includes('/') ? (
             <>

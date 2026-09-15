@@ -55,6 +55,9 @@ const DE_ONDE: Record<string, string> = {
 
   // 029 — o parâmetro e a coluna chamavam-se os dois `bilhete`
   gastar_bilhete: '029_bilhete_ambiguo.sql',
+
+  // 030 — os carrosséis do Snap passam a ter onde ficar
+  carousel_history: '030_carrosseis_do_snap.sql',
 };
 
 /**

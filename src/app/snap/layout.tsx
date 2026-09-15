@@ -48,6 +48,12 @@ export default async function SnapLayout({ children }: { children: React.ReactNo
               Estúdio
             </Link>
             <Link
+              href="/snap/carrosseis"
+              className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
+            >
+              Os meus
+            </Link>
+            <Link
               href="/snap/ganchos"
               className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
             >
