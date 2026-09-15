@@ -52,6 +52,9 @@ const DE_ONDE: Record<string, string> = {
   // 028 — o registo das recusas da porta
   anotar_recusa: '028_recusas.sql',
   recusas: '028_recusas.sql',
+
+  // 029 — o parâmetro e a coluna chamavam-se os dois `bilhete`
+  gastar_bilhete: '029_bilhete_ambiguo.sql',
 };
 
 /**
