@@ -194,6 +194,48 @@ export function voltarAoCarouselSnap(): string {
   return process.env.CAROUSELSNAP_VOLTAR?.trim() || `${carouselSnap()}/main`;
 }
 
+/**
+ * A marca do segredo.
+ *
+ * Há uma pergunta que decide tudo e que ninguém conseguia responder: o
+ * `PASSAGEM_SEGREDO` desta app e o do CarouselSnap são a mesma linha?
+ *
+ * Se não forem, nenhuma assinatura bate, toda a gente é recusada à porta, e o
+ * sintoma é exactamente o mesmo de meia dúzia de outras avarias. A maneira
+ * óbvia de conferir — cada lado mostrar o seu e compararem-se — é a única
+ * coisa que nunca se pode fazer: um segredo que passa por uma conversa, um
+ * email ou um ecrã partilhado deixou de ser segredo, e passa a ser preciso
+ * trocá-lo nos dois lados.
+ *
+ * Isto resolve a pergunta sem ninguém mostrar nada. Assina-se uma frase fixa
+ * e pública com o segredo, e mostram-se oito dígitos do resultado. Duas
+ * marcas iguais querem dizer dois segredos iguais; duas marcas diferentes
+ * querem dizer que um dos lados tem de colar o outro de novo.
+ *
+ * Porque é que isto não deixa escapar o segredo: o HMAC só anda num sentido.
+ * De oito dígitos hexadecimais — trinta e dois bits — não se volta atrás para
+ * uma linha de trinta e dois caracteres aleatórios. É a mesma ideia com que
+ * se comparam chaves de SSH pela impressão digital, em vez de as mostrar.
+ *
+ * Oito dígitos chegam para comparar e são curtos de mais para atacar. Podem
+ * dar-se ao luxo de colidir — duas linhas diferentes com a mesma marca — e o
+ * pior que isso faz é dizer «iguais» a quem depois vai perceber que não
+ * estão. O contrário, dizer «diferentes» a segredos iguais, não acontece.
+ *
+ * A frase que se assina tem uma versão no nome. Se um dia isto mudar, as
+ * marcas antigas deixam de bater com as novas, e é preciso que isso se veja.
+ */
+const FRASE_DA_MARCA = 'the-creator-works/passagem/marca/v1';
+
+export function marcaDoSegredo(segredo?: string): string | null {
+  const limpo = (segredo ?? process.env.PASSAGEM_SEGREDO ?? '').trim();
+  if (!limpo) return null;
+
+  const digest = createHmac('sha256', limpo).update(FRASE_DA_MARCA, 'utf8').digest('hex');
+  // em dois grupos de quatro: lê-se em voz alta sem se perder o sítio
+  return `${digest.slice(0, 4)}-${digest.slice(4, 8)}`.toUpperCase();
+}
+
 /** Está a passagem ligada? Sem segredo não entra ninguém por aqui. */
 export function passagemLigada(): boolean {
   return Boolean(process.env.PASSAGEM_SEGREDO?.trim());

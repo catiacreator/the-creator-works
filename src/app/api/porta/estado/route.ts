@@ -1,7 +1,7 @@
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { carouselSnap, voltarAoCarouselSnap } from '@/lib/passagem';
+import { carouselSnap, marcaDoSegredo, voltarAoCarouselSnap } from '@/lib/passagem';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -117,7 +117,7 @@ export const GET = withUser(async ({ user, supabase }) => {
   // que já correu manda-a fazer trabalho à toa
   if (chaveDeServico) {
     const admin = createAdminClient();
-    const [passagens, consumos, snapId, chaves, stripe, vezes] = await Promise.all([
+    const [passagens, consumos, snapId, chaves, stripe, vezes, apontamentos] = await Promise.all([
       existeTabela(admin, 'passagens', 'bilhete'),
       // a coluna chama-se `por_acao`, não `acao` — procurar o nome errado
       // fazia o cartão dizer que a 022 faltava quando ela tinha corrido bem
@@ -126,6 +126,7 @@ export const GET = withUser(async ({ user, supabase }) => {
       existeTabela(admin, 'chaves_admin', 'email'),
       existeTabela(admin, 'membros', 'stripe_cliente'),
       existeTabela(admin, 'consumos', 'vezes_acao'),
+      existeTabela(admin, 'recusas', 'porque'),
     ]);
 
     pecas.push(
@@ -147,6 +148,14 @@ export const GET = withUser(async ({ user, supabase }) => {
       { id: '023', nome: '023_stripe.sql no Supabase', feito: stripe, falta: 'Sem ela o webhook do Stripe não guarda o cliente.' },
       { id: '025', nome: '025_financeiro.sql no Supabase', feito: vezes, falta: 'Sem ela o separador Financeiro fica sem números.' },
       { id: '027', nome: '027_porta_admin.sql no Supabase', feito: chaves, falta: 'Sem ela a tua entrada por fora (/admin-login) não abre.' },
+      {
+        id: '028',
+        nome: '028_recusas.sql no Supabase',
+        feito: apontamentos,
+        falta:
+          'Sem ela a porta continua a funcionar, mas quando recusar alguém não fica rasto nenhum ' +
+          'que tu possas ver — e o motivo verdadeiro fica só nos registos do servidor.',
+      },
     );
   }
 
@@ -159,6 +168,30 @@ export const GET = withUser(async ({ user, supabase }) => {
       .from('passagens')
       .select('bilhete', { count: 'exact', head: true });
     if (!error) entradas = count ?? 0;
+  }
+
+  /**
+   * As últimas vezes que a porta disse que não, e porquê.
+   *
+   * É o que faltava para a resposta deixar de ser um palpite. A página que a
+   * pessoa vê quando o bilhete é recusado diz sempre a mesma coisa — tem de
+   * dizer, senão ensina a forjar o próximo — e isso deixava a Cátia a olhar
+   * para uma frase que aponta para uma de sete causas ao calhas.
+   *
+   * Aqui o motivo é o verdadeiro, e a hora diz-lhe se é da tentativa que
+   * acabou de fazer ou de outra pessoa qualquer. Se a tabela ainda não
+   * existir, não se inventa nada: fica nulo, e o cartão diz que falta correr
+   * a migração.
+   */
+  let recusas: { porque: string; email: string | null; quando: string }[] | null = null;
+  if (chaveDeServico) {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('recusas')
+      .select('porque, email, quando')
+      .order('quando', { ascending: false })
+      .limit(10);
+    if (!error) recusas = data ?? [];
   }
 
   const desteLado = pecas.every((p) => p.feito);
@@ -181,6 +214,10 @@ export const GET = withUser(async ({ user, supabase }) => {
   return ok({
     pecas,
     entradas,
+    recusas,
+    // oito dígitos que dependem do segredo e não o revelam: é com isto que se
+    // confere, sem ninguém mostrar nada, se as duas apps têm a mesma linha
+    marca: marcaDoSegredo(),
     desteLado,
     supabase: url || null,
     projeto,

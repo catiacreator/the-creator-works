@@ -11,9 +11,20 @@ interface Peca {
   falta?: string;
 }
 
+/** Uma vez em que a porta disse que não, e porquê. */
+interface Recusa {
+  porque: string;
+  email: string | null;
+  quando: string;
+}
+
 interface Estado {
   pecas: Peca[];
   entradas: number | null;
+  /** as últimas vezes que a porta recusou alguém. Nulo = a tabela não existe */
+  recusas: Recusa[] | null;
+  /** oito dígitos que dependem do segredo sem o revelar. Nulo = não há segredo */
+  marca: string | null;
   desteLado: boolean;
   carouselSnap: string;
   /** o identificador do projeto do Supabase que esta app usa */
@@ -209,6 +220,115 @@ export function PortaDoSnap() {
                 Nunca se mostra o valor de nada — só o tamanho e os nomes.
               </p>
             </details>
+          )}
+
+          {/*
+            As últimas recusas.
+
+            É a peça que faltava a este cartão. Tudo o resto diz o que está
+            posto; isto diz o que aconteceu quando alguém tentou mesmo entrar.
+
+            A quem bate à porta com um bilhete que não presta diz-se sempre a
+            mesma coisa — «a ligação já não serve» — porque explicar-lhe qual
+            das contas falhou é ensinar-lhe a forjar o bilhete seguinte. O
+            motivo verdadeiro vem para aqui, que é onde a Cátia o pode ler.
+
+            A leitura mais útil é a primeira linha com a hora: se for de há
+            instantes, é a tentativa que ela acabou de fazer.
+          */}
+          {estado.recusas && estado.recusas.length > 0 && (
+            <div className="mb-4 rounded-xl border border-sand bg-creme/70 px-4 py-3">
+              <p className="mb-2 text-xs font-medium text-ink">
+                As últimas vezes que a porta disse que não
+              </p>
+              <ul className="space-y-1.5 text-xs leading-relaxed text-muted">
+                {estado.recusas.map((r, i) => (
+                  <li key={i} className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-mono text-ink">{r.porque}</span>
+                    <span>
+                      {new Date(r.quando).toLocaleString('pt-PT', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                      {r.email && ` · ${r.email}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                <strong className="font-medium text-ink">assinatura não bate</strong> quer dizer
+                que o <code className="font-mono">PASSAGEM_SEGREDO</code> desta app e o do
+                CarouselSnap não são a mesma linha — é o motivo mais comum e o mais fácil de
+                arranjar.{' '}
+                <strong className="font-medium text-ink">bilhete fora de horas</strong> é um
+                relógio trocado de um dos lados, ou o bilhete a ser feito muito antes de ser
+                usado.{' '}
+                <strong className="font-medium text-ink">bilhete já usado</strong> é mesmo uma
+                ligação repetida — recarregar a página, ou voltar atrás no browser.
+              </p>
+            </div>
+          )}
+
+          {estado.recusas && estado.recusas.length === 0 && estado.entradas === 0 && (
+            <p className="mb-4 rounded-xl border border-sand bg-creme/70 px-4 py-3 text-xs leading-relaxed text-muted">
+              Nunca entrou ninguém por aqui <em>e</em> a porta também nunca recusou ninguém. Quer
+              dizer que não está a chegar cá bilhete nenhum — o botão de lá ainda não está a
+              chamar o <code className="font-mono">/entrar?t=</code>.
+            </p>
+          )}
+
+          {/*
+            A marca do segredo.
+
+            É a única peça da ligação que não se pode conferir a olho: o
+            segredo está no painel da Vercel de um lado e nos secrets do
+            Supabase do outro, escondido nos dois, e a maneira óbvia de os
+            comparar — cada lado mostrar o seu — é a única que nunca se pode
+            fazer.
+
+            Isto compara sem mostrar. Oito dígitos que dependem do segredo e
+            de onde não se volta atrás para ele.
+          */}
+          {estado.marca && (
+            <div className="mb-4 rounded-xl border border-sand bg-creme/70 px-4 py-3">
+              <p className="mb-1 text-xs font-medium text-ink">
+                A marca do segredo deste lado
+              </p>
+              <p className="mb-2 font-mono text-lg tracking-wider text-ink">{estado.marca}</p>
+              <p className="text-xs leading-relaxed text-muted">
+                Pede ao pessoal do CarouselSnap a marca do lado deles. <strong className="font-medium text-ink">Se
+                for igual a esta, os dois segredos são a mesma linha</strong> e a assinatura não
+                é o problema. Se for diferente, é aí que está a avaria — e é só colar um dos
+                dois no outro lado.
+              </p>
+              <details className="mt-2 text-xs leading-relaxed text-muted">
+                <summary className="cursor-pointer text-ink">
+                  Como é que eles calculam a deles
+                </summary>
+                <p className="mt-2">
+                  Os primeiros oito dígitos hexadecimais do HMAC-SHA256 desta frase, assinada com
+                  o segredo — em maiúsculas, com um hífen ao meio:
+                </p>
+                <pre className="mt-2 overflow-x-auto rounded-lg bg-paper px-3 py-2 font-mono text-ink">
+the-creator-works/passagem/marca/v1
+                </pre>
+                <p className="mt-2">
+                  Em Deno ou Node:{' '}
+                  <code className="font-mono text-ink">
+                    createHmac(&apos;sha256&apos;, segredo).update(frase).digest(&apos;hex&apos;).slice(0,
+                    8)
+                  </code>
+                  .
+                </p>
+                <p className="mt-2">
+                  Isto não deixa escapar o segredo: de oito dígitos não se volta atrás para a
+                  linha que os gerou. É a mesma ideia com que se comparam chaves de SSH pela
+                  impressão digital, em vez de as mostrar.
+                </p>
+              </details>
+            </div>
           )}
 
           <a href="/api/porta/testar" className="btn-fantasma">

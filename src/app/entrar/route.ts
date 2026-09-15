@@ -41,9 +41,36 @@ export const dynamic = 'force-dynamic';
 
 const CODIGO = process.env.CODIGO_CAROUSELSNAP ?? 'CAROUSELSNAP-AUTO';
 
-/** Para onde se manda quem não entra. Sempre o mesmo sítio, sempre sem detalhe. */
-function naoEntra(origem: string, porque: string) {
+/**
+ * Para onde se manda quem não entra. Sempre o mesmo sítio, sempre sem detalhe.
+ *
+ * O detalhe existe — são sete razões diferentes — e não vai para a pessoa:
+ * dizer-lhe qual das contas falhou é ensinar-lhe a forjar o bilhete seguinte.
+ *
+ * Mas também não pode ficar só nos registos do servidor, que é um sítio onde
+ * a Cátia não vai. Ela carrega no botão do CarouselSnap, vê a página que diz
+ * «a ligação já não serve», e essa frase é um palpite entre sete. Por isso o
+ * motivo fica anotado, e aparece-lhe no cartão da porta, em Admin.
+ *
+ * O email só se anota quando a assinatura bateu. Antes disso o bilhete não é
+ * de confiança, e um email que vem num bilhete forjado é um email que alguém
+ * escolheu — guardá-lo era deixar qualquer pessoa escrever nesta tabela.
+ *
+ * Anotar nunca muda o que acontece a quem está à porta: se a anotação falhar,
+ * falha em silêncio. Uma porta que se recusa a fechar porque não conseguiu
+ * escrever no diário é pior do que uma porta sem diário nenhum.
+ */
+async function naoEntra(origem: string, porque: string, email?: string) {
   console.error('[passagem] recusada:', porque);
+
+  try {
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+      await createAdminClient().rpc('anotar_recusa', { porque, e: email ?? null });
+    }
+  } catch (e) {
+    console.error('[passagem] não deu para anotar a recusa:', e);
+  }
+
   return NextResponse.redirect(`${origem}/assinar?porta=1`);
 }
 
@@ -51,13 +78,14 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const segredo = process.env.PASSAGEM_SEGREDO?.trim();
 
-  if (!segredo) {
-    console.error('[passagem] PASSAGEM_SEGREDO por configurar');
-    return NextResponse.redirect(`${origin}/assinar?porta=1`);
-  }
+  // este é o motivo que mais custa a descobrir de fora: sem segredo, a porta
+  // recusa toda a gente e a página diz «a ligação já não serve», que é falso
+  if (!segredo) return naoEntra(origin, 'PASSAGEM_SEGREDO por configurar');
 
   const bilhete = searchParams.get('t') ?? searchParams.get('token') ?? '';
   const leitura = lerPassagem(bilhete, segredo);
+  // sem email: a assinatura não bateu, e o que vem num bilhete desses é do
+  // gosto de quem o escreveu
   if (!leitura.ok) return naoEntra(origin, leitura.porque);
 
   const { u: snap, n: nome, j } = leitura.recado;
@@ -77,8 +105,8 @@ export async function GET(request: Request) {
     bilhete: j,
     e: email,
   });
-  if (erroDoBilhete) return naoEntra(origin, `gastar_passagem: ${erroDoBilhete.message}`);
-  if (!primeira) return naoEntra(origin, 'bilhete já usado');
+  if (erroDoBilhete) return naoEntra(origin, `gastar_passagem: ${erroDoBilhete.message}`, email);
+  if (!primeira) return naoEntra(origin, 'bilhete já usado', email);
 
   // ── 2b. quem é esta pessoa, se o CarouselSnap disser ─────
   //
@@ -109,13 +137,13 @@ export async function GET(request: Request) {
         idDaConta = procurada?.user?.id ?? null;
       }
 
-      if (!idDaConta) return naoEntra(origin, `mudou de email e não achei a conta de ${anterior}`);
+      if (!idDaConta) return naoEntra(origin, `mudou de email e não achei a conta de ${anterior}`, email);
 
       const { error: erroDoNome } = await admin.auth.admin.updateUserById(idDaConta, {
         email,
         email_confirm: true,
       });
-      if (erroDoNome) return naoEntra(origin, `mudar email da conta: ${erroDoNome.message}`);
+      if (erroDoNome) return naoEntra(origin, `mudar email da conta: ${erroDoNome.message}`, email);
 
       const { data: renomeado } = await admin.rpc('renomear_membro', {
         c: CODIGO,
@@ -124,7 +152,7 @@ export async function GET(request: Request) {
       });
       if (renomeado === false) {
         // o email novo já é de outra pessoa aqui — juntar as duas seria pior
-        return naoEntra(origin, `email ${email} já pertence a outro membro`);
+        return naoEntra(origin, `email ${email} já pertence a outro membro`, email);
       }
 
       console.log(`[passagem] ${anterior} passou a ${email} (mesma conta)`);
@@ -141,7 +169,7 @@ export async function GET(request: Request) {
     e: email,
   });
   if (erroDoLugar || !papel) {
-    return naoEntra(origin, `resgatar_codigo: ${erroDoLugar?.message ?? 'sem papel'}`);
+    return naoEntra(origin, `resgatar_codigo: ${erroDoLugar?.message ?? 'sem papel'}`, email);
   }
 
   // ── 4. empurrar o prazo ──────────────────────────────────
@@ -158,7 +186,7 @@ export async function GET(request: Request) {
   });
   // "já existe" é o caso normal a partir da segunda vez
   if (erroDaConta && !/already|exists|registered/i.test(erroDaConta.message)) {
-    return naoEntra(origin, `createUser: ${erroDaConta.message}`);
+    return naoEntra(origin, `createUser: ${erroDaConta.message}`, email);
   }
 
   const { data: link, error: erroDoLink } = await admin.auth.admin.generateLink({
@@ -167,7 +195,7 @@ export async function GET(request: Request) {
   });
   const hash = link?.properties?.hashed_token;
   if (erroDoLink || !hash) {
-    return naoEntra(origin, `generateLink: ${erroDoLink?.message ?? 'sem token'}`);
+    return naoEntra(origin, `generateLink: ${erroDoLink?.message ?? 'sem token'}`, email);
   }
 
   // guarda quem é quem, a cada entrada e não só na primeira: é assim que as
@@ -186,7 +214,7 @@ export async function GET(request: Request) {
     type: 'magiclink',
     token_hash: hash,
   });
-  if (erroDaSessao) return naoEntra(origin, `verifyOtp: ${erroDaSessao.message}`);
+  if (erroDaSessao) return naoEntra(origin, `verifyOtp: ${erroDaSessao.message}`, email);
 
   return NextResponse.redirect(`${origin}${para}`);
 }
