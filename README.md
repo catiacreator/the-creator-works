@@ -48,6 +48,13 @@ só ligar o Canva em Definições, associar o Brand Template e mudar o motor.
 
 ---
 
+## Onde vive
+
+No mesmo domínio do CarouselSnap, debaixo de `/creator-works`:
+`https://carouselsnap.app/creator-works`. Como as duas apps partilham o domínio
+está em `docs/um-so-dominio.md`. Localmente abre em
+`http://localhost:3000/creator-works`.
+
 ## Instalação
 
 ```bash
@@ -57,7 +64,7 @@ npm run dev
 ```
 
 Enquanto faltarem variáveis obrigatórias, a app não rebenta: abre
-`http://localhost:3000/configurar`, que mostra o que já está preenchido, o que
+`http://localhost:3000/creator-works/configurar`, que mostra o que já está preenchido, o que
 falta e os passos do Supabase. Assim que o `.env.local` ficar completo, essa
 página desaparece do caminho e o `/` volta a levar-te à app.
 
@@ -67,7 +74,7 @@ página desaparece do caminho e o `/` volta a levar-te à app.
 2. SQL Editor → cola e corre `supabase/schema.sql`
 3. Authentication → Providers → Email → ativa **Magic Link**
 4. Authentication → URL Configuration → acrescenta
-   `http://localhost:3000/auth/callback` e o mesmo no domínio de produção
+   `http://localhost:3000/creator-works/auth/callback` e o mesmo no domínio de produção
 5. Copia URL, anon key e service-role key para o `.env.local`
 
 ### 2. Chave de cifra
@@ -92,7 +99,7 @@ código. Imagens não se geram — carregas as tuas em *Fotografias*.
 1. https://console.cloud.google.com → novo projeto
 2. APIs & Services → ativa a **Google Drive API**
 3. Credentials → OAuth client ID → Web application
-4. Redirect URI: `http://localhost:3000/api/google/oauth/callback`
+4. Redirect URI: `http://localhost:3000/creator-works/api/google/oauth/callback`
 5. Client ID e secret para o `.env.local`
 
 ### 5. Canva (opcional, precisa de Enterprise)
@@ -101,7 +108,7 @@ código. Imagens não se geram — carregas as tuas em *Fotografias*.
 2. Scopes: `design:content:read`, `design:content:write`, `design:meta:read`,
    `brandtemplate:meta:read`, `brandtemplate:content:read`, `asset:read`,
    `asset:write`, `profile:read`
-3. Redirect URL: `http://localhost:3000/api/canva/oauth/callback`
+3. Redirect URL: `http://localhost:3000/creator-works/api/canva/oauth/callback`
 
 ---
 

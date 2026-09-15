@@ -3,6 +3,7 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { DIAS_POR_PASSAGEM, carouselSnap, lerPassagem } from '@/lib/passagem';
+import { enderecoDaApp, urlDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -106,7 +107,7 @@ async function naoEntra(origem: string, porque: string, email?: string) {
 
   if (await jaEstaDentro()) {
     console.log('[passagem] bilhete recusado, mas a sessão é de casa — segue');
-    return NextResponse.redirect(`${origem}/`);
+    return NextResponse.redirect(origem);
   }
 
   // Não é a página de vendas: quem vem do Snap já pagou, e mostrar-lhe um
@@ -116,7 +117,9 @@ async function naoEntra(origem: string, porque: string, email?: string) {
 }
 
 async function abrir(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // o endereço desta app, com o /creator-works: é para aqui que tudo volta
+  const origin = enderecoDaApp(request);
   const segredo = process.env.PASSAGEM_SEGREDO?.trim();
 
   // este é o motivo que mais custa a descobrir de fora: sem segredo, a porta
@@ -257,7 +260,7 @@ async function abrir(request: Request) {
   });
   if (erroDaSessao) return naoEntra(origin, `verifyOtp: ${erroDaSessao.message}`, email);
 
-  return NextResponse.redirect(`${origin}${para}`);
+  return NextResponse.redirect(urlDaApp(para, request));
 }
 
 /**
@@ -280,7 +283,7 @@ export async function GET(request: Request) {
   try {
     return await abrir(request);
   } catch (e) {
-    const { origin } = new URL(request.url);
+    const origin = enderecoDaApp(request);
     const recado = e instanceof Error ? `${e.message}` : String(e);
     return naoEntra(origin, `rebentou: ${recado}`);
   }

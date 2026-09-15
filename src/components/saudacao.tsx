@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 /**
  * "Bem-vinda, Cátia".
@@ -15,7 +16,7 @@ export function Saudacao() {
   const [aGuardar, setAGuardar] = useState(false);
 
   useEffect(() => {
-    fetch('/api/perfil')
+    fetch(comBase('/api/perfil'))
       .then((r) => r.json())
       .then((d) => {
         setNome(d.nome ?? '');
@@ -27,7 +28,7 @@ export function Saudacao() {
     const limpo = rascunho.trim();
     if (!limpo) return;
     setAGuardar(true);
-    await fetch('/api/perfil', {
+    await fetch(comBase('/api/perfil'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nome: limpo }),

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { enderecoDaApp } from '@/lib/caminho';
 import { cookies } from 'next/headers';
 import { createClient, getUser } from '@/lib/supabase/server';
 import { exchangeCode } from '@/lib/google';
@@ -8,17 +9,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  const base = process.env.NEXT_PUBLIC_APP_URL!;
+  const base = enderecoDaApp(request);
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
   const user = await getUser();
-  if (!user) return NextResponse.redirect(new URL('/login', base));
+  if (!user) return NextResponse.redirect(`${base}/login`);
 
   const jar = cookies();
   if (!code || !state || state !== jar.get('google_state')?.value) {
-    return NextResponse.redirect(new URL('/definicoes?erro=google-state', base));
+    return NextResponse.redirect(`${base}/definicoes?erro=google-state`);
   }
 
   try {
@@ -31,10 +32,10 @@ export async function GET(request: Request) {
     );
   } catch (err) {
     const message = encodeURIComponent(err instanceof Error ? err.message : 'erro');
-    return NextResponse.redirect(new URL(`/definicoes?erro=${message}`, base));
+    return NextResponse.redirect(`${base}/definicoes?erro=${message}`);
   } finally {
     jar.delete('google_state');
   }
 
-  return NextResponse.redirect(new URL('/fontes?ligado=google', base));
+  return NextResponse.redirect(`${base}/fontes?ligado=google`);
 }

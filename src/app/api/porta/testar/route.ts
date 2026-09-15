@@ -3,6 +3,7 @@ import { createClient, getUser } from '@/lib/supabase/server';
 import { acessoDe } from '@/lib/acesso';
 import { escreverPassagem } from '@/lib/passagem';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { enderecoDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ function devolver(origem: string, recado: string) {
 }
 
 export async function GET(request: Request) {
-  const { origin } = new URL(request.url);
+  const origin = enderecoDaApp(request);
 
   const user = await getUser();
   if (!user?.email) return NextResponse.redirect(`${origin}/login`);

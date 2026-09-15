@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { enderecoDaApp } from '@/lib/caminho';
 import { cookies } from 'next/headers';
 import crypto from 'node:crypto';
 import { getUser } from '@/lib/supabase/server';
@@ -6,13 +7,13 @@ import { authorizeUrl } from '@/lib/google';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
-  const base = process.env.NEXT_PUBLIC_APP_URL!;
+export async function GET(request: Request) {
+  const base = enderecoDaApp(request);
   const user = await getUser();
-  if (!user) return NextResponse.redirect(new URL('/login', base));
+  if (!user) return NextResponse.redirect(`${base}/login`);
 
   if (!process.env.GOOGLE_CLIENT_ID) {
-    return NextResponse.redirect(new URL('/definicoes?erro=google-nao-configurado', base));
+    return NextResponse.redirect(`${base}/definicoes?erro=google-nao-configurado`);
   }
 
   const state = crypto.randomBytes(16).toString('hex');

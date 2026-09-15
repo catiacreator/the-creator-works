@@ -4,6 +4,7 @@ import { pode, TODAS_AS_PERMISSOES, type Papel } from '@/lib/papeis';
 import { carregarMatriz } from '@/lib/papeis-servidor';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { User } from '@supabase/supabase-js';
+import { enderecoDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 
@@ -80,8 +81,7 @@ export const POST = withUser(async ({ user, supabase, request }) => {
   // 2. o convite propriamente dito: um email com um link que a leva a
   //    escolher a palavra-passe. Vai pelo caminho normal do login (link
   //    mágico), que não precisa da chave de serviço.
-  const origem =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const origem = enderecoDaApp(request);
 
   const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
     email,

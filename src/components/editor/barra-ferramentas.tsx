@@ -9,6 +9,7 @@ import { PaletaCores } from './cores';
 import { EscolherFoto } from './escolher-foto';
 import { Ganchos } from './ganchos';
 import { useEditor } from '@/lib/editor-store';
+import { comBase } from '@/lib/caminho';
 
 const STICKERS = ['✨','🔥','🩷','👀','📌','⚡️','🎯','💬','✅','❌','☝️','🫶','😮','🤯','📈','🧠'];
 
@@ -21,7 +22,7 @@ export function BarraFerramentas({ userId }: { userId: string }) {
 
   // os templates guardados, para vestir os slides com um clique
   useEffect(() => {
-    fetch('/api/templates')
+    fetch(comBase('/api/templates'))
       .then((r) => r.json())
       .then((d) =>
         setTemplates((d.templates ?? []).filter((t: any) => t.spec?.kind === 'editor')),
@@ -37,7 +38,7 @@ export function BarraFerramentas({ userId }: { userId: string }) {
   async function subir(file: File): Promise<{ id: string; url: string }> {
     const form = new FormData();
     form.append('files', file);
-    const res = await fetch('/api/photos', { method: 'POST', body: form });
+    const res = await fetch(comBase('/api/photos'), { method: 'POST', body: form });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const foto = data.photos?.[0];

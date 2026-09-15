@@ -200,13 +200,21 @@ export function lerPassagem(bilhete: string, segredo: string): Leitura {
  *   cliente e só quer atravessar a rua de volta. Leva direito ao /main, sem
  *   passar pela página de vendas de uma coisa que ela já comprou.
  */
+/**
+ * As duas apps vivem no mesmo domínio: o CarouselSnap é a raiz deste
+ * endereço e esta app fica debaixo de /creator-works. Por isso os links são
+ * relativos — `/` e `/main` — e levam sempre ao CarouselSnap *deste*
+ * domínio, seja ele o de produção ou uma pré-visualização. Não há variável
+ * de ambiente a mandar aqui: uma `CAROUSELSNAP_URL` esquecida na Vercel
+ * punha o botão a apontar para fora, que é exactamente o que se quer evitar.
+ */
 export function carouselSnap(): string {
-  return (process.env.CAROUSELSNAP_URL?.trim() || 'https://carouselsnap.app').replace(/\/+$/, '');
+  return '/';
 }
 
 /** Para onde volta quem já está cá dentro. */
 export function voltarAoCarouselSnap(): string {
-  return process.env.CAROUSELSNAP_VOLTAR?.trim() || `${carouselSnap()}/main`;
+  return '/main';
 }
 
 /**

@@ -15,6 +15,7 @@ import { Wizard } from '@/components/wizard';
 import { Card, Dialogo, Empty, PageHeader, Spinner } from '@/components/ui';
 import { TECTO_FOTOS } from '@/lib/limites';
 import type { FolderRow, PhotoRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 type Photo = PhotoRow & { url: string | null };
 
@@ -36,8 +37,8 @@ export default function BibliotecaPage() {
 
   async function load() {
     const [ph, fo] = await Promise.all([
-      fetch('/api/photos').then((r) => r.json()),
-      fetch('/api/folders?tipo=foto').then((r) => r.json()),
+      fetch(comBase('/api/photos')).then((r) => r.json()),
+      fetch(comBase('/api/folders?tipo=foto')).then((r) => r.json()),
     ]);
     setPhotos(ph.photos ?? []);
     setPastas(fo.folders ?? []);
@@ -64,7 +65,7 @@ export default function BibliotecaPage() {
     const form = new FormData();
     Array.from(files).forEach((f) => form.append('files', f));
     if (pasta && pasta !== SEM_PASTA) form.append('pasta', pasta);
-    const res = await fetch('/api/photos', { method: 'POST', body: form });
+    const res = await fetch(comBase('/api/photos'), { method: 'POST', body: form });
     const data = await res.json();
     setBusy(false);
     if (data.error) setError(data.error);
@@ -72,7 +73,7 @@ export default function BibliotecaPage() {
   }
 
   async function patch(id: string, body: { name?: string | null; folder?: string | null }) {
-    const res = await fetch(`/api/photos/${id}`, {
+    const res = await fetch(comBase(`/api/photos/${id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -85,7 +86,7 @@ export default function BibliotecaPage() {
   async function eliminar(ids: string[]) {
     setBusy(true);
     for (const id of ids) {
-      const res = await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+      const res = await fetch(comBase(`/api/photos/${id}`), { method: 'DELETE' });
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -113,7 +114,7 @@ export default function BibliotecaPage() {
   }
 
   async function criar(nome: string) {
-    const data = await fetch('/api/folders', {
+    const data = await fetch(comBase('/api/folders'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nome, tipo: 'foto' }),
@@ -126,7 +127,7 @@ export default function BibliotecaPage() {
   }
 
   async function renomear(id: string, nome: string) {
-    const data = await fetch(`/api/folders/${id}`, {
+    const data = await fetch(comBase(`/api/folders/${id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nome }),
@@ -142,7 +143,7 @@ export default function BibliotecaPage() {
   }
 
   async function apagarPasta(f: FolderRow) {
-    const data = await fetch(`/api/folders/${f.id}`, { method: 'DELETE' }).then((r) => r.json());
+    const data = await fetch(comBase(`/api/folders/${f.id}`), { method: 'DELETE' }).then((r) => r.json());
     if (data.error) return setError(data.error);
     setPastas((fs) => fs.filter((x) => x.id !== f.id));
     setPasta(null);

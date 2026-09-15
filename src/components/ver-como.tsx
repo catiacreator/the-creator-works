@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { papelPorId, type Papel } from '@/lib/papeis';
+import { comBase } from '@/lib/caminho';
 
 /**
  * A faixa que aparece enquanto a admin está a ver a app pelos olhos de outro
@@ -16,7 +17,7 @@ export function VerComo({ papel }: { papel: Papel }) {
 
   async function sair() {
     setBusy(true);
-    await fetch('/api/ver-como', {
+    await fetch(comBase('/api/ver-como'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ papel: null }),

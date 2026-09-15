@@ -5,6 +5,7 @@ import { Download, PenTool, Trash2, TrainFront, CheckSquare, Square } from 'luci
 import { useEffect, useState } from 'react';
 import { Dialogo, Empty, PageHeader, StatusPill } from '@/components/ui';
 import type { BatchRow, CarouselRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 export default function CarrosseisPage() {
   const [carousels, setCarousels] = useState<CarouselRow[]>([]);
@@ -16,8 +17,8 @@ export default function CarrosseisPage() {
 
   async function load() {
     const [c, b] = await Promise.all([
-      fetch(`/api/carousels${filter ? `?batch=${filter}` : ''}`).then((r) => r.json()),
-      fetch('/api/batches').then((r) => r.json()),
+      fetch(comBase(`/api/carousels${filter ? `?batch=${filter}` : ''}`)).then((r) => r.json()),
+      fetch(comBase('/api/batches')).then((r) => r.json()),
     ]);
     setCarousels(c.carousels ?? []);
     setBatches(b.batches ?? []);
@@ -33,7 +34,7 @@ export default function CarrosseisPage() {
   async function apagar(ids: string[]) {
     setBusy(true);
     for (const id of ids) {
-      await fetch(`/api/carousels/${id}`, { method: 'DELETE' });
+      await fetch(comBase(`/api/carousels/${id}`), { method: 'DELETE' });
     }
     setBusy(false);
     setAApagar(null);

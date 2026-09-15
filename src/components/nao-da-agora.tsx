@@ -1,4 +1,5 @@
 import { CloudOff } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 /**
  * O que se vê quando a app não consegue falar com a base de dados.
@@ -26,7 +27,7 @@ export function NaoDaAgora() {
         trabalho está todo onde estava — nada disto se perdeu. Espera um
         minuto e volta a carregar.
       </p>
-      <a href="/" className="btn-primario mx-auto justify-center">
+      <a href={comBase('/')} className="btn-primario mx-auto justify-center">
         Tentar outra vez
       </a>
     </main>

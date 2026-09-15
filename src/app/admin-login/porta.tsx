@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { KeyRound, Loader2 } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 /**
  * A página onde se escreve o código.
@@ -28,7 +29,7 @@ export function Porta() {
     setErro(null);
 
     try {
-      const r = await fetch('/api/admin-login', {
+      const r = await fetch(comBase('/api/admin-login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigo: codigo.trim() }),
@@ -38,7 +39,7 @@ export function Porta() {
       if (d.ok) {
         // recarrega a página inteira em vez de navegar por dentro: a sessão
         // acabou de nascer nos cookies e o servidor tem de a ver de novo
-        window.location.href = d.para ?? '/';
+        window.location.href = comBase(d.para ?? '/');
         return;
       }
 

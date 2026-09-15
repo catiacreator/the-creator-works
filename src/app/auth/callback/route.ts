@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { RECADO_SEM_ACESSO, acessoDe } from '@/lib/acesso';
+import { enderecoDaApp, urlDaApp } from '@/lib/caminho';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = enderecoDaApp(request);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
 
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/palavra-passe?novo=1`);
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(urlDaApp(next, request));
     }
   }
 

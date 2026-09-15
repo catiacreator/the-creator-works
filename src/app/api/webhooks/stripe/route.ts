@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { createClienteDeVendas } from '@/lib/supabase/admin';
+import { enderecoDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -188,7 +189,7 @@ export async function POST(request: Request) {
   const primeira = tipo === 'checkout.session.completed';
   let emailEnviado = false;
   if (primeira) {
-    const origem = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+    const origem = enderecoDaApp(request);
     const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
       email,
       options: {

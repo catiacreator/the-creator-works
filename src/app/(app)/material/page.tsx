@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { Wizard } from '@/components/wizard';
 import { Card, Empty, PageHeader, Spinner } from '@/components/ui';
 import type { SourceRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 const KIND_LABEL: Record<string, string> = {
   pdf: 'PDF',
@@ -21,7 +22,7 @@ export default function MaterialPage() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function load() {
-    const res = await fetch('/api/sources');
+    const res = await fetch(comBase('/api/sources'));
     const data = await res.json();
     setSources(data.sources ?? []);
   }
@@ -36,7 +37,7 @@ export default function MaterialPage() {
     setError(null);
     const form = new FormData();
     Array.from(files).forEach((f) => form.append('files', f));
-    const res = await fetch('/api/sources', { method: 'POST', body: form });
+    const res = await fetch(comBase('/api/sources'), { method: 'POST', body: form });
     const data = await res.json();
     setBusy(false);
     if (data.error) setError(data.error);
@@ -47,7 +48,7 @@ export default function MaterialPage() {
   async function addPasted() {
     if (!pasted.trim()) return;
     setBusy(true);
-    await fetch('/api/sources', {
+    await fetch(comBase('/api/sources'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: pasted }),
@@ -58,7 +59,7 @@ export default function MaterialPage() {
   }
 
   async function remove(id: string) {
-    await fetch(`/api/sources/${id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/sources/${id}`), { method: 'DELETE' });
     load();
   }
 

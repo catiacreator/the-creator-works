@@ -2,6 +2,7 @@ import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { carregarMatriz } from '@/lib/papeis-servidor';
 import { pode } from '@/lib/papeis';
+import { enderecoDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +21,7 @@ export const GET = withUser(async ({ user, supabase, request }) => {
     .eq('codigo', codigo)
     .maybeSingle();
 
-  const origem = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const origem = enderecoDaApp(request);
 
   return ok({
     endereco: `${origem}/api/webhooks/hotmart`,

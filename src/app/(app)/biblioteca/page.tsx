@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui';
+import { comBase } from '@/lib/caminho';
 
 /**
  * Biblioteca: tudo o que já é teu, num sítio só.
@@ -61,11 +62,11 @@ export default function BibliotecaPage() {
   useEffect(() => {
     (async () => {
       const [c, t, f, m, k] = await Promise.all([
-        fetch('/api/carousels').then((r) => r.json()),
-        fetch('/api/templates').then((r) => r.json()),
-        fetch('/api/photos').then((r) => r.json()),
-        fetch('/api/sources').then((r) => r.json()),
-        fetch('/api/chat').then((r) => r.json()),
+        fetch(comBase('/api/carousels')).then((r) => r.json()),
+        fetch(comBase('/api/templates')).then((r) => r.json()),
+        fetch(comBase('/api/photos')).then((r) => r.json()),
+        fetch(comBase('/api/sources')).then((r) => r.json()),
+        fetch(comBase('/api/chat')).then((r) => r.json()),
       ]);
       setContas({
         carrosseis: (c.carousels ?? []).length,

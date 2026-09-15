@@ -33,6 +33,7 @@ import {
   type Tipo,
 } from '@/lib/criar-opcoes';
 import type { PhotoRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 interface Proposto {
   indice: number;
@@ -83,14 +84,14 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
   useEffect(() => {
     (async () => {
       const [t, p] = await Promise.all([
-        fetch('/api/templates').then((r) => r.json()),
-        fetch('/api/photos').then((r) => r.json()),
+        fetch(comBase('/api/templates')).then((r) => r.json()),
+        fetch(comBase('/api/photos')).then((r) => r.json()),
       ]);
       setTemplates(t.templates ?? []);
       setPhotos(p.photos ?? []);
       if (t.templates?.length) setTemplateId(t.templates[0].id);
     })();
-    fetch('/api/formatos-preview')
+    fetch(comBase('/api/formatos-preview'))
       .then((r) => r.json())
       .then((d) => setExemplos(d.imagens ?? {}))
       .catch(() => {});
@@ -168,7 +169,7 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
         .filter(Boolean)
         .join('\n');
 
-      const d = await fetch('/api/chat', {
+      const d = await fetch(comBase('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: pedido, title: etiqueta }),
@@ -194,9 +195,9 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
         form.append('file', file);
         form.append('slides', String(slides));
         if (templateId) form.append('template_id', templateId);
-        res = await fetch('/api/dividir', { method: 'POST', body: form });
+        res = await fetch(comBase('/api/dividir'), { method: 'POST', body: form });
       } else {
-        res = await fetch('/api/dividir', {
+        res = await fetch(comBase('/api/dividir'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ texto, slides, template_id: templateId || null }),
@@ -234,7 +235,7 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
       const criados: string[] = [];
       for (let i = 0; i < aCriar.length; i++) {
         setATrabalhar(`A criar ${i + 1} de ${aCriar.length}…`);
-        const d = await fetch('/api/carousels', {
+        const d = await fetch(comBase('/api/carousels'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -253,7 +254,7 @@ export function Fluxo({ inicio = 'tipo' }: { inicio?: 'tipo' | 'documento' }) {
 
       setATrabalhar('A compor as imagens…');
       for (let volta = 0; volta < 60; volta++) {
-        const fila = await fetch('/api/jobs/run?limit=4', { method: 'POST' }).then((r) => r.json());
+        const fila = await fetch(comBase('/api/jobs/run?limit=4'), { method: 'POST' }).then((r) => r.json());
         if ((fila.remaining ?? 0) === 0 && (fila.processed ?? 0) === 0) break;
         setATrabalhar(`A compor as imagens… faltam ${fila.remaining ?? 0} passos`);
         await new Promise((r) => setTimeout(r, 900));

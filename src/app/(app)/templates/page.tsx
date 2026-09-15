@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card, Empty, PageHeader } from '@/components/ui';
 import { defaultSpec } from '@/lib/default-spec';
 import type { TemplateSpec, TextBox } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 /** O `spec` guarda dois formatos: o antigo (caixas numeradas) ou um desenho do editor. */
 type SpecGuardado = TemplateSpec & { kind?: 'editor' };
@@ -37,7 +38,7 @@ export default function TemplatesPage() {
   const bgInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/templates');
+    const res = await fetch(comBase('/api/templates'));
     const data = await res.json();
     const todos: Template[] = data.templates ?? [];
     setTemplates(todos);
@@ -61,7 +62,7 @@ export default function TemplatesPage() {
   useEffect(() => {
     if (!spec?.boxes?.length || spec.kind === 'editor') return;
     const timer = setTimeout(async () => {
-      const res = await fetch('/api/templates/preview', {
+      const res = await fetch(comBase('/api/templates/preview'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spec, bg_path: selected?.bg_path ?? null }),
@@ -83,7 +84,7 @@ export default function TemplatesPage() {
     setBusy(true);
     setError(null);
     form.set('spec', JSON.stringify(NEW_SPEC));
-    const res = await fetch('/api/templates', { method: 'POST', body: form });
+    const res = await fetch(comBase('/api/templates'), { method: 'POST', body: form });
     const data = await res.json();
     setBusy(false);
     if (data.error) return setError(data.error);
@@ -101,7 +102,7 @@ export default function TemplatesPage() {
     form.set('engine', selected.engine);
     form.set('canva_brand_template_id', selected.canva_brand_template_id ?? '');
     if (bgInput.current?.files?.[0]) form.set('background', bgInput.current.files[0]);
-    const res = await fetch(`/api/templates/${selected.id}`, { method: 'PATCH', body: form });
+    const res = await fetch(comBase(`/api/templates/${selected.id}`), { method: 'PATCH', body: form });
     const data = await res.json();
     setBusy(false);
     if (data.error) setError(data.error);

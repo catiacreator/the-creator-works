@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   LogOut,
 } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 /**
  * A barra por categorias.
@@ -73,7 +74,7 @@ export function Nav({
   permissoes,
   escondidas,
   emManutencao,
-  carouselSnap = 'https://carouselsnap.app/main',
+  carouselSnap = '/main',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
@@ -93,7 +94,7 @@ export function Nav({
   const [fechada, setFechada] = useState(false);
 
   const carregarConversas = useCallback(() => {
-    fetch('/api/chat')
+    fetch(comBase('/api/chat'))
       .then((r) => r.json())
       .then((d) => setConversas((d.threads ?? []).slice(0, NA_BARRA)));
   }, []);
@@ -116,7 +117,7 @@ export function Nav({
   }, [carregarConversas]);
 
   async function apagarConversa(id: string) {
-    await fetch(`/api/chat?thread=${id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/chat?thread=${id}`), { method: 'DELETE' });
     setConversas((c) => c.filter((x) => x.id !== id));
     if (aberta === id) router.push('/chat');
   }
@@ -149,13 +150,13 @@ export function Nav({
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/the-creator-works.png"
+                src={comBase('/the-creator-works.png')}
                 alt="The Creator Works"
                 className="h-[26px] w-auto dark:hidden"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/the-creator-works-escuro.png"
+                src={comBase('/the-creator-works-escuro.png')}
                 alt="The Creator Works"
                 className="hidden h-[26px] w-auto dark:block"
               />
@@ -324,7 +325,7 @@ export function Nav({
           "é fácil de carregar por engano" nunca foi razão para não existir.
         */}
         <a
-          href="/sair"
+          href={comBase('/sair')}
           className={clsx(
             'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink/60 transition hover:bg-creme hover:text-ink',
             fechada && 'justify-center px-0',

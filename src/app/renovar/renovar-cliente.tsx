@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarX2, ExternalLink, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { comBase } from '@/lib/caminho';
 
 /**
  * A porta que se fecha quando a subscrição do CarouselSnap deixa de valer.
@@ -33,9 +34,9 @@ export function RenovarCliente({ snap }: { snap: string }) {
     setSemNovidade(false);
     // o middleware devolve 402 a quem está em atraso; qualquer outra coisa
     // quer dizer que o prazo já foi empurrado e a app está aberta
-    const r = await fetch('/api/consumo').catch(() => null);
+    const r = await fetch(comBase('/api/consumo')).catch(() => null);
     if (r && r.status !== 402) {
-      window.location.href = '/';
+      window.location.href = comBase('/');
       return;
     }
     setAVer(false);

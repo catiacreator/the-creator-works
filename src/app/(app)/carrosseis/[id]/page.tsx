@@ -7,6 +7,7 @@ import { Download, PenTool, Image as ImageIcon, Trash2, FileImage, Presentation 
 import { Card, Dialogo, PageHeader, Spinner, StatusPill } from '@/components/ui';
 import { LevarTexto } from '@/components/levar-texto';
 import type { CarouselRow, PhotoRow, SlideRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 type Slide = SlideRow & { url: string | null };
 
@@ -26,7 +27,7 @@ export default function CarrosselPage() {
   const zonaFotos = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
-    const data = await fetch(`/api/carousels/${id}`).then((r) => r.json());
+    const data = await fetch(comBase(`/api/carousels/${id}`)).then((r) => r.json());
     if (data.error) return;
     setCarousel(data.carousel);
     setSlides(data.slides ?? []);
@@ -36,7 +37,7 @@ export default function CarrosselPage() {
 
   useEffect(() => {
     load();
-    fetch('/api/photos')
+    fetch(comBase('/api/photos'))
       .then((r) => r.json())
       .then((d) => setPhotos(d.photos ?? []));
   }, [load]);
@@ -51,7 +52,7 @@ export default function CarrosselPage() {
   /** Guarda sozinho — não há botão de guardar nesta página. */
   async function save() {
     setBusy(true);
-    await fetch(`/api/carousels/${id}`, {
+    await fetch(comBase(`/api/carousels/${id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -67,13 +68,13 @@ export default function CarrosselPage() {
 
   async function requeue(step: 'write' | 'image' | 'render') {
     setBusy(true);
-    await fetch(`/api/carousels/${id}/rerender?step=${step}`, { method: 'POST' });
+    await fetch(comBase(`/api/carousels/${id}/rerender?step=${step}`), { method: 'POST' });
     setBusy(false);
     load();
   }
 
   async function choosePhoto(photoId: string) {
-    await fetch(`/api/carousels/${id}`, {
+    await fetch(comBase(`/api/carousels/${id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ photo_id: photoId }),
@@ -89,7 +90,7 @@ export default function CarrosselPage() {
 
   async function remove() {
     setBusy(true);
-    await fetch(`/api/carousels/${id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/carousels/${id}`), { method: 'DELETE' });
     router.push('/carrosseis');
   }
 

@@ -34,6 +34,7 @@ import { PainelPropriedades } from './painel-propriedades';
 import { TiraSlides } from './tira-slides';
 import { Historico } from './historico';
 import { Tutorial, tutorialPorVer } from './tutorial';
+import { comBase } from '@/lib/caminho';
 
 interface Props {
   userId: string;
@@ -116,7 +117,7 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
       const desenho = { kind: 'editor', formato, slides };
 
       if (modo === 'template' && projetoId) {
-        const json = await fetch(`/api/templates/${projetoId}`, {
+        const json = await fetch(comBase(`/api/templates/${projetoId}`), {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ name: nome, spec: desenho }),
@@ -130,7 +131,7 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
         return true;
       }
 
-      const r = await fetch(projetoId ? `/api/carousels/${projetoId}` : '/api/carousels', {
+      const r = await fetch(comBase(projetoId ? `/api/carousels/${projetoId}` : '/api/carousels'), {
         method: projetoId ? 'PATCH' : 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ title: nome, design: desenho }),
@@ -153,7 +154,7 @@ export function Editor({ userId, projeto, tituloInicial, modo = 'carrossel' }: P
   async function criarTemplate(nomeTemplate: string) {
     setAGuardar(true);
     try {
-      const r = await fetch('/api/templates', {
+      const r = await fetch(comBase('/api/templates'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

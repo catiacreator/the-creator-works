@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
 import { DA_PARA, DE_GRACA, INDEPENDENTES, TABELA, TECTO_CREDITOS } from '@/lib/creditos';
+import { comBase } from '@/lib/caminho';
 
 /**
  * Definições.
@@ -67,18 +68,18 @@ export default function DefinicoesClient() {
   } | null>(null);
 
   async function load() {
-    const data = await fetch('/api/settings').then((r) => r.json());
+    const data = await fetch(comBase('/api/settings')).then((r) => r.json());
     setSettings(data.settings);
   }
 
   useEffect(() => {
     load();
-    fetch('/api/consumo')
+    fetch(comBase('/api/consumo'))
       .then((r) => r.json())
       .then((d) => (d.error ? undefined : setConsumo(d)))
       .catch(() => undefined);
     setEscuro(document.documentElement.classList.contains('dark'));
-    fetch('/api/eu')
+    fetch(comBase('/api/eu'))
       .then((r) => r.json())
       .then((d) => setEmail(d.email ?? null))
       .catch(() => {});
@@ -87,7 +88,7 @@ export default function DefinicoesClient() {
   async function save() {
     if (!settings) return;
     setBusy(true);
-    await fetch('/api/settings', {
+    await fetch(comBase('/api/settings'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),

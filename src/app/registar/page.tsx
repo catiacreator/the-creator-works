@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { migracaoEmFalta } from '@/lib/migracoes';
+import { comBase } from '@/lib/caminho';
 
 /**
  * Criar conta, sem código nenhum.
@@ -44,7 +45,7 @@ export default function RegistarPage() {
       password: palavra,
       options: {
         data: { full_name: nome.trim() || null },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}${comBase('/auth/callback')}`,
       },
     });
 
@@ -73,7 +74,7 @@ export default function RegistarPage() {
       );
     }
 
-    window.location.href = '/';
+    window.location.href = comBase('/');
   }
 
   if (confirmar) {
@@ -97,12 +98,12 @@ export default function RegistarPage() {
       <div className="w-full max-w-sm">
         {/* eslint-disable @next/next/no-img-element */}
         <img
-          src="/the-creator-works.png"
+          src={comBase('/the-creator-works.png')}
           alt="The Creator Works"
           className="mb-2 h-9 w-auto dark:hidden"
         />
         <img
-          src="/the-creator-works-escuro.png"
+          src={comBase('/the-creator-works-escuro.png')}
           alt="The Creator Works"
           className="mb-2 hidden h-9 w-auto dark:block"
         />

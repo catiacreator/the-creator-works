@@ -24,6 +24,7 @@ import { useFontesDela } from '@/lib/usar-fontes';
 import { Upload } from 'lucide-react';
 import { PALETA_CORES } from './cores';
 import type { Elemento, ElementoTexto } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 /**
  * A barra que aparece por cima da tela quando há algo selecionado.
@@ -43,7 +44,7 @@ export function BarraRapida() {
     try {
       const form = new FormData();
       form.append('file', f);
-      const d = await fetch('/api/fontes', { method: 'POST', body: form }).then((r) => r.json());
+      const d = await fetch(comBase('/api/fontes'), { method: 'POST', body: form }).then((r) => r.json());
       if (d.error) return alert(d.error);
       await recarregar();
       patchElemento(selecionado!, { fonte: d.fonte.name } as Partial<Elemento>);

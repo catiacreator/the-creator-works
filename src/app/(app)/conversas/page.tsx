@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Info, MessagesSquare, Trash2 } from 'lucide-react';
 import { Card, PageHeader, Spinner } from '@/components/ui';
 import { GUARDA_CONVERSAS } from '@/lib/conversas';
+import { comBase } from '@/lib/caminho';
 
 interface Conversa {
   id: string;
@@ -27,7 +28,7 @@ export default function ConversasPage() {
   const [conversas, setConversas] = useState<Conversa[] | null>(null);
 
   const carregar = useCallback(() => {
-    fetch('/api/chat')
+    fetch(comBase('/api/chat'))
       .then((r) => r.json())
       .then((d) => setConversas(d.threads ?? []))
       .catch(() => setConversas([]));
@@ -37,7 +38,7 @@ export default function ConversasPage() {
 
   async function apagar(id: string) {
     setConversas((c) => (c ?? []).filter((x) => x.id !== id));
-    await fetch(`/api/chat?thread=${id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/chat?thread=${id}`), { method: 'DELETE' });
     window.dispatchEvent(new Event('conversas-mudaram'));
   }
 

@@ -26,6 +26,7 @@ import {
   type Briefing,
   type IdSeparador,
 } from '@/lib/briefing';
+import { comBase } from '@/lib/caminho';
 
 const ICONES: Record<IdSeparador, typeof Target> = {
   nicho: Target,
@@ -64,7 +65,7 @@ export default function PerfilPage() {
   const ficheiro = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/perfil')
+    fetch(comBase('/api/perfil'))
       .then((r) => r.json())
       .then((d) => {
         const b = (d.briefing ?? {}) as Briefing;
@@ -93,7 +94,7 @@ export default function PerfilPage() {
     if (aEspreitar) return; // a espreitadela não escreve na conta dela
     setBusy(true);
     setError(null);
-    const d = await fetch('/api/perfil', {
+    const d = await fetch(comBase('/api/perfil'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ briefing: valores }),
@@ -119,7 +120,7 @@ export default function PerfilPage() {
 
   /** sair da espreitadela ao primeiro dia */
   async function sairDaEspreitadela() {
-    await fetch('/api/ver-como', {
+    await fetch(comBase('/api/ver-como'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ primeiroDia: false }),
@@ -145,7 +146,7 @@ export default function PerfilPage() {
   async function avaliar() {
     setAAvaliar(true);
     setError(null);
-    const d = await fetch('/api/perfil/avaliar', {
+    const d = await fetch(comBase('/api/perfil/avaliar'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ briefing }),
@@ -180,7 +181,7 @@ export default function PerfilPage() {
     try {
       const corpo = new FormData();
       corpo.append('ficheiro', f);
-      const d = await fetch('/api/perfil/importar', { method: 'POST', body: corpo }).then((r) =>
+      const d = await fetch(comBase('/api/perfil/importar'), { method: 'POST', body: corpo }).then((r) =>
         r.json(),
       );
       if (d.error) throw new Error(d.error);
@@ -526,7 +527,7 @@ export default function PerfilPage() {
         {/* o documento é o fim da linha: só faz sentido no último pilar */}
         {ultimo && (
           <a
-            href="/api/perfil/documento"
+            href={comBase('/api/perfil/documento')}
             className="btn-ghost"
             title="O teu briefing em PDF, com as cores e as letras da app"
           >

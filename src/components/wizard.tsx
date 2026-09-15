@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, ArrowRight, X } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 interface Passo {
   id: string;
@@ -24,7 +25,7 @@ export function Wizard({ destaque }: { destaque?: string }) {
 
   useEffect(() => {
     setFechado(window.localStorage.getItem('wizard-fechado') === 'sim');
-    fetch('/api/progresso')
+    fetch(comBase('/api/progresso'))
       .then((r) => r.json())
       .then((d) => {
         setPassos(d.passos ?? []);
