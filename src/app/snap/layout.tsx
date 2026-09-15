@@ -36,6 +36,12 @@ export default async function SnapLayout({ children }: { children: React.ReactNo
 
           <nav className="flex items-center gap-1 text-[13px]">
             <Link
+              href="/snap/drop"
+              className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
+            >
+              Drop Content
+            </Link>
+            <Link
               href="/snap"
               className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
             >
