@@ -46,6 +46,7 @@ const AS_PORTAS = [
   ['/api/admin-login', 'o código da porta de serviço nunca chega a ser conferido'],
   ['/acesso', 'quem tem um código de convite não consegue criar a conta'],
   ['/assinar', 'quem não tem lugar nenhum vai parar ao login em vez de saber onde é a entrada'],
+  ['/obrigada', 'quem acaba de pagar na Hotmart vê um login a pedir uma palavra-passe que nunca escolheu'],
 ];
 
 for (const [caminho, estrago] of AS_PORTAS) {

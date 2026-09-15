@@ -37,8 +37,10 @@ export const PORTAS = [
   '/api/admin-login',
   /** o resgate de um código de convite, onde nasce uma conta */
   '/acesso',
-  /** a página que diz onde é a entrada, para quem não tem lugar nenhum */
+  /** a página que diz onde é a entrada, e onde se assina */
   '/assinar',
+  /** onde a Hotmart devolve quem acabou de pagar, antes de a conta existir */
+  '/obrigada',
 ] as const;
 
 /** É este caminho uma porta? */

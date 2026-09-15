@@ -50,6 +50,30 @@ const RETIRA = new Set([
   'SUBSCRIPTION_CANCELLATION',
 ]);
 
+/**
+ * É a primeira vez que esta pessoa paga, ou é a mensalidade a renovar-se?
+ *
+ * Importa por causa do email. Quem paga pela primeira vez precisa de um link
+ * para escolher a palavra-passe — sem ele fica com o lugar feito e sem
+ * maneira de lá entrar. Quem está a renovar já tem conta, já tem
+ * palavra-passe, e não precisa de nada: mandar-lhe um email de acesso todos
+ * os meses é dizer-lhe, doze vezes por ano, que a conta dela é nova.
+ *
+ * A Hotmart numera as cobranças de uma assinatura. A primeira é a 1; daí para
+ * cima são renovações. Uma compra única não traz número nenhum — e é sempre
+ * primeira, porque não há segunda.
+ *
+ * Quando o número não vier onde é esperado, trata-se como primeira: o pior
+ * que isso faz é um email a mais. O contrário — tratar uma primeira compra
+ * como renovação — é uma pessoa que pagou e ficou à porta sem saber porquê.
+ */
+function primeiraCompra(corpo: Record<string, unknown>): boolean {
+  const dados = (corpo.data ?? corpo) as Record<string, unknown>;
+  const compra = (dados.purchase ?? {}) as Record<string, unknown>;
+  const n = Number(compra.recurrence_number);
+  return !Number.isFinite(n) || n <= 1;
+}
+
 /** É uma mensalidade ou uma compra única? Só as mensalidades levam prazo. */
 function ehAssinatura(corpo: Record<string, unknown>): boolean {
   const dados = (corpo.data ?? corpo) as Record<string, unknown>;
@@ -133,18 +157,31 @@ export async function POST(request: Request) {
     ate = (data as string) ?? null;
   }
 
+  // Renovação: o lugar foi empurrado para a frente e não há mais nada a
+  // fazer. Ela já cá anda, já tem palavra-passe, e não dá por nada — que é
+  // exactamente o que uma renovação deve ser.
+  const primeira = primeiraCompra(corpo);
+  if (!primeira) {
+    return NextResponse.json({ ok: true, acao: 'renovado', email, papel, ate });
+  }
+
+  // Primeira compra: o link leva-a direita à escolha da palavra-passe.
+  //
+  // Sem o `next`, o link abria a sessão e largava-a na app com uma conta sem
+  // palavra-passe nenhuma — funciona hoje e deixa-a fechada para fora
+  // amanhã, quando voltar e não tiver o que escrever no formulário.
   const origem = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
   const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      emailRedirectTo: `${origem}/auth/callback`,
+      emailRedirectTo: `${origem}/auth/callback?next=/palavra-passe`,
       data: nome ? { full_name: nome } : undefined,
     },
   });
 
   if (erroDoEmail) {
-    // o lugar está feito; ela entra pela recuperação de palavra-passe
+    // o lugar está feito; ela entra pelo «enviem-me um link» do /login
     console.error('[hotmart] acesso dado, email não saiu:', erroDoEmail.message);
   }
 
