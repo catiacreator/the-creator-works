@@ -1,7 +1,12 @@
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { carouselSnap, marcaDoSegredo, voltarAoCarouselSnap } from '@/lib/passagem';
+import {
+  EMAIL_DA_CONFERENCIA,
+  carouselSnap,
+  marcaDoSegredo,
+  voltarAoCarouselSnap,
+} from '@/lib/passagem';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -164,9 +169,12 @@ export const GET = withUser(async ({ user, supabase }) => {
   let entradas: number | null = null;
   if (chaveDeServico) {
     const admin = createAdminClient();
+    // sem as da conferência: elas são a Cátia a perguntar se a porta funciona,
+    // e contá-las fazia o cartão responder-lhe com as próprias perguntas
     const { count, error } = await admin
       .from('passagens')
-      .select('bilhete', { count: 'exact', head: true });
+      .select('bilhete', { count: 'exact', head: true })
+      .neq('email', EMAIL_DA_CONFERENCIA);
     if (!error) entradas = count ?? 0;
   }
 

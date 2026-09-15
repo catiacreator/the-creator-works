@@ -47,6 +47,21 @@ import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
  * nenhum. Nunca no código, nunca no browser, nunca num NEXT_PUBLIC_.
  */
 
+/**
+ * O email com que a conferência da porta marca o que escreve.
+ *
+ * A conferência gasta um bilhete a sério, porque é a única maneira de provar
+ * que a função que gasta bilhetes funciona. Mas isso deixa uma linha na tabela
+ * `passagens`, e essa tabela é o que o cartão usa para contar quantas pessoas
+ * entraram pela porta.
+ *
+ * Sem esta marca, cada conferência somava uma entrada — e o cartão passava a
+ * dizer «está a funcionar, já entrou gente» por causa das vezes em que a
+ * própria Cátia carregou no botão a perguntar se funcionava. Um número que se
+ * conta a si próprio é pior do que não ter número nenhum.
+ */
+export const EMAIL_DA_CONFERENCIA = 'conferencia@porta.interna';
+
 /** Quanto tempo vale um bilhete. Segundos. */
 export const VALIDADE = 60;
 
