@@ -1,0 +1,30 @@
+/*
+ * O aspecto do CarouselSnap, dentro de uma casca.
+ *
+ * O Snap tem o desenho dele — laranja, greige, cantos de 14px — e o Creator
+ * Works tem o seu: rosa, manteiga, creme. Os dois vão viver na mesma app, e
+ * a Cátia foi clara: não se misturam.
+ *
+ * A maneira de fazer isso sem partir nenhum é esta. As cores do Snap são
+ * variáveis CSS declaradas SÓ dentro de `.snap`. Uma página do Snap
+ * embrulha-se nessa casca e vê estas cores; o resto da app nunca as vê,
+ * porque fora dali não existem.
+ *
+ * Os valores são os do `index.css` do Snap, copiados sem tocar. Se ele mudar
+ * de cor um dia, muda-se aqui e mais nada nesta app dá por isso.
+ */
+
+.snap {
+  --snap-background: 40 18% 98%; /* off-white quente */
+  --snap-foreground: 24 10% 11%; /* quase preto quente */
+  --snap-card: 0 0% 100%;
+  --snap-muted: 36 16% 95%;
+  --snap-muted-foreground: 30 8% 46%; /* greige quente */
+  --snap-accent: 14 100% 50%; /* laranja — ações e CTA */
+  --snap-accent-foreground: 0 0% 100%;
+  --snap-border: 30 12% 90%;
+
+  background-color: hsl(var(--snap-background));
+  color: hsl(var(--snap-foreground));
+  min-height: 100vh;
+}
