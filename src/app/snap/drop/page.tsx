@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Copy, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Check, Copy, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import type { SlideDoDrop } from '@/snap/drop-content';
 
 /**
@@ -51,8 +52,18 @@ export default function DropPage() {
 
     setATrabalhar(false);
     if (r.error) return setErro(r.error);
-    setSaiu(r.slides as SlideDoDrop[]);
+    const lista = r.slides as SlideDoDrop[];
+    setSaiu(lista);
     setResumo((r.resumo_conteudo as string) || null);
+
+    // guardados na memória do separador, para o Estúdio os encontrar.
+    // Não é elegante e é honesto: ainda não há onde os guardar deste lado,
+    // e o que importa hoje é não se perder o caminho entre os dois ecrãs.
+    try {
+      window.sessionStorage.setItem('snap-slides', JSON.stringify(lista));
+    } catch {
+      /* memória cheia ou fechada: o Estúdio mostra os slides de exemplo */
+    }
   }
 
   /** O carrossel todo num texto só, pronto a colar noutro sítio. */
@@ -229,11 +240,18 @@ export default function DropPage() {
             ))}
           </div>
 
-          <p className="mt-4 text-[12px] leading-relaxed text-snapApagado">
-            Copia e leva para a <strong className="font-medium text-snapTexto">Fábrica de
-            carrosséis</strong> do outro lado para lhe dares o visual. O estúdio do Snap ainda
-            não veio.
-          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link
+              href="/snap/estudio"
+              className="flex items-center gap-1.5 rounded-full bg-snapDestaque px-4 py-2 text-[13px] font-medium text-snapSobreDestaque transition-opacity hover:opacity-90"
+            >
+              Ver nos templates
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <p className="text-[12px] leading-relaxed text-snapApagado">
+              Os 18 templates do Snap. Ou copia o texto e leva-o à Fábrica do outro lado.
+            </p>
+          </div>
         </div>
       )}
     </div>

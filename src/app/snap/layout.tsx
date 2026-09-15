@@ -42,6 +42,12 @@ export default async function SnapLayout({ children }: { children: React.ReactNo
               Drop Content
             </Link>
             <Link
+              href="/snap/estudio"
+              className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
+            >
+              Estúdio
+            </Link>
+            <Link
               href="/snap"
               className="rounded-full px-3 py-1.5 text-snapApagado transition-colors hover:bg-snapSuave hover:text-snapTexto"
             >
