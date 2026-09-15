@@ -32,6 +32,8 @@
 export const PORTAS = [
   /** a porta do CarouselSnap: um bilhete assinado */
   '/entrar',
+  /** os dois sítios lado a lado, para se escolher por onde começar */
+  '/inicio',
   /** onde aterra quem vem do CarouselSnap: entrar ou criar conta */
   '/bem-vindo',
   /** a saída, para quem o middleware não reconhece e não chega às Definições */
