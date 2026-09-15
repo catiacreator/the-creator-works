@@ -18,6 +18,7 @@ export default function LoginPage() {
     const motivo = params.get('erro');
     if (motivo) setError(motivo === '1' ? 'O link expirou ou já foi usado.' : motivo);
     if (params.get('novo') === '1') setRecado('Palavra-passe criada. Entra com ela.');
+    if (params.get('saiu') === '1') setRecado('Sessão fechada. Podes entrar com outra conta.');
   }, []);
 
   async function devLogin() {
@@ -156,6 +157,25 @@ export default function LoginPage() {
           <div className="mb-4 rounded-xl border border-sand bg-creme/60 px-4 py-3 text-sm">
             {recado}
           </div>
+        )}
+
+        {/*
+          A saída, à vista.
+
+          Quem chega aqui com um erro foi posto fora por uma sessão que a app
+          não reconhece — e essa sessão continua no browser. Entrar outra vez
+          com ela em cima volta a dar no mesmo. O botão de sair vive dentro
+          das Definições, que é uma página que esta pessoa não consegue
+          abrir. Por isso a saída aparece aqui, onde ela está.
+        */}
+        {error && (
+          <p className="mb-4 text-center text-[12.5px] text-muted">
+            Continua a dar o mesmo?{' '}
+            <a href="/sair" className="underline underline-offset-2 hover:text-ink">
+              Fecha a sessão que está aberta
+            </a>{' '}
+            e tenta de novo.
+          </p>
         )}
 
         {enviado && (

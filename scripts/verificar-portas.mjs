@@ -77,6 +77,17 @@ caso('uma página por baixo de uma porta não é a porta', () =>
   ePorta('/admin-login/outra-coisa') ? 'deixou passar um caminho por baixo' : null,
 );
 
+/**
+ * A saída tem de ser sempre uma porta.
+ *
+ * Se o /sair sair desta lista, o middleware passa a conferi-lo — e quem
+ * precisa dele é precisamente quem o middleware não reconhece. A ratoeira
+ * volta a fechar-se e ninguém dá por ela até alguém ficar preso.
+ */
+caso('a saída é uma porta, e tem de continuar a ser', () =>
+  ePorta('/sair') ? null : 'o /sair saiu da lista das portas',
+);
+
 caso('a lista não tem duplicados', () =>
   new Set(PORTAS).size === PORTAS.length ? null : 'há caminhos repetidos',
 );
