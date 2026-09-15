@@ -17,7 +17,8 @@
     "verificar-acesso": "node scripts/verificar-acesso.mjs",
     "verificar-migracoes": "node scripts/verificar-migracoes.mjs",
     "verificar-portas": "node scripts/verificar-portas.mjs",
-    "verificar-sql": "node scripts/verificar-sql.mjs"
+    "verificar-sql": "node scripts/verificar-sql.mjs",
+    "verificar-templates": "node scripts/verificar-templates.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
