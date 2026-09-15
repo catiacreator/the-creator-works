@@ -23,6 +23,7 @@ import {
   Clock,
   Radio,
   ArrowLeft,
+  LogOut,
 } from 'lucide-react';
 
 /**
@@ -305,13 +306,34 @@ export function Nav({
         <BotaoDeTema fechada={fechada} />
         <Ajuda fechada={fechada} />
         {/*
-          Não há "Sair" aqui.
-          Quem entra pelo CarouselSnap não tem palavra-passe nesta app — sair
-          era ficar do lado de fora sem chave, e o caminho de volta é o botão
-          laranja aqui em cima. Para quem precisa mesmo de trocar de conta, o
-          botão continua nas Definições, que é onde se vai de propósito e não
-          por engano.
+          O sair.
+
+          Esteve aqui um comentário meu a explicar porque é que ele não
+          existia — dizia que quem entra pelo CarouselSnap não tem
+          palavra-passe nesta app, e que quem precisasse de trocar de conta
+          tinha o botão nas Definições.
+
+          A segunda metade era falsa: não havia botão nenhum nas Definições,
+          nem em lado nenhum. Durante todo este tempo ninguém teve como sair
+          da sua conta — nem ela, nem um aluno que entrasse no computador de
+          outra pessoa.
+
+          A primeira metade continua verdadeira, e é por isso que ele vive
+          aqui em baixo, discreto, e não ao lado das páginas: quem entrou
+          pelo Snap sai para uma porta que precisa de um bilhete novo. Mas
+          "é fácil de carregar por engano" nunca foi razão para não existir.
         */}
+        <a
+          href="/sair"
+          className={clsx(
+            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink/60 transition hover:bg-creme hover:text-ink',
+            fechada && 'justify-center px-0',
+          )}
+          title="Sair da conta"
+        >
+          <LogOut className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
+          {!fechada && 'Sair'}
+        </a>
       </div>
     </aside>
   );
