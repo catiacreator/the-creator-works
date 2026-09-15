@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { migracaoEmFalta } from '@/lib/migracoes';
 import {
   EMAIL_DA_CONFERENCIA,
   escreverPassagem,
@@ -149,7 +150,7 @@ export const POST = withUser(async ({ user, supabase }) => {
     const admin = createAdminClient();
     const numero = randomUUID();
     const gastar = () =>
-      admin.rpc('gastar_passagem', { c: CODIGO, bilhete: numero, e: EMAIL_DA_CONFERENCIA });
+      admin.rpc('gastar_bilhete', { c: CODIGO, numero, e: EMAIL_DA_CONFERENCIA });
 
     const { data: primeira, error } = await gastar();
     const { data: segunda } = error ? { data: null } : await gastar();
@@ -163,8 +164,11 @@ export const POST = withUser(async ({ user, supabase }) => {
         : certo
           ? 'Gasta-se à primeira e é recusado à segunda, como tem de ser.'
           : `Respondeu ${String(primeira)} à primeira e ${String(segunda)} à segunda — devia ser true e depois false.`,
+      // quando o Supabase se queixa de uma peça que não existe, traduz-se
+      // para o ficheiro que a cria, em vez de se deixar o inglês do PostgREST
       arranjo:
-        'Se rebentou a dizer que a função não existe, falta correr a 024_carouselsnap.sql no Supabase.',
+        (error ? migracaoEmFalta(error) : null) ??
+        'Este é o passo onde a porta esteve encravada um dia inteiro, por um parâmetro com o nome de uma coluna. Se voltar a falhar, diz-me o que está escrito acima.',
     });
   }
 

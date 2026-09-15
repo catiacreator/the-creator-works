@@ -100,12 +100,12 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
 
   // ── 2. gastar o bilhete ──────────────────────────────────
-  const { data: primeira, error: erroDoBilhete } = await admin.rpc('gastar_passagem', {
+  const { data: primeira, error: erroDoBilhete } = await admin.rpc('gastar_bilhete', {
     c: CODIGO,
-    bilhete: j,
+    numero: j,
     e: email,
   });
-  if (erroDoBilhete) return naoEntra(origin, `gastar_passagem: ${erroDoBilhete.message}`, email);
+  if (erroDoBilhete) return naoEntra(origin, `gastar_bilhete: ${erroDoBilhete.message}`, email);
   if (!primeira) return naoEntra(origin, 'bilhete já usado', email);
 
   // ── 2b. quem é esta pessoa, se o CarouselSnap disser ─────
