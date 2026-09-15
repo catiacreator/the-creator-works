@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, getUser } from '@/lib/supabase/server';
+import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { DIAS_POR_PASSAGEM, carouselSnap, lerPassagem } from '@/lib/passagem';
 
@@ -60,6 +61,38 @@ const CODIGO = process.env.CODIGO_CAROUSELSNAP ?? 'CAROUSELSNAP-AUTO';
  * falha em silêncio. Uma porta que se recusa a fechar porque não conseguiu
  * escrever no diário é pior do que uma porta sem diário nenhum.
  */
+/**
+ * Já está cá dentro?
+ *
+ * Isto nasceu de uma coisa que não fazia sentido nenhum e acontecia a toda a
+ * hora: a pessoa entra pelo CarouselSnap, fica com a sessão aberta, carrega
+ * no botão outra vez — e é atirada para a página de assinatura. Uma app que
+ * ela tem aberta noutro separador, com sessão válida e lugar pago, a
+ * dizer-lhe que se assina pelo CarouselSnap.
+ *
+ * O bilhete repetido é recusado, e bem: serve uma vez só, e isso é o que
+ * impede que um endereço apanhado no histórico volte a abrir a porta.
+ *
+ * Mas a recusa do BILHETE não é razão para pôr fora quem já está DENTRO. São
+ * duas perguntas diferentes, e a porta só estava a fazer a primeira. Quem
+ * tem sessão aberta e lugar na tabela entra — não porque o bilhete valha,
+ * mas porque ela já é de casa.
+ *
+ * Não abre excepção nenhuma: as duas condições são exactamente as que o
+ * middleware exige em todos os outros pedidos desta app. Quem não as tiver
+ * continua a ir para a página de assinatura como antes.
+ */
+async function jaEstaDentro(): Promise<boolean> {
+  try {
+    const user = await getUser();
+    if (!user?.email) return false;
+    const acesso = await acessoDe(createClient(), user.email);
+    return Boolean(acesso?.ativo);
+  } catch {
+    return false;
+  }
+}
+
 async function naoEntra(origem: string, porque: string, email?: string) {
   console.error('[passagem] recusada:', porque);
 
@@ -71,10 +104,15 @@ async function naoEntra(origem: string, porque: string, email?: string) {
     console.error('[passagem] não deu para anotar a recusa:', e);
   }
 
+  if (await jaEstaDentro()) {
+    console.log('[passagem] bilhete recusado, mas a sessão é de casa — segue');
+    return NextResponse.redirect(`${origem}/`);
+  }
+
   return NextResponse.redirect(`${origem}/assinar?porta=1`);
 }
 
-export async function GET(request: Request) {
+async function abrir(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const segredo = process.env.PASSAGEM_SEGREDO?.trim();
 
@@ -217,6 +255,32 @@ export async function GET(request: Request) {
   if (erroDaSessao) return naoEntra(origin, `verifyOtp: ${erroDaSessao.message}`, email);
 
   return NextResponse.redirect(`${origin}${para}`);
+}
+
+/**
+ * A porta, com rede por baixo.
+ *
+ * Tudo o que corre aqui dentro tem o seu erro tratado e o seu motivo
+ * anotado — menos o que ninguém previu. E o que ninguém previu, numa rota do
+ * Next, sai como uma página em branco: sem recado, sem rasto no cartão, sem
+ * nada para dizer a quem está do outro lado. A pessoa carrega no botão e o
+ * ecrã fica vazio.
+ *
+ * Isto apanha o que escapar. Não arranja a avaria — arranja o silêncio: a
+ * pessoa vai para onde vai qualquer recusa, e o motivo fica escrito com hora,
+ * que é o que permite arranjar a avaria a seguir.
+ *
+ * Uma porta que rebenta em silêncio é a pior de todas. Foi assim que o
+ * `bilhete` ambíguo se escondeu um dia inteiro.
+ */
+export async function GET(request: Request) {
+  try {
+    return await abrir(request);
+  } catch (e) {
+    const { origin } = new URL(request.url);
+    const recado = e instanceof Error ? `${e.message}` : String(e);
+    return naoEntra(origin, `rebentou: ${recado}`);
+  }
 }
 
 /** Para se ver, de fora, se a porta já está de pé. */
