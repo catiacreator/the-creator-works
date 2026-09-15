@@ -47,6 +47,7 @@ const AS_PORTAS = [
   ['/acesso', 'quem tem um código de convite não consegue criar a conta'],
   ['/assinar', 'quem não tem lugar nenhum vai parar ao login em vez de saber onde é a entrada'],
   ['/obrigada', 'quem acaba de pagar na Hotmart vê um login a pedir uma palavra-passe que nunca escolheu'],
+  ['/api/porta/verificar', 'as duas apps voltam a precisar de uma pessoa no meio para saber se se entendem'],
 ];
 
 for (const [caminho, estrago] of AS_PORTAS) {

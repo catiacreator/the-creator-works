@@ -41,6 +41,8 @@ export const PORTAS = [
   '/assinar',
   /** onde a Hotmart devolve quem acabou de pagar, antes de a conta existir */
   '/obrigada',
+  /** onde o CarouselSnap pergunta se o bilhete dele bate, sem gastar nada */
+  '/api/porta/verificar',
 ] as const;
 
 /** É este caminho uma porta? */
