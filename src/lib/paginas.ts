@@ -19,7 +19,6 @@ export const PAGINAS: Pagina[] = [
   { caminho: '/conversas', nome: 'Históricos de conversas', grupo: 'Biblioteca' },
   { caminho: '/chat', nome: 'Agente Cát.IA', grupo: 'Trabalho' },
   { caminho: '/memoria', nome: 'Memória do teu agente', grupo: 'Trabalho' },
-  { caminho: '/ganchos', nome: 'Ganchos', grupo: 'Trabalho' },
   { caminho: '/ultima-hora', nome: 'Última hora', grupo: 'Trabalho' },
   { caminho: '/analise', nome: 'Análise de perfil', grupo: 'Trabalho' },
   { caminho: '/perfil', nome: 'Sobre mim', grupo: 'Configurações' },

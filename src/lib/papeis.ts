@@ -148,10 +148,6 @@ const PORTAS: Array<[string, Permissao]> = [
   // a ordem importa: /criar-carrosseis tem de ser visto antes de /criar
   ['/criar-carrosseis', 'carrosseis'],
   ['/criar', 'criar'],
-  // a biblioteca de ganchos é matéria-prima de escrita: anda com o Criar, e
-  // não traz permissão nova — uma permissão nova obrigava a mexer na matriz
-  // de papéis que vive na base de dados, e isto não justifica uma migração
-  ['/ganchos', 'criar'],
   ['/editor', 'editor'],
   // o que a Biblioteca abre por dentro anda com ela
   ['/biblioteca', 'biblioteca'],
