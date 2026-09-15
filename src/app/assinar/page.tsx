@@ -68,6 +68,24 @@ export default function AssinarPage({
         </div>
       )}
 
+      {/*
+        A saída, para quem já tem uma conta aqui.
+
+        Uma sessão velha aberta no browser é uma das maneiras de a ligação ser
+        recusada — e enquanto ela estiver lá, tentar de novo dá sempre no
+        mesmo. Quem já entrou aqui alguma vez tem de a poder fechar sem ir à
+        procura das Definições, que é uma página que daqui não se alcança.
+      */}
+      {veioDeUmaPassagemMa && (
+        <p className="-mt-6 mb-8 text-[12.5px] text-muted">
+          Já tens conta aqui e continua a falhar?{' '}
+          <a href="/sair" className="underline underline-offset-2 hover:text-ink">
+            Fecha a sessão aberta
+          </a>{' '}
+          e volta a tentar.
+        </p>
+      )}
+
       {/* eslint-disable @next/next/no-img-element */}
       <img
         src="/the-creator-works.png"
