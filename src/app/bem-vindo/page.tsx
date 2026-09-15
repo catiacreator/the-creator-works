@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, KeyRound } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 export const metadata: Metadata = {
   title: 'The Creator Works',
@@ -26,12 +27,12 @@ export default function BemVindoPage() {
       <div className="w-full max-w-sm">
         {/* eslint-disable @next/next/no-img-element */}
         <img
-          src="/the-creator-works.png"
+          src={comBase('/the-creator-works.png')}
           alt="The Creator Works"
           className="mb-3 h-9 w-auto dark:hidden"
         />
         <img
-          src="/the-creator-works-escuro.png"
+          src={comBase('/the-creator-works-escuro.png')}
           alt="The Creator Works"
           className="mb-3 hidden h-9 w-auto dark:block"
         />
@@ -83,7 +84,7 @@ export default function BemVindoPage() {
         */}
         <p className="mt-8 text-center text-[12px] text-muted">
           Estavas a entrar e voltaste aqui?{' '}
-          <a href="/sair" className="underline underline-offset-2 hover:text-ink">
+          <a href={comBase('/sair')} className="underline underline-offset-2 hover:text-ink">
             Fecha a sessão aberta
           </a>
           .

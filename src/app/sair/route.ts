@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { urlDaApp } from '@/lib/caminho';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,11 +30,9 @@ export const dynamic = 'force-dynamic';
  * apagam-se à mão todos os cookies do Supabase que vieram no pedido.
  */
 export async function GET(request: NextRequest) {
-  // o nextUrl sabe do basePath: o /login continua debaixo do /creator-works
-  const destino = request.nextUrl.clone();
-  destino.pathname = '/login';
-  destino.search = '?saiu=1';
-  const paraOLogin = NextResponse.redirect(destino);
+  // com o endereço da app por inteiro: numa rota de servidor o `nextUrl` já
+  // vem sem o /creator-works, e um caminho escrito à mão perdia o prefixo
+  const paraOLogin = NextResponse.redirect(urlDaApp('/login?saiu=1', request));
 
   try {
     const supabase = createServerClient(
