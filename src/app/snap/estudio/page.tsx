@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Package } from 'lucide-react';
 import { TEMPLATES, limparSlide, type TemplateSlide } from '@/snap/templates';
 import type { SlideDoDrop } from '@/snap/drop-content';
+import { carrosselParaZip, descarregar, slideParaPng } from '@/snap/exportar';
 
 /**
  * O estúdio do CarouselSnap: os 18 templates a desenhar de verdade.
@@ -33,6 +34,17 @@ export default function EstudioPage() {
   const [c1, setC1] = useState(TEMPLATES[0].defaults.c1);
   const [c2, setC2] = useState(TEMPLATES[0].defaults.c2);
   const [meus, setMeus] = useState<SlideDoDrop[] | null>(null);
+
+  /**
+   * Os nós desenhados, para o exportador os fotografar.
+   *
+   * Guardam-se por referência e não por id: dois separadores abertos no
+   * mesmo browser teriam os mesmos ids, e o exportador podia fotografar o
+   * slide do outro.
+   */
+  const caixas = useRef<(HTMLDivElement | null)[]>([]);
+  const [aExportar, setAExportar] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -68,6 +80,36 @@ export default function EstudioPage() {
   }, [meus, template]);
 
   const cfg = { c1, c2, font: 'Poppins', bgUrl: null };
+
+  async function umSlide(i: number) {
+    const node = caixas.current[i];
+    if (!node) return;
+    setAExportar(String(i));
+    setErro(null);
+    try {
+      descarregar(await slideParaPng(node), `${String(i + 1).padStart(2, '0')}.png`);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui exportar este slide.');
+    } finally {
+      setAExportar(null);
+    }
+  }
+
+  async function tudo() {
+    const nodes = caixas.current.filter(Boolean) as HTMLDivElement[];
+    if (!nodes.length) return;
+    setErro(null);
+    try {
+      const zip = await carrosselParaZip(nodes, (feitos, total) =>
+        setAExportar(`${feitos}/${total}`),
+      );
+      descarregar(zip, `carrossel-${template.id}.zip`);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não consegui montar o zip.');
+    } finally {
+      setAExportar(null);
+    }
+  }
 
   return (
     <div>
@@ -131,22 +173,61 @@ export default function EstudioPage() {
 
         <button
           onClick={() => escolher(templateId)}
-          className="ml-auto text-[11.5px] text-snapApagado underline-offset-2 hover:text-snapTexto hover:underline"
+          className="text-[11.5px] text-snapApagado underline-offset-2 hover:text-snapTexto hover:underline"
         >
           Voltar às cores do template
         </button>
+
+        <button
+          onClick={tudo}
+          disabled={Boolean(aExportar)}
+          className="ml-auto flex items-center gap-1.5 rounded-full bg-snapDestaque px-4 py-2 text-[12.5px] font-medium text-snapSobreDestaque transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          {aExportar && aExportar.includes('/') ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {aExportar}
+            </>
+          ) : (
+            <>
+              <Package className="h-3.5 w-3.5" />
+              Descarregar tudo
+            </>
+          )}
+        </button>
       </div>
+
+      {erro && (
+        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {erro}
+        </p>
+      )}
 
       {/* ── os slides desenhados ────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {slides.map((s, i) => (
-          <div key={i} className="overflow-hidden rounded-xl border border-snapBorda">
+          <div key={i} className="group relative overflow-hidden rounded-xl border border-snapBorda">
+            <button
+              onClick={() => umSlide(i)}
+              disabled={Boolean(aExportar)}
+              title={`Descarregar o slide ${i + 1}`}
+              className="absolute right-2 top-2 z-10 rounded-full bg-black/45 p-1.5 text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 disabled:opacity-40"
+            >
+              {aExportar === String(i) ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+            </button>
             {/*
               O HTML vem da função do template — código dela, não de fora.
               O que vem de fora é o texto, e esse passa pelo limparSlide antes
               de aqui chegar. É essa passagem que torna isto seguro.
             */}
             <div
+              ref={(el) => {
+                caixas.current[i] = el;
+              }}
               className="aspect-square w-full [&>*]:h-full [&>*]:w-full"
               dangerouslySetInnerHTML={{ __html: template.render(limparSlide(s), cfg) }}
             />

@@ -1,13 +1,13 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Nav } from '@/components/nav';
-import { voltarAoCarouselSnap } from '@/lib/passagem';
 import { Manutencao } from '@/components/manutencao';
 import { VerComo } from '@/components/ver-como';
 import { JobRunner } from '@/components/job-runner';
 import { estadoDoAcesso } from '@/lib/acesso';
 import { NaoDaAgora } from '@/components/nao-da-agora';
-import { briefingCompleto, type Briefing } from '@/lib/briefing';
+import { emFalta, type Briefing } from '@/lib/briefing';
+import { FaltaOSobreMim } from '@/components/falta-o-sobre-mim';
 import {
   paginaInicial,
   permissaoDaPagina,
@@ -76,8 +76,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const primeiroDia =
     cookies().get('primeiro-dia')?.value === '1' && pode(papel, 'gerir-pessoas', matriz);
 
-  const completo = !primeiroDia && briefingCompleto((data?.briefing ?? {}) as Briefing);
-  if (!completo && caminho !== '/perfil') redirect('/perfil');
+  // o que falta do Sobre mim já não fecha nada: fica um aviso por cima de
+  // todas as páginas até estar respondido. Quem chega do CarouselSnap não
+  // pode encontrar a app cinzenta à primeira vez que entra.
+  const faltam = primeiroDia ? 0 : emFalta((data?.briefing ?? {}) as Briefing).length;
 
   // uma página que este papel não pode ver devolve-o ao sítio onde pode estar
   const precisa = permissaoDaPagina(caminho);
@@ -112,15 +114,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen">
       <Nav
         email={user.email}
-        bloqueado={!completo}
         permissoes={permissoes}
         escondidas={souAdmin ? [] : escondidas}
         emManutencao={emManutencao}
-        carouselSnap={voltarAoCarouselSnap()}
       />
       <main className="flex-1 overflow-x-hidden bg-paper px-8 pb-12 pt-8">
         <div className="mx-auto max-w-5xl">
           {aEspreitar && <VerComo papel={aEspreitar} />}
+          {faltam > 0 && caminho !== '/perfil' && <FaltaOSobreMim quantos={faltam} />}
           {emObras ? <Manutencao nome={nomeDaPagina} /> : children}
         </div>
       </main>
