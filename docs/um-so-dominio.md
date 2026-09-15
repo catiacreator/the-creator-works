@@ -34,9 +34,11 @@ Três peças, todas em `next.config.mjs`:
    `router.push` ganham o prefixo sozinhos; o que fala com o browser à mão
    (`fetch('/api/…')`, `window.location.href`, `<a href>`, `<img src>`) passa
    por `comBase()`, em `src/lib/caminho.ts`.
-2. **`rewrites.fallback`** — o que não é desta app é pedido a
-   `CAROUSELSNAP_ORIGEM` e devolvido tal e qual. É o CarouselSnap a aparecer
-   no domínio sem sair do Lovable.
+2. **`rewrites.fallback`** — o que não é desta app cai na rota `espelho`
+   (`src/app/espelho/[[...caminho]]/route.ts`), que o pede a
+   `CAROUSELSNAP_ORIGEM` e o devolve tal e qual, seguindo do lado do servidor
+   os redirecionamentos que o Lovable faça. É o CarouselSnap a aparecer no
+   domínio sem sair do Lovable, e sem o browser sair do domínio.
 3. **`redirects`** — quem ainda chegar por `thecreatorworks.com` é mandado
    para o endereço novo, com o caminho que trazia.
 
@@ -78,9 +80,19 @@ usares). A Vercel dá-te os registos DNS. No Hostinger (ou onde estiver o
 domínio), aponta o `A` de `@` e o `CNAME` de `www` para o que a Vercel
 mostrar.
 
-No Lovable, em **Project → Settings → Domains**, o domínio `carouselsnap.app`
-pode ficar ou sair — quem manda é o DNS, e o DNS passa a apontar para a
-Vercel. Remover evita confusão.
+No Lovable, em **Project → Settings → Domains**, **remove** o domínio
+`carouselsnap.app` do projeto CarouselSnap. Não é opcional: enquanto o
+domínio estiver ligado, o Lovable responde ao `…lovable.app` com um
+redirecionamento para `carouselsnap.app` — e `carouselsnap.app` passa a ser
+esta app, que volta a perguntar ao Lovable, sem fim. A rota que serve o
+CarouselSnap deteta o ciclo e mostra uma página a dizer isto mesmo, em vez
+de andar às voltas. Com o domínio removido, o Lovable serve o `…lovable.app`
+direito e a página aparece.
+
+Enquanto o DNS ainda apontar ao Lovable (a fase de testes, com a
+pré-visualização da Vercel), esse redirecionamento é seguido do lado do
+servidor e a pessoa nem dá por ele: o browser fica sempre no domínio da
+pré-visualização.
 
 Mantém o `thecreatorworks.com` ligado a este projeto na Vercel: é isso que
 faz os links antigos redirecionarem.

@@ -133,6 +133,7 @@ export const config = {
     // a raiz da app, sem barra a seguir ao /creator-works: o padrão de baixo
     // exige a barra e deixava-a passar sem middleware
     '/',
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // o espelho é o CarouselSnap a passar por aqui: não tem sessão para conferir
+    '/((?!_next/static|_next/image|espelho|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

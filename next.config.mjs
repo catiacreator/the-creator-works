@@ -12,9 +12,6 @@
  */
 const BASE_PATH = '/creator-works';
 
-/** Onde o Lovable publica o CarouselSnap, ex.: https://carouselsnap.lovable.app */
-const CAROUSELSNAP_ORIGEM = (process.env.CAROUSELSNAP_ORIGEM ?? '').trim().replace(/\/+$/, '');
-
 /** O endereço público desta app, para os redirecionamentos do domínio antigo. */
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? '').trim().replace(/\/+$/, '');
 
@@ -95,22 +92,42 @@ const nextConfig = {
    * Tudo o que não é desta app é do CarouselSnap.
    *
    * `fallback` corre só depois de o Next não ter encontrado nada seu — nem
-   * página, nem rota de API, nem ficheiro em `public/`. O que sobra vai
-   * buscar-se ao Lovable e devolve-se como se fosse daqui, com o domínio à
-   * vista igual. É isto que faz `carouselsnap.app/main` abrir o CarouselSnap
-   * e `carouselsnap.app/creator-works/criar` abrir esta app.
+   * página, nem rota de API, nem ficheiro em `public/`. O que sobra vai para
+   * a rota `espelho`, que o vai buscar ao Lovable (`CAROUSELSNAP_ORIGEM`) e o
+   * devolve como se fosse daqui, com o domínio à vista igual. É isto que faz
+   * `carouselsnap.app/main` abrir o CarouselSnap e
+   * `carouselsnap.app/creator-works/criar` abrir esta app.
+   *
+   * Vai por uma rota, e não direto ao Lovable, porque o Lovable responde com
+   * um redirecionamento para o domínio personalizado enquanto o tiver ligado
+   * — e uma reescrita direta entregava esse salto ao browser. A rota segue-o
+   * do lado do servidor (ver `src/app/espelho/[[...caminho]]/route.ts`).
+   *
+   * O destino leva o próprio domínio do pedido por inteiro (`:host`, tirado
+   * do cabeçalho Host) porque o Next só deixa uma reescrita fora do basePath
+   * apontar a um endereço completo — não a um caminho interno. Na Vercel é
+   * https; a correr à mão (`next start`) é http.
    *
    * O que já está debaixo de BASE_PATH nunca é reencaminhado: uma página que
    * não existe aqui é um 404 desta app, não uma página do CarouselSnap.
    */
   async rewrites() {
-    if (!CAROUSELSNAP_ORIGEM) return [];
     const semPrefixo = BASE_PATH.slice(1);
+    const esquema = process.env.VERCEL ? 'https' : 'http';
     return {
       fallback: [
         {
+          // a raiz à parte: com `:path*` vazio o destino acabava em barra e o
+          // Next respondia com um 308 para a tirar, que ia parar ao browser
+          source: '/',
+          has: [{ type: 'host', value: '(?<host>.*)' }],
+          destination: `${esquema}://:host${BASE_PATH}/espelho`,
+          basePath: false,
+        },
+        {
           source: `/:path((?!${semPrefixo}(?:/|$)).*)`,
-          destination: `${CAROUSELSNAP_ORIGEM}/:path*`,
+          has: [{ type: 'host', value: '(?<host>.*)' }],
+          destination: `${esquema}://:host${BASE_PATH}/espelho/:path*`,
           basePath: false,
         },
       ],
