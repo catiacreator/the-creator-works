@@ -51,7 +51,7 @@ export default function BemVindoPage() {
           </Link>
 
           <Link
-            href="/acesso"
+            href="/registar"
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-sand bg-white px-4 py-3.5 text-sm font-semibold text-ink transition hover:border-rosa dark:bg-transparent"
           >
             Criar conta
@@ -59,17 +59,20 @@ export default function BemVindoPage() {
         </div>
 
         {/*
-          O código.
+          O código, para quem tem um.
 
-          Criar conta aqui precisa do código que veio com a compra, e uma
-          pessoa que não saiba disso carrega em "Criar conta", encontra um
-          campo que não esperava, e desiste ali. Mais vale dizê-lo antes.
+          Criar conta deixou de precisar dele — mas quem recebeu um continua a
+          poder usá-lo, e um código traz consigo o papel com que a pessoa
+          entra. Fica pequeno e em baixo: é o caminho de poucos.
         */}
         <p className="mt-6 flex items-start gap-2 text-[12.5px] leading-relaxed text-muted">
           <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            Para criar conta precisas do código que recebeste quando compraste.
-            Se não o encontrares, fala com a Cátia.
+            Recebeste um código de convite?{' '}
+            <Link href="/acesso" className="underline underline-offset-2 hover:text-ink">
+              Usa-o aqui
+            </Link>
+            .
           </span>
         </p>
 
