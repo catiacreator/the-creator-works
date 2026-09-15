@@ -17,7 +17,6 @@ export const maxDuration = 120;
  * um Word), a Cát.IA lê o texto e arruma as respostas pelas perguntas.
  */
 export const POST = withUser(async ({ user, supabase, request }) => {
-  await marcarConsumo(supabase, user.email, 'perfil');
   const form = await request.formData();
   const ficheiro = form.get('ficheiro');
   if (!(ficheiro instanceof File)) throw new Error('Falta o ficheiro.');
@@ -43,7 +42,14 @@ export const POST = withUser(async ({ user, supabase, request }) => {
   const noTexto = briefingDoTexto(texto);
   if (noTexto) return ok({ briefing: noTexto, origem: 'documento' });
 
-  // 2. o caminho longo: a Cát.IA arruma o texto pelas perguntas
+  // 2. o caminho longo: a Cát.IA arruma o texto pelas perguntas.
+  //
+  // É só aqui que se marca o gasto. Cobrar no princípio era cobrar dez
+  // créditos por uma leitura que muitas vezes não chega a usar IA nenhuma —
+  // um documento que saiu daqui, ou do CarouselSnap, traz o bloco e lê-se de
+  // borla. Paga-se o que se usa, e a IA só entra a partir desta linha.
+  await marcarConsumo(supabase, user.email, 'perfil');
+
   const settings = await getSettings(supabase, user.id);
   const perguntas = TODOS_OS_CAMPOS.map((c) => `"${c.id}": ${c.pergunta}`).join('\n');
 
