@@ -41,6 +41,8 @@ export const PORTAS = [
   '/api/admin-login',
   /** o resgate de um código de convite, onde nasce uma conta */
   '/acesso',
+  /** criar conta sem código nenhum */
+  '/registar',
   /** a página que diz onde é a entrada, e onde se assina */
   '/assinar',
   /** onde a Hotmart devolve quem acabou de pagar, antes de a conta existir */

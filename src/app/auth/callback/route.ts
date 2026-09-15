@@ -11,6 +11,20 @@ export async function GET(request: Request) {
     const supabase = createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Quem se registou sozinho volta por aqui com o email confirmado e
+      // ainda sem lugar: o `signUp` não devolveu sessão, por isso o
+      // `registar_me` não chegou a correr. Corre agora. A função não toca em
+      // linhas que já existam, por isso para toda a gente o resto é um
+      // pedido a mais e nada mudado.
+      try {
+        await supabase.rpc('registar_me', {
+          nome: (data.user?.user_metadata?.full_name as string | undefined) ?? '',
+        });
+      } catch {
+        // sem a migração 030 isto não existe ainda; a conferência a seguir
+        // decide na mesma, e quem tiver lugar entra
+      }
+
       // A app é privada: quem não está na lista sai daqui sem sessão.
       if (!(await acessoDe(supabase, data.user?.email))) {
         await supabase.auth.signOut();
