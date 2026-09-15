@@ -121,6 +121,19 @@ caso('bilhete de ontem', false, () =>
   lerPassagem(escreverPassagem('alguem@exemplo.com', SEGREDO, { validade: -86400 }), SEGREDO),
 );
 
+// O CarouselSnap alargou a validade de 1 para 5 minutos, para dar margem a
+// quem carrega no botão e demora a chegar. Cabe — o tecto daqui são 10.
+//
+// Este caso existe para o tecto não ser apertado sem que alguém dê por isso:
+// baixar `VALIDADE * 10` para `VALIDADE * 2` parece uma prudência e é uma
+// porta fechada a toda a gente que vem de lá, sem erro nenhum a dizer porquê.
+caso('bilhete de 5 minutos, como o CarouselSnap os faz hoje', true, () =>
+  lerPassagem(
+    escreverPassagem('alguem@exemplo.com', SEGREDO, { validade: 5 * 60 }),
+    SEGREDO,
+  ),
+);
+
 caso('validade esticada para um ano', false, () =>
   lerPassagem(
     escreverPassagem('alguem@exemplo.com', SEGREDO, { validade: 60 * 60 * 24 * 365 }),

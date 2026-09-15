@@ -48,6 +48,10 @@ const DE_ONDE: Record<string, string> = {
   porta_admin_travada: '027_porta_admin.sql',
   porta_admin_registar: '027_porta_admin.sql',
   chaves_admin: '027_porta_admin.sql',
+
+  // 028 — o registo das recusas da porta
+  anotar_recusa: '028_recusas.sql',
+  recusas: '028_recusas.sql',
 };
 
 /**

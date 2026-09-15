@@ -44,10 +44,20 @@ export default function AssinarPage({
         </h1>
 
         {veioDeUmaPassagemMa ? (
+          /* A ligação não foi aceite. A razão não se diz aqui — são sete, e
+             explicar qual delas falhou é ensinar a forjar a próxima. Mas
+             também não se inventa uma: dizer «já não serve» a quem foi
+             recusado por o segredo estar trocado manda-o tentar outra vez,
+             e outra vez, a fazer uma coisa que nunca vai resultar.
+
+             Diz-se o que é verdade em todos os casos — não foi aceite,
+             tenta de novo pelo botão — e o motivo verdadeiro fica anotado
+             para a Cátia, no cartão da porta em Admin. */
           <p className="mb-6 text-sm leading-relaxed text-muted">
-            A ligação por onde vieste já não serve — duram pouco de propósito, e
-            servem uma vez só. Volta ao CarouselSnap e abre o Creator Works a
-            partir de lá; é imediato.
+            A ligação por onde vieste não foi aceite. Volta ao CarouselSnap e
+            abre o Creator Works a partir de lá — as ligações duram pouco de
+            propósito, e a maior parte das vezes uma nova resolve. Se voltar a
+            acontecer, diz à Cátia: do lado dela fica registado o motivo.
           </p>
         ) : (
           <p className="mb-6 text-sm leading-relaxed text-muted">
