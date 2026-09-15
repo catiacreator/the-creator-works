@@ -74,7 +74,7 @@ export function Nav({
   permissoes,
   escondidas,
   emManutencao,
-  carouselSnap = 'https://carouselsnap.app/main',
+  carouselSnap = '/main',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */

@@ -200,13 +200,25 @@ export function lerPassagem(bilhete: string, segredo: string): Leitura {
  *   cliente e só quer atravessar a rua de volta. Leva direito ao /main, sem
  *   passar pela página de vendas de uma coisa que ela já comprou.
  */
+/**
+ * As duas apps vivem no mesmo domínio: o CarouselSnap é a raiz deste
+ * endereço e esta app fica debaixo de /creator-works. Por isso, por omissão,
+ * os links são relativos — `/` e `/main` — e levam ao CarouselSnap *deste*
+ * domínio, seja ele o de produção ou uma pré-visualização. `CAROUSELSNAP_URL`
+ * e `CAROUSELSNAP_VOLTAR` continuam a mandar quando estiverem definidos,
+ * para o caso de um dia o CarouselSnap voltar a viver noutro sítio.
+ */
+function raizDoCarouselSnap(): string {
+  return (process.env.CAROUSELSNAP_URL?.trim() ?? '').replace(/\/+$/, '');
+}
+
 export function carouselSnap(): string {
-  return (process.env.CAROUSELSNAP_URL?.trim() || 'https://carouselsnap.app').replace(/\/+$/, '');
+  return raizDoCarouselSnap() || '/';
 }
 
 /** Para onde volta quem já está cá dentro. */
 export function voltarAoCarouselSnap(): string {
-  return process.env.CAROUSELSNAP_VOLTAR?.trim() || `${carouselSnap()}/main`;
+  return process.env.CAROUSELSNAP_VOLTAR?.trim() || `${raizDoCarouselSnap()}/main`;
 }
 
 /**
