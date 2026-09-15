@@ -165,7 +165,9 @@ export function PortaDoSnap() {
                     ? 'Não dá para contar sem as peças de cima.'
                     : estado.entradas > 0
                       ? `${estado.entradas} ${estado.entradas === 1 ? 'entrada' : 'entradas'} por aqui — está a funcionar.`
-                      : 'Nunca entrou ninguém por aqui. O botão lá tem de abrir thecreatorworks.com/entrar?t=BILHETE, com um bilhete feito por uma edge function. Se abrir só thecreatorworks.com, a pessoa cai na página de entrada — é o que está a acontecer.'}
+                      : estado.recusas && estado.recusas.length > 0
+                        ? 'Ainda não entrou ninguém — mas estão a chegar bilhetes, e a serem recusados. O botão de lá está a chamar o /entrar?t=; o que falha é a conferência do bilhete. Vê a lista aqui em baixo: o motivo está lá.'
+                        : 'Ainda não entrou ninguém por aqui. O botão de lá tem de abrir thecreatorworks.com/entrar?t=BILHETE, com um bilhete feito por uma edge function — se abrir só thecreatorworks.com, a pessoa cai na página de entrada.'}
                 </span>
               </span>
             </li>
@@ -271,11 +273,26 @@ export function PortaDoSnap() {
             </div>
           )}
 
+          {/*
+            Zero entradas e zero recusas.
+
+            Isto quase diz «o botão de lá não está a chamar o /entrar?t=» — e a
+            primeira versão dizia mesmo. Estava a afirmar de mais: o registo
+            das recusas nasceu na 028, e enquanto for novo um zero ali só quer
+            dizer que ninguém tentou desde que ele existe. Aconteceu à conta:
+            houve uma recusa real, vista com os olhos, e o cartão a seguir
+            disse que não chegava cá nada — porque nessa altura não havia onde
+            a escrever.
+
+            Um zero só vale como prova depois de alguém tentar. Por isso o que
+            se diz aqui é o que se sabe, e o passo seguinte é uma tentativa.
+          */}
           {estado.recusas && estado.recusas.length === 0 && estado.entradas === 0 && (
             <p className="mb-4 rounded-xl border border-sand bg-creme/70 px-4 py-3 text-xs leading-relaxed text-muted">
-              Nunca entrou ninguém por aqui <em>e</em> a porta também nunca recusou ninguém. Quer
-              dizer que não está a chegar cá bilhete nenhum — o botão de lá ainda não está a
-              chamar o <code className="font-mono">/entrar?t=</code>.
+              Sem sinal nenhum de bilhetes — nem aceites nem recusados. Ou não está a chegar cá
+              nenhum, ou ainda ninguém tentou desde que este registo existe. Para saber qual dos
+              dois, carrega em <strong className="font-medium text-ink">Experimentar a porta</strong>{' '}
+              aqui em baixo: se falhar, o motivo aparece nesta caixa com nome e hora.
             </p>
           )}
 
