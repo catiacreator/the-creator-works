@@ -1,123 +1,123 @@
-'use client';
-
-import { useMemo, useState } from 'react';
-import { Check, Copy, Search } from 'lucide-react';
-import { GANCHOS, CATEGORIAS } from '@/snap/ganchos';
+import Link from 'next/link';
+import { Clapperboard, Images, MessageCircle, Sparkles, Type } from 'lucide-react';
+import { getUser } from '@/lib/supabase/server';
 
 /**
- * A biblioteca de ganchos do CarouselSnap.
+ * A porta da casa.
  *
- * Portada do `HookLibrary.tsx` do Snap, com o desenho dele: os cartões de
- * canto redondo, a etiqueta da categoria em maiúsculas pequenas e laranja, o
- * levantar de um pixel ao passar o rato. Os cem ganchos são os mesmos, na
- * mesma ordem, nas mesmas categorias.
+ * É esta a página que o CarouselSnap mostra a quem entra — o `Welcome.tsx`
+ * dele, com os cartões por onde se escolhe o que fazer hoje. Vem tal e qual:
+ * os mesmos cartões, a mesma ordem, as mesmas cores, o mesmo "Escolhe por
+ * onde queres começar hoje".
  *
- * Duas coisas mudam, e nenhuma é de aspecto:
+ * Três coisas mudam, e são todas do facto de as duas apps passarem a viver
+ * na mesma morada:
  *
- *   **Sai o i18n.** O Snap traduz a interface em tempo real com o
- *   `useLanguage`. Isso é uma peça inteira que ainda não veio; até vir, os
- *   textos ficam em português, que é a língua em que ela escreve.
+ *   **O Creator Works deixa de ser um link para fora.** Lá era um site
+ *   diferente, com um bilhete assinado a fazer a travessia. Aqui é o andar
+ *   de cima — carrega e está lá, sem voltar a entrar.
  *
- *   **Carregar num gancho copia-o.** Lá, o clique manda-o para o gerador
- *   que está ao lado, no mesmo ecrã. Esse gerador ainda não chegou, e um
- *   botão que não faz nada é pior do que um botão que faz pouco. Quando o
- *   gerador vier, o clique volta a ser o dele.
+ *   **Sai o cadeado do Pro.** Lá o cartão do Creator Works vinha fechado a
+ *   quem não tivesse o plano; aqui quem está dentro está dentro, e a
+ *   assinatura já foi conferida à porta.
+ *
+ *   **O cavalo é um ícone.** O desenho original está guardado no Lovable e
+ *   não veio no código; até vir, fica um ícone no mesmo laranja.
  */
-export default function SnapGanchosPage() {
-  const [activeCat, setActiveCat] = useState('Todas');
-  const [search, setSearch] = useState('');
-  const [copiado, setCopiado] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return GANCHOS.filter((g) => {
-      const matchCat = activeCat === 'Todas' || g.cat === activeCat;
-      const matchSearch =
-        !q || g.text.toLowerCase().includes(q) || g.cat.toLowerCase().includes(q);
-      return matchCat && matchSearch;
-    });
-  }, [activeCat, search]);
+interface Cartao {
+  nome: string;
+  descricao: string;
+  icone: React.ElementType;
+  href: string;
+  fora?: boolean;
+  cor: string;
+}
 
-  async function copiar(texto: string) {
-    try {
-      await navigator.clipboard.writeText(texto);
-      setCopiado(texto);
-      window.setTimeout(() => setCopiado((c) => (c === texto ? null : c)), 1600);
-    } catch {
-      /* o browser não deixou; a pessoa selecciona e copia à mão */
-    }
-  }
+const CARTOES: Cartao[] = [
+  {
+    nome: 'The Creator Works',
+    descricao:
+      'Cria os melhores roteiros em todos os formatos disponíveis do Instagram.',
+    icone: Clapperboard,
+    href: '/criar',
+    cor: '#D6528A',
+  },
+  {
+    nome: 'Carousel Snap',
+    descricao: 'Cria carrosséis com IA a partir de um tema ou de um documento.',
+    icone: Images,
+    href: '/snap/drop',
+    cor: '#ff3b00',
+  },
+  {
+    nome: 'carrossel.studio',
+    descricao:
+      'O ChatGPT ou o Claude deram-te 20 ou mais carrosséis? Cola aqui todos que nós fazemos o resto.',
+    icone: Sparkles,
+    href: '/snap/estudio',
+    cor: '#7c3aed',
+  },
+  {
+    nome: 'Ganchos',
+    descricao: 'Cem aberturas prontas. Carrega numa para copiar.',
+    icone: Type,
+    href: '/snap/ganchos',
+    cor: '#0ea5e9',
+  },
+  {
+    nome: 'Grupo do WhatsApp',
+    descricao: 'Partilha de ideias e conteúdos em alta.',
+    icone: MessageCircle,
+    href: 'https://chat.whatsapp.com/De5LbpTAsQHJEGbcTFrufR?s=sh&p=i&mlu=0&ilr=4',
+    fora: true,
+    cor: '#25D366',
+  },
+];
+
+function Cartao({ cartao }: { cartao: Cartao }) {
+  const Icone = cartao.icone;
+  return (
+    <Link
+      href={cartao.href}
+      {...(cartao.fora ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      className="group flex flex-col items-start gap-4 rounded-2xl border border-snapBorda bg-snapCartao p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-snapDestaque/40 hover:shadow-lg"
+    >
+      <div
+        className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
+        style={{ backgroundColor: cartao.cor }}
+      >
+        <Icone className="h-6 w-6" />
+      </div>
+      <div className="space-y-1">
+        <h3 className="text-lg font-bold text-snapTexto">{cartao.nome}</h3>
+        <p className="text-sm leading-snug text-snapApagado">{cartao.descricao}</p>
+      </div>
+    </Link>
+  );
+}
+
+export default async function SnapInicio() {
+  const user = await getUser();
+  // o nome só aparece se houver um; o email inteiro no cabeçalho era feio e
+  // não era saudação nenhuma
+  const nome = (user?.email ?? '').split('@')[0] || 'criador';
 
   return (
-    <div>
-      <div className="mb-5">
-        <h2 className="text-[22px] font-semibold text-snapTexto">Biblioteca de ganchos</h2>
-        <p className="mt-0.5 text-[13px] font-light text-snapApagado">
-          Cem aberturas prontas. Carrega numa para copiar — o que está entre [colchetes] é para
-          trocares pelo que é teu.
-        </p>
-      </div>
+    <div className="py-4">
+      <header className="mb-10">
+        <p className="text-sm uppercase tracking-widest text-snapApagado">Bem-vindo</p>
+        <h1 className="mt-2 text-3xl font-bold text-snapTexto md:text-4xl">
+          Olá, <span className="text-snapDestaque">{nome}</span> 👋
+        </h1>
+        <p className="mt-2 text-snapApagado">Escolhe por onde queres começar hoje.</p>
+      </header>
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        {CATEGORIAS.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCat(cat)}
-            className={`rounded-full border px-3.5 py-1 text-[11.5px] font-medium transition-all ${
-              activeCat === cat
-                ? 'border-snapDestaque bg-snapDestaque text-snapSobreDestaque'
-                : 'border-snapBorda bg-snapCartao text-snapApagado hover:border-snapDestaque hover:bg-snapDestaque hover:text-snapSobreDestaque'
-            }`}
-          >
-            {cat}
-          </button>
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {CARTOES.map((c) => (
+          <Cartao key={c.nome} cartao={c} />
         ))}
-      </div>
-
-      <div className="relative mb-5">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-snapApagado/60" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Procurar ganchos…"
-          className="w-full rounded-[10px] border border-snapBorda bg-snapCartao py-2.5 pl-10 pr-4 text-sm text-snapTexto outline-none transition-colors placeholder:text-snapApagado/50 focus:border-snapDestaque"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        {filtered.length === 0 ? (
-          <div className="col-span-full py-8 text-center text-sm text-snapApagado">
-            Nenhum gancho com essas palavras.
-          </div>
-        ) : (
-          filtered.map((g, i) => (
-            <button
-              key={i}
-              onClick={() => copiar(g.text)}
-              className="group flex flex-col gap-1.5 rounded-xl border border-snapBorda bg-snapCartao p-3.5 text-left transition-all hover:-translate-y-px hover:border-snapDestaque/60 hover:shadow-[0_4px_16px_rgba(193,122,90,0.13)]"
-            >
-              <span className="text-[9.5px] font-bold uppercase tracking-[1.5px] text-snapDestaque">
-                {g.cat}
-              </span>
-              <span className="text-[13px] leading-relaxed text-snapTexto">{g.text}</span>
-              <span className="mt-0.5 flex items-center gap-1 text-[10.5px] font-medium text-snapApagado/60">
-                {copiado === g.text ? (
-                  <>
-                    <Check className="h-3 w-3 text-snapDestaque" />
-                    copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" />
-                    carrega para copiar
-                  </>
-                )}
-              </span>
-            </button>
-          ))
-        )}
-      </div>
+      </section>
     </div>
   );
 }

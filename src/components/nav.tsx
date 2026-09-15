@@ -69,15 +69,13 @@ interface Conversa {
 
 export function Nav({
   email,
-  bloqueado,
   permissoes,
   escondidas,
   emManutencao,
-  carouselSnap = 'https://carouselsnap.app/main',
+  carouselSnap = '/snap',
 }: {
   email?: string | null;
   /** enquanto o Sobre mim não estiver respondido, só ele está aberto */
-  bloqueado?: boolean;
   /** o que esta pessoa pode ver: o menu mostra só isso */
   permissoes?: Permissao[];
   /** páginas fechadas pela admin — nem aparecem */
@@ -195,32 +193,18 @@ export function Nav({
             {itens.map((link) => {
               const ativo =
                 pathname === link.href || pathname.startsWith(`${link.href}/`);
-              // no primeiro dia só o Sobre mim está aberto
-              const fechado = bloqueado && link.href !== '/perfil';
               return (
                 <Link
                   key={link.href}
-                  href={fechado ? '/perfil' : link.href}
-                  title={
-                    fechado
-                      ? 'Responde ao Sobre mim para abrir'
-                      : fechada
-                        ? link.label
-                        : undefined
-                  }
-                  aria-disabled={fechado || undefined}
+                  href={link.href}
+                  title={fechada ? link.label : undefined}
                   className={clsx(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition',
-                    fechado
-                      ? 'cursor-not-allowed text-muted/50'
-                      : ativo
-                        ? 'bg-rosa font-medium text-white shadow-lift'
-                        : 'text-ink/75 hover:bg-creme hover:text-ink',
+                    ativo
+                      ? 'bg-rosa font-medium text-white shadow-lift'
+                      : 'text-ink/75 hover:bg-creme hover:text-ink',
                     fechada && 'justify-center px-0',
                   )}
-                  onClick={(e) => {
-                    if (fechado) e.preventDefault();
-                  }}
                 >
                   <link.icone
                     className="h-[18px] w-[18px] shrink-0"
@@ -292,10 +276,10 @@ export function Nav({
 
       {/* ── a volta ao CarouselSnap ────────────────── */}
       {/*
-        Esta app vive dentro do CarouselSnap, e quem entra por lá tem de ter
-        sempre o caminho de volta à vista. Laranja de propósito: é a única
-        coisa nesta barra que não é desta app, e não se deve confundir com o
-        resto.
+        O CarouselSnap é a página principal, e é de lá que se vem para aqui.
+        Quem está cá dentro tem de ter sempre o caminho de volta à vista.
+        Laranja de propósito: é a única coisa nesta barra que não é desta
+        app, e não se deve confundir com o resto.
       */}
       <div className="mt-auto shrink-0 px-3 pb-2 pt-2">
         <a
