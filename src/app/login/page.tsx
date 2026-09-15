@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [palavra, setPalavra] = useState('');
-  const [enviado, setEnviado] = useState<'recuperar' | null>(null);
+  const [enviado, setEnviado] = useState<'recuperar' | 'link' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recado, setRecado] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,6 +78,42 @@ export default function LoginPage() {
     else setEnviado('recuperar');
   }
 
+  /**
+   * Entrar sem palavra-passe nenhuma.
+   *
+   * Quem compra o Pro no CarouselSnap nunca escolheu palavra-passe aqui: a
+   * conta dela nasce sozinha quando a porta corre, e a sessão abre-se sem ela
+   * dar por nada. Quando essa porta falha — o botão de lá não manda bilhete,
+   * o bilhete chega fora de horas, a sessão velha atrapalha — a pessoa aterra
+   * nesta página e não tem nada para escrever no segundo campo. Fica à porta
+   * de uma app que pagou, e o formulário não lhe diz porquê.
+   *
+   * Isto é a outra maneira de entrar, e não abre excepção nenhuma:
+   * `shouldCreateUser: false` faz com que só saia link para contas que já
+   * existem, e quem não tiver lugar na tabela `membros` é posto na rua no
+   * callback, como sempre foi. O que muda é só isto: deixa de ser preciso o
+   * CarouselSnap estar a funcionar para alguém que pagou conseguir entrar.
+   *
+   * A resposta é a mesma quer a conta exista quer não. Dizer «essa conta não
+   * existe» a quem escreve um email qualquer é dizer, a quem os tentar todos,
+   * quais é que existem.
+   */
+  async function linkPorEmail() {
+    if (!email) return setError('Escreve o teu email primeiro.');
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    setBusy(false);
+    setEnviado('link');
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
@@ -122,10 +158,18 @@ export default function LoginPage() {
           </div>
         )}
 
-        {enviado === 'recuperar' && (
-          <div className="card text-sm">
-            Enviámos um email para <strong>{email}</strong>. O link abre a página onde escolhes a
-            palavra-passe nova.
+        {enviado && (
+          <div className="card text-sm leading-relaxed">
+            Enviámos um email para <strong>{email}</strong>.{' '}
+            {enviado === 'recuperar'
+              ? 'O link abre a página onde escolhes a palavra-passe nova.'
+              : 'Carrega no link e entras — não precisas de palavra-passe nenhuma.'}
+            {enviado === 'link' && (
+              <p className="mt-2 text-muted">
+                Se não chegar nada em poucos minutos, vê no lixo eletrónico. Se mesmo assim não
+                aparecer, é sinal de que este email não tem lugar cá dentro.
+              </p>
+            )}
           </div>
         )}
 
@@ -169,11 +213,20 @@ export default function LoginPage() {
               {busy ? 'Um momento…' : 'Entrar'}
             </button>
 
-            <div className="text-center text-xs text-muted">
+            <div className="space-y-2 text-center text-xs text-muted">
               <button
                 type="button"
-                className="underline-offset-2 hover:text-ink hover:underline"
+                className="block w-full underline-offset-2 hover:text-ink hover:underline"
+                onClick={linkPorEmail}
+                disabled={busy}
+              >
+                Não tenho palavra-passe — enviem-me um link para entrar
+              </button>
+              <button
+                type="button"
+                className="block w-full underline-offset-2 hover:text-ink hover:underline"
                 onClick={recuperar}
+                disabled={busy}
               >
                 Esqueci-me da palavra-passe
               </button>
@@ -182,11 +235,12 @@ export default function LoginPage() {
         )}
 
         <p className="mt-6 text-center text-xs leading-relaxed text-muted">
-          Esta app é privada e abre-se a partir do CarouselSnap.
+          Esta app é privada e abre-se a partir do CarouselSnap. Se compraste o Pro e vieste
+          parar aqui, pede o link acima — vai para o email com que compraste.
           <br />
-          É a primeira vez que entras?{' '}
+          Ainda não compraste?{' '}
           <a href="/assinar" className="underline-offset-2 hover:text-ink hover:underline">
-            Começa por aqui
+            É por aqui
           </a>
           .
         </p>

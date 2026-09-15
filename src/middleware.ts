@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseConfigured } from '@/lib/env';
 import { RECADO_CADUCADO, RECADO_SEM_ACESSO, estadoDoAcesso } from '@/lib/acesso';
+import { ePorta } from '@/lib/portas';
 
 /** Mantém a sessão do Supabase fresca em cada pedido. */
 export async function middleware(request: NextRequest) {
@@ -19,17 +20,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/configurar', request.url));
   }
 
-  // A porta de serviço passa sempre, e antes de tudo o resto.
+  // As portas passam sempre, e antes de tudo o resto.
   //
-  // É a porta de quem ficou de fora: se ela chegar aqui com uma sessão velha
-  // — de uma conta suspensa, de um prazo que passou — as regras abaixo
-  // punham-na na rua ou mandavam-na para a renovação, e a página que ela foi
-  // abrir de propósito nunca chegava a aparecer. Uma saída de emergência que
-  // só funciona quando não é precisa não é uma saída de emergência.
-  if (
-    request.nextUrl.pathname === '/admin-login' ||
-    request.nextUrl.pathname === '/api/admin-login'
-  ) {
+  // Numa porta, a fechadura está do lado de dentro. Estes caminhos existem
+  // precisamente para DAR lugar a quem ainda não tem — e pô-los atrás da
+  // conferência que expulsa quem não tem lugar é trancar a casa com a chave
+  // lá dentro.
+  //
+  // Foi o que estava a acontecer ao /entrar: quem lá chegava com uma sessão
+  // velha e sem lugar era expulso antes de o bilhete ser sequer lido. E quem
+  // tentasse uma vez ficava preso, porque a tentativa seguinte batia na
+  // sessão que a primeira deixou.
+  //
+  // A lista vive em `lib/portas.ts`. Quem acrescentar uma maneira nova de
+  // entrar tem de a pôr lá.
+  if (ePorta(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
