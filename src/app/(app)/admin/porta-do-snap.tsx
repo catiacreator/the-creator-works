@@ -23,6 +23,8 @@ interface Estado {
   entradas: number | null;
   /** as últimas vezes que a porta recusou alguém. Nulo = a tabela não existe */
   recusas: Recusa[] | null;
+  /** oito dígitos que dependem do segredo sem o revelar. Nulo = não há segredo */
+  marca: string | null;
   desteLado: boolean;
   carouselSnap: string;
   /** o identificador do projeto do Supabase que esta app usa */
@@ -275,6 +277,58 @@ export function PortaDoSnap() {
               dizer que não está a chegar cá bilhete nenhum — o botão de lá ainda não está a
               chamar o <code className="font-mono">/entrar?t=</code>.
             </p>
+          )}
+
+          {/*
+            A marca do segredo.
+
+            É a única peça da ligação que não se pode conferir a olho: o
+            segredo está no painel da Vercel de um lado e nos secrets do
+            Supabase do outro, escondido nos dois, e a maneira óbvia de os
+            comparar — cada lado mostrar o seu — é a única que nunca se pode
+            fazer.
+
+            Isto compara sem mostrar. Oito dígitos que dependem do segredo e
+            de onde não se volta atrás para ele.
+          */}
+          {estado.marca && (
+            <div className="mb-4 rounded-xl border border-sand bg-creme/70 px-4 py-3">
+              <p className="mb-1 text-xs font-medium text-ink">
+                A marca do segredo deste lado
+              </p>
+              <p className="mb-2 font-mono text-lg tracking-wider text-ink">{estado.marca}</p>
+              <p className="text-xs leading-relaxed text-muted">
+                Pede ao pessoal do CarouselSnap a marca do lado deles. <strong className="font-medium text-ink">Se
+                for igual a esta, os dois segredos são a mesma linha</strong> e a assinatura não
+                é o problema. Se for diferente, é aí que está a avaria — e é só colar um dos
+                dois no outro lado.
+              </p>
+              <details className="mt-2 text-xs leading-relaxed text-muted">
+                <summary className="cursor-pointer text-ink">
+                  Como é que eles calculam a deles
+                </summary>
+                <p className="mt-2">
+                  Os primeiros oito dígitos hexadecimais do HMAC-SHA256 desta frase, assinada com
+                  o segredo — em maiúsculas, com um hífen ao meio:
+                </p>
+                <pre className="mt-2 overflow-x-auto rounded-lg bg-paper px-3 py-2 font-mono text-ink">
+the-creator-works/passagem/marca/v1
+                </pre>
+                <p className="mt-2">
+                  Em Deno ou Node:{' '}
+                  <code className="font-mono text-ink">
+                    createHmac(&apos;sha256&apos;, segredo).update(frase).digest(&apos;hex&apos;).slice(0,
+                    8)
+                  </code>
+                  .
+                </p>
+                <p className="mt-2">
+                  Isto não deixa escapar o segredo: de oito dígitos não se volta atrás para a
+                  linha que os gerou. É a mesma ideia com que se comparam chaves de SSH pela
+                  impressão digital, em vez de as mostrar.
+                </p>
+              </details>
+            </div>
           )}
 
           <a href="/api/porta/testar" className="btn-fantasma">

@@ -1,7 +1,7 @@
 import { ok, withUser } from '@/lib/api';
 import { acessoDe } from '@/lib/acesso';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { carouselSnap, voltarAoCarouselSnap } from '@/lib/passagem';
+import { carouselSnap, marcaDoSegredo, voltarAoCarouselSnap } from '@/lib/passagem';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -215,6 +215,9 @@ export const GET = withUser(async ({ user, supabase }) => {
     pecas,
     entradas,
     recusas,
+    // oito dígitos que dependem do segredo e não o revelam: é com isto que se
+    // confere, sem ninguém mostrar nada, se as duas apps têm a mesma linha
+    marca: marcaDoSegredo(),
     desteLado,
     supabase: url || null,
     projeto,

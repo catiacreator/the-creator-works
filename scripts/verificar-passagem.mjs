@@ -23,7 +23,9 @@ const { outputText } = ts.transpileModule(
 );
 const destino = join(mkdtempSync(join(tmpdir(), 'passagem-')), 'passagem.mjs');
 writeFileSync(destino, outputText);
-const { escreverPassagem, lerPassagem, VALIDADE } = await import(pathToFileURL(destino).href);
+const { escreverPassagem, lerPassagem, marcaDoSegredo, VALIDADE } = await import(
+  pathToFileURL(destino).href,
+);
 
 const SEGREDO = 'o-segredo-partilhado-das-duas-apps-nunca-no-codigo';
 const OUTRO = 'um-segredo-que-nao-e-o-nosso';
@@ -149,6 +151,50 @@ caso('sem email', false, () => {
 
 caso('a app sem segredo configurado não deixa entrar ninguém', false, () =>
   lerPassagem(escreverPassagem('alguem@exemplo.com', SEGREDO), ''),
+);
+
+// ── a marca do segredo ───────────────────────────────────────
+//
+// Serve para as duas apps compararem os segredos sem os mostrarem. O que tem
+// de ser verdade, e cada uma destas afirmações é uma maneira de a marca ficar
+// inútil ou perigosa se deixar de o ser.
+const confere = (nome, condicao, queixa) =>
+  caso(nome, true, () => (condicao() ? { ok: true } : { ok: false, porque: queixa }));
+
+confere(
+  'o mesmo segredo dá sempre a mesma marca',
+  () => marcaDoSegredo(SEGREDO) === marcaDoSegredo(SEGREDO),
+  'a marca muda entre chamadas — não servia para comparar nada',
+);
+
+confere(
+  'segredos diferentes dão marcas diferentes',
+  () => marcaDoSegredo(SEGREDO) !== marcaDoSegredo(OUTRO),
+  'dois segredos diferentes dão a mesma marca — dizia que estava bem quando não está',
+);
+
+confere(
+  'um espaço a mais no fim não muda a marca',
+  () => marcaDoSegredo(SEGREDO) === marcaDoSegredo(`  ${SEGREDO}  `),
+  'um espaço colado por engano fazia as marcas parecerem diferentes sem o serem',
+);
+
+confere(
+  'sem segredo não há marca nenhuma',
+  () => marcaDoSegredo('') === null && marcaDoSegredo('   ') === null,
+  'inventou uma marca sem ter segredo',
+);
+
+confere(
+  'a marca não contém o segredo',
+  () => !marcaDoSegredo(SEGREDO).toLowerCase().includes(SEGREDO.slice(0, 8).toLowerCase()),
+  'a marca deixa ver pedaços do segredo',
+);
+
+confere(
+  'a marca é curta e do feitio anunciado',
+  () => /^[0-9A-F]{4}-[0-9A-F]{4}$/.test(marcaDoSegredo(SEGREDO)),
+  'a marca não tem o feitio que o cartão diz ao CarouselSnap para calcular',
 );
 
 let maus = 0;
