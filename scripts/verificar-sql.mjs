@@ -81,6 +81,29 @@ const PERDOADOS = [
 const perdoado = (ficheiro, funcao) =>
   PERDOADOS.some((p) => p.ficheiro === ficheiro && p.funcao === funcao);
 
+/**
+ * As funções `security definer` que PODEM estar abertas a quem não tem sessão.
+ *
+ * Uma função `security definer` corre como dona das tabelas: passa por cima
+ * das políticas de segurança. Dá-la a `anon` é deixá-la ao alcance de
+ * qualquer pessoa da internet — e o argumento «mas ela pede um código» não
+ * chega, porque os códigos de sistema estão escritos neste repositório, que é
+ * público.
+ *
+ * Foi assim que o `renovar_acesso` esteve meses a poder ser chamado por
+ * qualquer pessoa: punha `acesso_ate` onde se quisesse e `ativo = true`. Quem
+ * tivesse deixado de pagar renovava-se de graça.
+ *
+ * Estas duas são de propósito, e têm de ser: a página /acesso é onde alguém
+ * sem conta nenhuma resgata um convite, e o browser dela fala como `anon`. O
+ * `resgatar_codigo` tem lá dentro a guarda que falta às outras — para códigos
+ * de sistema, exige a chave de serviço.
+ *
+ * Acrescentar um nome a esta lista é dizer «eu sei o que isto abre». Não se
+ * acrescenta para calar o aviso.
+ */
+const ABERTAS_DE_PROPOSITO = new Set(['codigo_valido', 'resgatar_codigo']);
+
 const queixas = [];
 const perdoadas = [];
 let funcoes = 0;
@@ -140,6 +163,64 @@ for (const ficheiro of readdirSync(pasta).filter((f) => f.endsWith('.sql')).sort
       }
     }
   }
+}
+
+// ── quem está aberto a quem não tem sessão ───────────────────
+//
+// Percorre-se outra vez, agora à procura de grants. Uma passagem à parte
+// porque um `grant` pode estar longe da função que nomeia — noutro ficheiro,
+// até: a 024 volta a dar permissões a funções nascidas na 018.
+const definidoras = new Set();
+for (const ficheiro of readdirSync(pasta).filter((f) => f.endsWith('.sql')).sort()) {
+  const texto = semComentarios(readFileSync(join(pasta, ficheiro), 'utf8'));
+  for (const m of texto.matchAll(
+    /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?(\w+)[\s\S]*?\$\$/gi,
+  )) {
+    const corpo = texto.slice(m.index, m.index + 400);
+    if (/security\s+definer/i.test(corpo)) definidoras.add(m[1].toLowerCase());
+  }
+}
+
+/**
+ * As que já não existem.
+ *
+ * Uma função dropada não está aberta a ninguém — não está de todo. Sem isto,
+ * o aviso ficava para sempre a apontar para a `gastar_passagem`, que a 029
+ * apaga: um aviso sobre uma coisa que não existe é a maneira mais rápida de
+ * ensinar alguém a ignorar os que existem.
+ */
+const dropadas = new Set();
+for (const ficheiro of readdirSync(pasta).filter((f) => f.endsWith('.sql')).sort()) {
+  const texto = semComentarios(readFileSync(join(pasta, ficheiro), 'utf8'));
+  for (const m of texto.matchAll(/drop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?(\w+)/gi)) {
+    dropadas.add(m[1].toLowerCase());
+  }
+}
+
+/** O último grant ou revoke de cada função é o que vale. */
+const abertura = new Map();
+for (const ficheiro of readdirSync(pasta).filter((f) => f.endsWith('.sql')).sort()) {
+  const texto = semComentarios(readFileSync(join(pasta, ficheiro), 'utf8'));
+  for (const m of texto.matchAll(
+    /(grant|revoke)\s+(?:execute|all)[\s\S]{0,40}?on\s+function\s+(?:public\.)?(\w+)\s*\([^)]*\)\s*(?:to|from)\s+([^;]+);/gi,
+  )) {
+    const [, verbo, nome, quem] = m;
+    if (!/\banon\b/i.test(quem)) continue;
+    abertura.set(nome.toLowerCase(), { aberta: verbo.toLowerCase() === 'grant', ficheiro });
+  }
+}
+
+for (const [nome, { aberta, ficheiro }] of abertura) {
+  if (!aberta) continue;
+  if (!definidoras.has(nome)) continue;
+  if (dropadas.has(nome)) continue;
+  if (ABERTAS_DE_PROPOSITO.has(nome)) continue;
+  queixas.push(
+    `${ficheiro}: ${nome} é security definer e está dada a anon — qualquer pessoa da ` +
+      `internet, sem sessão, pode chamá-la. Os códigos de sistema que ela pede estão neste ` +
+      `repositório, que é público. Revoga de anon e dá a service_role, ou diz porque não em ` +
+      `ABERTAS_DE_PROPOSITO.`,
+  );
 }
 
 for (const q of queixas) console.log(`MAU  ${q}`);
