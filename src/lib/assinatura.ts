@@ -1,15 +1,10 @@
 /**
  * O preço, e para onde se vai pagar.
  *
- * Quem cobra é a Hotmart. Os links são os do checkout dela, feitos no painel
- * e postos no ambiente — não há aqui chave nenhuma, só endereços públicos,
- * que é o que um link de pagamento é. Sem eles as páginas dizem-se por
- * configurar em vez de mandarem alguém para lado nenhum.
- *
- * Os nomes antigos, `STRIPE_LINK_*`, continuam a valer como segunda escolha.
- * Houve uma altura em que quem cobrava era a Stripe, e o webhook dela ainda
- * cá está a funcionar; trocar a cobrança não pode ser uma coisa que parte a
- * app enquanto as variáveis não forem renomeadas à mão no painel.
+ * Os links de pagamento são feitos no painel do Stripe e postos no ambiente —
+ * não há aqui chave nenhuma, só endereços públicos, que é o que um link de
+ * pagamento é. Sem eles as páginas dizem-se por configurar em vez de mandarem
+ * alguém para lado nenhum.
  *
  * São lidos do lado do servidor, a cada pedido, e não com o prefixo
  * NEXT_PUBLIC. Se levassem esse prefixo ficavam cozidos dentro do JavaScript
@@ -20,53 +15,27 @@
 import { TECTO_CREDITOS } from './creditos';
 
 export interface Preco {
-  /** o que se mostra. Nulo quando não se sabe — e aí não se inventa */
-  valor: string | null;
+  /** o que se mostra */
+  valor: string;
   moeda: string;
   /** para onde vai o botão */
   link: string | null;
   nota: string;
 }
 
-/**
- * O checkout da Hotmart, por omissão.
- *
- * Está aqui em vez de ser só uma variável de ambiente por uma razão prática:
- * assim a página vende no minuto em que for publicada, sem depender de
- * ninguém ir ao painel da Vercel colar nada. Não é segredo — é o endereço
- * que qualquer pessoa vê na barra do browser quando vai pagar.
- *
- * E continua a poder ser trocado sem mexer no código: a variável ganha
- * sempre, para o dia em que a oferta mudar de código e isto não poder
- * esperar por uma publicação.
- */
-const CHECKOUT = 'https://pay.hotmart.com/R107579814L?off=b1uzq2p7';
-
-/**
- * Quanto custa.
- *
- * Não tem valor por omissão, e isso é de propósito. Esta app já teve «49 €»
- * escrito à mão, de uma altura em que quem cobrava era outra plataforma e o
- * preço era outro. Um número desses ao lado de um botão que cobra coisa
- * diferente é a pior avaria que uma página de vendas pode ter: a pessoa paga
- * a pensar que combinou uma coisa e recebe a fatura de outra.
- *
- * Por isso: ou o preço vem do ambiente, posto por quem o sabe, ou não se
- * mostra número nenhum e deixa-se o checkout dizê-lo. Uma página sem preço
- * vende pior; uma página com o preço errado gera devoluções e queixas.
- */
+/** Só corre no servidor. */
 export function precos(): Preco[] {
   return [
     {
-      valor: process.env.HOTMART_PRECO?.trim() || null,
+      valor: '49 €',
       moeda: 'EUR',
-      link: process.env.HOTMART_LINK?.trim() || CHECKOUT,
-      nota: 'por mês',
+      link: process.env.STRIPE_LINK_EUR?.trim() || null,
+      nota: 'por mês, IVA incluído',
     },
     {
-      valor: process.env.HOTMART_PRECO_BRL?.trim() || null,
+      valor: 'R$ 297',
       moeda: 'BRL',
-      link: process.env.HOTMART_LINK_BRL?.trim() || null,
+      link: process.env.STRIPE_LINK_BRL?.trim() || null,
       nota: 'por mês',
     },
   ];
