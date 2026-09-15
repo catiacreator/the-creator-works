@@ -30,7 +30,7 @@ Em **Settings → Environment Variables**, no projeto `the-creator-works`:
 | Nome | O que é |
 |---|---|
 | `PASSAGEM_SEGREDO` | O segredo partilhado. Inventa uma linha comprida e aleatória — 40 caracteres ou mais. Tem de ser **exatamente a mesma** nas duas apps. |
-| `CAROUSELSNAP_URL` | Já não é preciso: as duas apps vivem no mesmo domínio, e a porta da rua é a raiz (`/`), o botão de voltar o `/main`. Só se preenche se o CarouselSnap voltar a viver noutro endereço; `CAROUSELSNAP_VOLTAR` manda no botão de voltar, se for outro sítio. |
+| `CAROUSELSNAP_URL` | Já não existe: as duas apps vivem no mesmo domínio, a porta da rua é a raiz (`/`) e o botão de voltar o `/main`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | A chave *service_role* do Supabase, se ainda lá não estiver. É ela que deixa abrir a sessão sem email. |
 
 Para inventar o segredo, num terminal:

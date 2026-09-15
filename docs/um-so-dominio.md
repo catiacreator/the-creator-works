@@ -64,7 +64,7 @@ No Lovable, projeto CarouselSnap → **Publish** → o endereço `…lovable.app
 |---|---|
 | `NEXT_PUBLIC_APP_URL` | `https://carouselsnap.app/creator-works` |
 | `CAROUSELSNAP_ORIGEM` | o endereço do passo 1, ex. `https://carouselsnap.lovable.app` |
-| `CAROUSELSNAP_URL` | **Apaga-a**, se lá estiver. Sem ela, «Voltar ao CarouselSnap» e «Assinar» apontam ao CarouselSnap deste mesmo domínio (`/main` e `/`), o que serve tanto em produção como nas pré-visualizações. |
+| `CAROUSELSNAP_URL` / `CAROUSELSNAP_VOLTAR` | **Já não servem para nada**: «Voltar ao CarouselSnap» e «Assinar» apontam sempre ao CarouselSnap deste mesmo domínio (`/main` e `/`). Podes apagá-las. |
 | `GOOGLE_REDIRECT_URI` | `https://carouselsnap.app/creator-works/api/google/oauth/callback` (se usares o Drive) |
 | `CANVA_REDIRECT_URI` | `https://carouselsnap.app/creator-works/api/canva/oauth/callback` (se usares o Canva) |
 
