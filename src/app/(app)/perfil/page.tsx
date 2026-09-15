@@ -53,6 +53,14 @@ export default function PerfilPage() {
   const [aAvaliar, setAAvaliar] = useState(false);
   const [aImportar, setAImportar] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
+  /**
+   * O que o documento trazia e que NÃO foi aplicado.
+   *
+   * Só existe quando a pessoa já tinha respostas escritas e o documento traz
+   * outras, diferentes, para as mesmas perguntas. Guarda-se para ela poder
+   * escolher — nunca se decide por ela.
+   */
+  const [porAplicar, setPorAplicar] = useState<Briefing | null>(null);
   const ficheiro = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -150,13 +158,25 @@ export default function PerfilPage() {
   const set = (id: string, v: string) => setBriefing({ ...briefing, [id]: v });
 
   /**
-   * Carregar o Documento Mestre e ficar com tudo preenchido.
-   * Se o documento saiu daqui, as respostas voltam exatamente como estavam.
+   * Carregar um documento e preencher o que der.
+   *
+   * Este botão era só para o primeiro dia, e enquanto foi só isso podia
+   * escrever por cima de tudo sem risco: não havia nada escrito por baixo.
+   *
+   * Agora fica sempre à mão, e isso muda a regra. Quem já respondeu a vinte
+   * perguntas com cuidado e carrega um PDF antigo não pode ver o trabalho
+   * desaparecer sem aviso — ainda por cima quando o que o substitui pode ter
+   * saído de uma leitura da Cát.IA, que é uma interpretação e não um facto.
+   *
+   * Então: **as vazias preenchem-se, as escritas ficam.** O que o documento
+   * trazia de diferente não se perde nem se aplica — mostra-se, e ela
+   * decide. É a diferença entre uma ferramenta que ajuda e uma que assusta.
    */
   async function importar(f: File) {
     setAImportar(true);
     setError(null);
     setRecado(null);
+    setPorAplicar(null);
     try {
       const corpo = new FormData();
       corpo.append('ficheiro', f);
@@ -165,19 +185,54 @@ export default function PerfilPage() {
       );
       if (d.error) throw new Error(d.error);
 
-      const juntos = { ...briefing, ...(d.briefing as Briefing) };
+      const vindo = (d.briefing ?? {}) as Briefing;
+      const juntos: Briefing = { ...briefing };
+      const chocam: Briefing = {};
+      let preenchidas = 0;
+
+      for (const [id, valor] of Object.entries(vindo)) {
+        const novo = (valor ?? '').trim();
+        if (!novo) continue;
+        const atual = (briefing[id] ?? '').trim();
+
+        if (!atual) {
+          juntos[id] = novo;
+          preenchidas++;
+        } else if (atual !== novo) {
+          chocam[id] = novo;
+        }
+      }
+
       setBriefing(juntos);
       if (!aEspreitar) await guardarCom(juntos);
-      setRecado(
+      setPorAplicar(Object.keys(chocam).length ? chocam : null);
+
+      const lido =
         d.origem === 'documento'
-          ? 'Documento reconhecido — o briefing ficou como estava lá dentro.'
-          : 'Li o documento e arrumei as respostas pelas perguntas. Dá-lhes uma vista de olhos.',
-      );
+          ? 'Documento reconhecido.'
+          : 'Li o documento e arrumei as respostas pelas perguntas — dá-lhes uma vista de olhos.';
+
+      const quantas =
+        preenchidas === 0
+          ? 'Não havia nada de novo para preencher.'
+          : `Preenchi ${preenchidas} ${preenchidas === 1 ? 'resposta que estava vazia' : 'respostas que estavam vazias'}.`;
+
+      setRecado(`${lido} ${quantas}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não consegui ler o ficheiro.');
     } finally {
       setAImportar(false);
     }
+  }
+
+  /** Ela escolheu ficar com o que vinha no documento, também nas que já tinha. */
+  async function aplicarOResto() {
+    if (!porAplicar) return;
+    const juntos = { ...briefing, ...porAplicar };
+    setBriefing(juntos);
+    setPorAplicar(null);
+    if (!aEspreitar) await guardarCom(juntos);
+    setRecado('Pronto — ficaste com as respostas do documento.');
   }
 
   return (
@@ -216,14 +271,37 @@ export default function PerfilPage() {
         </div>
       )}
 
-      {primeiraVez && (
-        <Card className="mb-4">
-          <h2 className="mb-1 font-medium">Já tens isto escrito?</h2>
-          <p className="mb-3 text-sm leading-relaxed text-muted">
-            Se já tiveste esta app antes, ou se tens um documento onde te apresentas, carrega-o
-            aqui e eu preencho o briefing por ti. Aceito o <strong>Documento Mestre</strong> desta
-            app (preenche tudo de uma vez, exatamente como estava) ou um PDF, Word ou texto teu.
-          </p>
+      {/*
+        O carregamento de documento deixou de ser só do primeiro dia.
+
+        Estava dentro do `primeiraVez`, e desaparecia no instante em que as
+        perguntas obrigatórias ficavam respondidas. Quem quisesse trazer um
+        documento mais tarde — o Documento Mestre de outra conta, um PDF novo,
+        o briefing feito no CarouselSnap — não tinha por onde. Tinha de
+        escrever tudo à mão outra vez, ao lado de um botão que já lá tinha
+        estado.
+      */}
+      <Card className="mb-4">
+        <h2 className="mb-1 font-medium">
+          {primeiraVez ? 'Já tens isto escrito?' : 'Carregar um documento'}
+        </h2>
+        <p className="mb-3 text-sm leading-relaxed text-muted">
+          {primeiraVez ? (
+            <>
+              Se já tiveste esta app antes, ou se tens um documento onde te apresentas, carrega-o
+              aqui e eu preencho o briefing por ti. Aceito o <strong>Documento Mestre</strong>{' '}
+              desta app (preenche tudo de uma vez, exatamente como estava) ou um PDF, Word ou
+              texto teu.
+            </>
+          ) : (
+            <>
+              O <strong>Documento Mestre</strong> desta app, o briefing que fizeste no
+              CarouselSnap, ou um PDF, Word ou texto onde te apresentes.{' '}
+              <strong className="text-ink">As respostas que já escreveste ficam como estão</strong>{' '}
+              — só preencho as que estiverem vazias.
+            </>
+          )}
+        </p>
           <input
             ref={ficheiro}
             type="file"
@@ -235,22 +313,52 @@ export default function PerfilPage() {
               e.target.value = '';
             }}
           />
-          <button
-            className="btn-ghost w-full"
-            onClick={() => ficheiro.current?.click()}
-            disabled={aImportar}
-          >
-            {aImportar ? (
-              <Spinner label="A ler o documento…" />
-            ) : (
-              <>
-                <Upload className="h-4 w-4" />
-                Carregar documento
-              </>
-            )}
-          </button>
-        </Card>
-      )}
+        <button
+          className="btn-ghost w-full"
+          onClick={() => ficheiro.current?.click()}
+          disabled={aImportar}
+        >
+          {aImportar ? (
+            <Spinner label="A ler o documento…" />
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Carregar Documento Mestre
+            </>
+          )}
+        </button>
+
+        {/*
+          O que o documento trazia e não foi aplicado.
+
+          Só aparece quando há mesmo escolha a fazer. Diz quantas são e
+          deixa-a decidir — nunca se decide por ela, e nunca se aplica em
+          silêncio. Dizer «substituí 14 respostas» depois de o fazer é tarde.
+        */}
+        {porAplicar && (
+          <div className="mt-3 rounded-xl border border-sand bg-creme/70 px-4 py-3">
+            <p className="text-sm leading-relaxed">
+              O documento traz resposta diferente para{' '}
+              <strong>
+                {Object.keys(porAplicar).length}{' '}
+                {Object.keys(porAplicar).length === 1 ? 'pergunta' : 'perguntas'}
+              </strong>{' '}
+              que já tinhas preenchido. Não lhes toquei.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button className="btn-ghost px-3 py-1.5 text-xs" onClick={aplicarOResto}>
+                Usar as do documento
+              </button>
+              <button
+                className="px-3 py-1.5 text-xs text-muted hover:text-ink"
+                onClick={() => setPorAplicar(null)}
+              >
+                Ficar com as minhas
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {recado && (
         <div className="mb-4 flex items-start gap-3 rounded-xl border border-sand bg-creme/70 px-4 py-3 text-sm">
