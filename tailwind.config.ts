@@ -30,23 +30,6 @@ const config: Config = {
         line: '#352C2A',
         brand: { DEFAULT: '#EE4E8B', soft: '#F888B0', dark: '#DC3F7C' },
 
-        // ── as cores do CarouselSnap ───────────────────────────────
-        //
-        // O Snap está a mudar-se para dentro desta app e traz o aspecto dele.
-        // Estes nomes são os que os componentes dele usam, e os valores vivem
-        // em `snap.css`, dentro de `.snap` — fora dessa casca não existem.
-        //
-        // Ficam aqui porque o Tailwind precisa de saber que a classe existe
-        // para a gerar. Que ela só tenha cor lá dentro é de propósito: é
-        // assim que os dois desenhos vivem lado a lado sem se pisarem.
-        snapFundo: 'hsl(var(--snap-background) / <alpha-value>)',
-        snapTexto: 'hsl(var(--snap-foreground) / <alpha-value>)',
-        snapCartao: 'hsl(var(--snap-card) / <alpha-value>)',
-        snapBorda: 'hsl(var(--snap-border) / <alpha-value>)',
-        snapSuave: 'hsl(var(--snap-muted) / <alpha-value>)',
-        snapApagado: 'hsl(var(--snap-muted-foreground) / <alpha-value>)',
-        snapDestaque: 'hsl(var(--snap-accent) / <alpha-value>)',
-        snapSobreDestaque: 'hsl(var(--snap-accent-foreground) / <alpha-value>)',
         // o editor muda de tema — estas leem variáveis CSS
         edFundo: 'rgb(var(--ed-fundo) / <alpha-value>)',
         edSuperficie: 'rgb(var(--ed-superficie) / <alpha-value>)',
