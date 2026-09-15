@@ -43,6 +43,7 @@ import {
   type Estilo,
 } from '@/lib/studio-estilos';
 import type { PhotoRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 type Passo = 1 | 2 | 3;
 type Foto = PhotoRow & { url: string | null };
@@ -178,7 +179,7 @@ export default function Fabrica() {
   const [handle, setHandle] = useState('');
 
   useEffect(() => {
-    fetch('/api/estilos')
+    fetch(comBase('/api/estilos'))
       .then((r) => r.json())
       .then((d) => {
         const guardados = (d.estilos ?? []) as Estilo[];
@@ -189,11 +190,11 @@ export default function Fabrica() {
         }
       })
       .catch(() => undefined);
-    fetch('/api/photos')
+    fetch(comBase('/api/photos'))
       .then((r) => r.json())
       .then((d) => setFotos(d.photos ?? []))
       .catch(() => undefined);
-    fetch('/api/perfil')
+    fetch(comBase('/api/perfil'))
       .then((r) => r.json())
       .then((d) => {
         const h = d.perfil?.instagram as string | undefined;
@@ -204,7 +205,7 @@ export default function Fabrica() {
 
   async function gravarEstilos(lista: Estilo[]) {
     setEstilos(lista);
-    await fetch('/api/estilos', {
+    await fetch(comBase('/api/estilos'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estilos: lista }),
@@ -448,7 +449,7 @@ export default function Fabrica() {
     try {
       const corpo = new FormData();
       corpo.append('file', f);
-      const r = await fetch('/api/estudio/texto', { method: 'POST', body: corpo });
+      const r = await fetch(comBase('/api/estudio/texto'), { method: 'POST', body: corpo });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setTexto(d.texto ?? '');
@@ -489,7 +490,7 @@ export default function Fabrica() {
   async function separarComIA(t: string): Promise<CarrosselLido[]> {
     setOcupado('a pedir à Cát.IA para separar os carrosséis');
     try {
-      const d = await fetch('/api/estudio/separar', {
+      const d = await fetch(comBase('/api/estudio/separar'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto: t }),

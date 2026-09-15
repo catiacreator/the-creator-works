@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { FONTES } from './fontes-editor';
+import { comBase } from '@/lib/caminho';
 
 export interface FonteDela {
   id: string;
@@ -33,7 +34,7 @@ export function useFontesDela() {
   }, []);
 
   const recarregar = useCallback(async () => {
-    const d = await fetch('/api/fontes').then((r) => r.json());
+    const d = await fetch(comBase('/api/fontes')).then((r) => r.json());
     const lista: FonteDela[] = d.fontes ?? [];
     setFontes(lista);
     registar(lista);

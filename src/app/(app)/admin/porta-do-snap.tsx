@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, CircleAlert, DoorOpen, ExternalLink, Loader2, Stethoscope } from 'lucide-react';
 import { Card } from '@/components/ui';
+import { comBase } from '@/lib/caminho';
 
 interface Peca {
   id: string;
@@ -85,7 +86,7 @@ export function PortaDoSnap() {
   async function conferir() {
     setAConferir(true);
     setConferencia(null);
-    const r = await fetch('/api/porta/conferir', { method: 'POST' }).catch(() => null);
+    const r = await fetch(comBase('/api/porta/conferir'), { method: 'POST' }).catch(() => null);
     const d = await r?.json().catch(() => null);
     setAConferir(false);
     if (!d || d.error) return setErro(d?.error ?? 'Não deu para conferir a porta.');
@@ -93,7 +94,7 @@ export function PortaDoSnap() {
   }
 
   useEffect(() => {
-    fetch('/api/porta/estado')
+    fetch(comBase('/api/porta/estado'))
       .then((r) => r.json())
       .then((d) => (d.error ? setErro(d.error) : setEstado(d)))
       .catch(() => setErro('Não deu para ver o estado da porta.'));
@@ -446,7 +447,7 @@ the-creator-works/passagem/marca/v1
               alguma coisa falhar vais parar ao /assinar sem explicação, como uma pessoa
               qualquer. Faz a conferência primeiro.
             </p>
-            <a href="/api/porta/testar" className="btn-fantasma mt-2">
+            <a href={comBase('/api/porta/testar')} className="btn-fantasma mt-2">
               <ExternalLink className="h-4 w-4" />
               Atravessar a porta
             </a>

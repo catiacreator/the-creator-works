@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CalendarCheck, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui';
+import { comBase } from '@/lib/caminho';
 
 /**
  * Dar acesso a toda a gente, de uma vez.
@@ -33,7 +34,7 @@ export function AcessoATodos({ aoMudar }: { aoMudar?: () => void }) {
     setErro(null);
     setRecado(null);
 
-    const r = await fetch('/api/membros/todos', {
+    const r = await fetch(comBase('/api/membros/todos'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dias: quantos }),

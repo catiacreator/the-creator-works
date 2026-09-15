@@ -13,6 +13,7 @@ import {
 import { Dialogo, Spinner } from '@/components/ui';
 import { GuiaDaPagina } from '@/components/guia';
 import { TextoRico } from '@/components/texto-rico';
+import { comBase } from '@/lib/caminho';
 
 interface Analise {
   id: string;
@@ -48,8 +49,8 @@ export default function AnalisePage() {
   useEffect(() => {
     (async () => {
       const [a, p] = await Promise.all([
-        fetch('/api/analise').then((r) => r.json()),
-        fetch('/api/perfil').then((r) => r.json()),
+        fetch(comBase('/api/analise')).then((r) => r.json()),
+        fetch(comBase('/api/perfil')).then((r) => r.json()),
       ]);
 
       setAnalises(a.analises ?? []);
@@ -77,7 +78,7 @@ export default function AnalisePage() {
     if (!dados.handle.trim()) return;
     setBusy(true);
     setError(null);
-    const d = await fetch('/api/analise', {
+    const d = await fetch(comBase('/api/analise'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...dados, destaques: semDestaques ? '' : dados.destaques }),
@@ -90,7 +91,7 @@ export default function AnalisePage() {
   }
 
   async function apagar(a: Analise) {
-    await fetch(`/api/analise/${a.id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/analise/${a.id}`), { method: 'DELETE' });
     setAnalises((xs) => xs.filter((x) => x.id !== a.id));
     if (aberta?.id === a.id) setAberta(null);
     setAApagar(null);
@@ -111,7 +112,7 @@ export default function AnalisePage() {
         </h1>
         <p className="mx-auto mt-3 max-w-md text-[17px] leading-relaxed text-muted">
           Cola o que está no teu perfil. A Cát.IA cruza-o com o que disseste em{' '}
-          <a href="/perfil" className="underline decoration-rosa/40 underline-offset-2 hover:text-ink">
+          <a href={comBase('/perfil')} className="underline decoration-rosa/40 underline-offset-2 hover:text-ink">
             Sobre mim
           </a>{' '}
           e devolve o diagnóstico.

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClienteDeVendas } from '@/lib/supabase/admin';
+import { enderecoDaApp } from '@/lib/caminho';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -170,7 +171,7 @@ export async function POST(request: Request) {
   // Sem o `next`, o link abria a sessão e largava-a na app com uma conta sem
   // palavra-passe nenhuma — funciona hoje e deixa-a fechada para fora
   // amanhã, quando voltar e não tiver o que escrever no formulário.
-  const origem = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const origem = enderecoDaApp(request);
   const { error: erroDoEmail } = await supabase.auth.signInWithOtp({
     email,
     options: {

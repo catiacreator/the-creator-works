@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { History, RotateCcw, X } from 'lucide-react';
+import { comBase } from '@/lib/caminho';
 
 interface Versao {
   id: string;
@@ -57,7 +58,7 @@ export function Historico({
     if (!aberto) return;
     setVersoes(null);
     setErro(null);
-    fetch(`/api/carousels/${carrosselId}/versoes`)
+    fetch(comBase(`/api/carousels/${carrosselId}/versoes`))
       .then((r) => r.json())
       .then((d) => (d.error ? setErro(d.error) : setVersoes(d.versoes ?? [])))
       .catch(() => setErro('Não consegui ler o histórico.'));
@@ -69,7 +70,7 @@ export function Historico({
     setARepor(id);
     setErro(null);
     try {
-      const r = await fetch(`/api/carousels/${carrosselId}/versoes`, {
+      const r = await fetch(comBase(`/api/carousels/${carrosselId}/versoes`), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ versaoId: id }),

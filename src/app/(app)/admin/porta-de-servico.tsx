@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, Copy, DoorOpen, Loader2, ShieldAlert, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { MINIMO_CHAVE_ADMIN } from '@/lib/limites';
+import { comBase } from '@/lib/caminho';
 
 interface Estado {
   tem: boolean;
@@ -37,7 +38,7 @@ export function PortaDeServico() {
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
-    fetch('/api/chave-admin')
+    fetch(comBase('/api/chave-admin'))
       .then((r) => r.json())
       .then((d) => (d.error ? setErro(d.error) : setEstado(d)))
       .catch(() => setErro('Não deu para ver como está a porta.'));
@@ -46,7 +47,7 @@ export function PortaDeServico() {
   async function guardar(escolhido?: string) {
     setOcupado(true);
     setErro(null);
-    const r = await fetch('/api/chave-admin', {
+    const r = await fetch(comBase('/api/chave-admin'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(escolhido ? { codigo: escolhido } : {}),
@@ -65,7 +66,7 @@ export function PortaDeServico() {
     if (!window.confirm('Fechar a porta? Ficas a entrar só pelo CarouselSnap.')) return;
     setOcupado(true);
     setErro(null);
-    const r = await fetch('/api/chave-admin', { method: 'DELETE' });
+    const r = await fetch(comBase('/api/chave-admin'), { method: 'DELETE' });
     const d = await r.json();
     setOcupado(false);
     if (d.error) return setErro(d.error);

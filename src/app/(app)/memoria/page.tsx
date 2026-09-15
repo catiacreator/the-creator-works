@@ -20,6 +20,7 @@ import {
   type Memoria,
   type TipoDeMemoria,
 } from '@/lib/memoria';
+import { comBase } from '@/lib/caminho';
 
 type Aba = 'memorias' | 'campanhas' | 'historias';
 
@@ -54,9 +55,9 @@ export default function MemoriaPage() {
   async function carregar() {
     setAAtualizar(true);
     const [m, c, h] = await Promise.all([
-      fetch('/api/memorias').then((r) => r.json()),
-      fetch('/api/campanhas').then((r) => r.json()),
-      fetch('/api/historias').then((r) => r.json()),
+      fetch(comBase('/api/memorias')).then((r) => r.json()),
+      fetch(comBase('/api/campanhas')).then((r) => r.json()),
+      fetch(comBase('/api/historias')).then((r) => r.json()),
     ]);
     setMemorias(m.memorias ?? []);
     setCampanhas(c.campanhas ?? []);
@@ -73,7 +74,7 @@ export default function MemoriaPage() {
     setOcupado(true);
     setErro(null);
     try {
-      const res = await fetch(url, init);
+      const res = await fetch(comBase(url), init);
       const dados = await res.json();
       if (dados.error) throw new Error(dados.error);
       await carregar();

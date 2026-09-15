@@ -46,6 +46,7 @@ import {
   type Papel,
   type Permissao,
 } from '@/lib/papeis';
+import { comBase } from '@/lib/caminho';
 
 type Aba = 'pessoas' | 'financeiro' | 'papeis' | 'paginas' | 'codigos';
 
@@ -144,7 +145,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (aba !== 'financeiro' || contas) return;
-    fetch('/api/admin/financeiro')
+    fetch(comBase('/api/admin/financeiro'))
       .then((r) => r.json())
       .then((d) => setContas(d.error ? { disponivel: false, tecto: 0, pessoas: 0 } : d))
       .catch(() => setContas({ disponivel: false, tecto: 0, pessoas: 0 }));
@@ -159,23 +160,23 @@ export default function AdminPage() {
   } | null>(null);
 
   async function carregar() {
-    const d = await fetch('/api/membros').then((r) => r.json());
+    const d = await fetch(comBase('/api/membros')).then((r) => r.json());
     if (d.error) return setErro(d.error);
     setMembros(d.membros ?? []);
     setEu(d.eu?.email ?? null);
     setMatriz((d.matriz as Matriz) ?? MATRIZ_PADRAO);
     setPodeGerir((d.eu?.permissoes ?? []).includes('gerir-pessoas'));
 
-    const p = await fetch('/api/paginas')
+    const p = await fetch(comBase('/api/paginas'))
       .then((r) => r.json())
       .then((x) => (x.paginas as EstadoDasPaginas) ?? {})
       .catch(() => ({}) as EstadoDasPaginas);
     setPaginas(p);
 
-    const c = await fetch('/api/codigos').then((r) => r.json());
+    const c = await fetch(comBase('/api/codigos')).then((r) => r.json());
     if (!c.error) setCodigos(c.codigos ?? []);
 
-    const v = await fetch('/api/vendas').then((r) => r.json());
+    const v = await fetch(comBase('/api/vendas')).then((r) => r.json());
     if (!v.error) setVendas(v);
   }
 
@@ -187,7 +188,7 @@ export default function AdminPage() {
     setOcupado(true);
     setErro(null);
     try {
-      const d = await fetch(url, init).then((r) => r.json());
+      const d = await fetch(comBase(url), init).then((r) => r.json());
       if (d.error) throw new Error(d.error);
       await carregar();
       return true;
@@ -208,7 +209,7 @@ export default function AdminPage() {
     setOcupado(true);
     setErro(null);
     try {
-      const d = await fetch('/api/paginas', {
+      const d = await fetch(comBase('/api/paginas'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(depois),
@@ -226,7 +227,7 @@ export default function AdminPage() {
   /** Ver o que encontra quem acabou de se registar. */
   async function verPrimeiroDia() {
     setOcupado(true);
-    const d = await fetch('/api/ver-como', {
+    const d = await fetch(comBase('/api/ver-como'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ primeiroDia: true }),
@@ -240,7 +241,7 @@ export default function AdminPage() {
   /** Espreitar a app pelos olhos de outro papel. */
   async function verComo(papel: Papel) {
     setOcupado(true);
-    const d = await fetch('/api/ver-como', {
+    const d = await fetch(comBase('/api/ver-como'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ papel }),
@@ -260,7 +261,7 @@ export default function AdminPage() {
     setOcupado(true);
     setErro(null);
     try {
-      const d = await fetch('/api/papeis', {
+      const d = await fetch(comBase('/api/papeis'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ papel, permissoes: novas }),
@@ -962,7 +963,7 @@ export default function AdminPage() {
               if (aEditar.email.trim().toLowerCase() !== aEditar.emailAntigo.toLowerCase()) {
                 corpo.email = aEditar.email;
               }
-              const d = await fetch('/api/membros', {
+              const d = await fetch(comBase('/api/membros'), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(corpo),
@@ -1031,7 +1032,7 @@ export default function AdminPage() {
             setOcupado(true);
             setErro(null);
             try {
-              const d = await fetch('/api/membros', {
+              const d = await fetch(comBase('/api/membros'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(convite),

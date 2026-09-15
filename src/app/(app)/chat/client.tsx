@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { PenTool, Sparkles } from 'lucide-react';
 import { PageHeader, Spinner } from '@/components/ui';
+import { comBase } from '@/lib/caminho';
 
 /** A Cát.IA marca os carrosséis com um bloco ```carrossel — a app lê-o e monta. */
 interface CarrosselDoChat {
@@ -55,7 +56,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!threadId) return setMessages([]);
-    fetch(`/api/chat?thread=${threadId}`)
+    fetch(comBase(`/api/chat?thread=${threadId}`))
       .then((r) => r.json())
       .then((d) => setMessages(d.messages ?? []));
   }, [threadId]);
@@ -69,7 +70,7 @@ export default function ChatPage() {
     setAMontar(id);
     setError(null);
     try {
-      const d = await fetch('/api/carousels', {
+      const d = await fetch(comBase('/api/carousels'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +95,7 @@ export default function ChatPage() {
 
       // compõe antes de mostrar
       for (let volta = 0; volta < 15; volta++) {
-        const fila = await fetch('/api/jobs/run?limit=2', { method: 'POST' }).then((r) => r.json());
+        const fila = await fetch(comBase('/api/jobs/run?limit=2'), { method: 'POST' }).then((r) => r.json());
         if ((fila.remaining ?? 0) === 0) break;
         await new Promise((r) => setTimeout(r, 800));
       }
@@ -113,7 +114,7 @@ export default function ChatPage() {
     setMessages((m) => [...m, { id: `tmp-${Date.now()}`, role: 'user', content: text }]);
     setBusy(true);
 
-    const res = await fetch('/api/chat', {
+    const res = await fetch(comBase('/api/chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ thread_id: threadId, message: text }),
@@ -124,7 +125,7 @@ export default function ChatPage() {
     if (data.error) return setError(data.error);
     if (!threadId) {
       setThreadId(data.thread_id);
-      window.history.replaceState(null, '', `/chat?thread=${data.thread_id}`);
+      window.history.replaceState(null, '', comBase(`/chat?thread=${data.thread_id}`));
       window.dispatchEvent(new Event('conversas-mudaram'));
     }
     setMessages((m) => [...m, data.message]);

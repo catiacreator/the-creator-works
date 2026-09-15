@@ -29,9 +29,11 @@ export const dynamic = 'force-dynamic';
  * apagam-se à mão todos os cookies do Supabase que vieram no pedido.
  */
 export async function GET(request: NextRequest) {
-  const paraOLogin = NextResponse.redirect(
-    new URL('/login?saiu=1', request.nextUrl.origin),
-  );
+  // o nextUrl sabe do basePath: o /login continua debaixo do /creator-works
+  const destino = request.nextUrl.clone();
+  destino.pathname = '/login';
+  destino.search = '?saiu=1';
+  const paraOLogin = NextResponse.redirect(destino);
 
   try {
     const supabase = createServerClient(

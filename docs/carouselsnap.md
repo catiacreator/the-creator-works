@@ -3,6 +3,12 @@
 O que é preciso fazer, dos dois lados, para que só entre aqui quem tem
 subscrição no CarouselSnap.
 
+> **As duas apps vivem agora no mesmo domínio.** O Creator Works responde em
+> `https://carouselsnap.app/creator-works/…` e não em `thecreatorworks.com`.
+> Onde este documento diz `https://thecreatorworks.com/entrar`, lê-se
+> `https://carouselsnap.app/creator-works/entrar`. Como isso se monta está em
+> `docs/um-so-dominio.md`.
+
 ---
 
 ## O que já está feito deste lado
@@ -60,7 +66,7 @@ Cola isto no Lovable, tal e qual:
 
 > Preciso de um botão "Abrir o Creator Works" que só aparece a quem tem a
 > subscrição ativa. Quando se carrega nele, abre-se
-> `https://thecreatorworks.com/entrar?t=BILHETE` numa página nova.
+> `https://carouselsnap.app/creator-works/entrar?t=BILHETE` numa página nova.
 >
 > O BILHETE é gerado numa edge function do Supabase (nunca no browser, porque
 > leva um segredo). A função:
@@ -142,14 +148,14 @@ E o botão:
 
 ```ts
 const { data } = await supabase.functions.invoke('passagem');
-window.open(`https://thecreatorworks.com/entrar?t=${data.bilhete}`, '_blank');
+window.location.href = `https://carouselsnap.app/creator-works/entrar?t=${data.bilhete}`;
 ```
 
 ---
 
 ## Como se confirma que está a funcionar
 
-1. `https://thecreatorworks.com/entrar` sem bilhete nenhum → vai parar a
+1. `https://carouselsnap.app/creator-works/entrar` sem bilhete nenhum → vai parar a
    `/assinar`. É o esperado.
 2. Com uma conta de teste no CarouselSnap, carregar no botão → entra no
    Creator Works sem pedir nada.

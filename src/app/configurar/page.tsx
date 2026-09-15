@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { envChecks, supabaseConfigured } from '@/lib/env';
+import { comBase } from '@/lib/caminho';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,13 @@ export default function ConfigurarPage() {
     <div className="mx-auto max-w-2xl px-6 py-16">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/the-creator-works.png"
+        src={comBase('/the-creator-works.png')}
         alt="The Creator Works"
         className="mb-3 h-9 w-auto dark:hidden"
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/the-creator-works-escuro.png"
+        src={comBase('/the-creator-works-escuro.png')}
         alt="The Creator Works"
         className="mb-3 hidden h-9 w-auto dark:block"
       />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { PhotoRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 type Foto = PhotoRow & { url: string | null };
 
@@ -22,8 +23,8 @@ export function EscolherFoto({
   useEffect(() => {
     (async () => {
       const [f, p] = await Promise.all([
-        fetch('/api/photos').then((r) => r.json()),
-        fetch('/api/folders?tipo=foto').then((r) => r.json()),
+        fetch(comBase('/api/photos')).then((r) => r.json()),
+        fetch(comBase('/api/folders?tipo=foto')).then((r) => r.json()),
       ]);
       setFotos(f.photos ?? []);
       setPastas(p.folders ?? []);

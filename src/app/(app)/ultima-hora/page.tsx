@@ -23,6 +23,7 @@ import {
 import { Card, Dialogo, Empty, PageHeader, Separador, Spinner } from '@/components/ui';
 import { REGIOES, regiaoDoPais, type Regiao } from '@/lib/regioes';
 import type { PhotoRow } from '@/lib/types';
+import { comBase } from '@/lib/caminho';
 
 interface Angulo {
   tipo?: 'historia' | 'lista';
@@ -122,7 +123,7 @@ export default function UltimaHoraPage() {
   }, [escritos, router]);
 
   useEffect(() => {
-    fetch('/api/perfil')
+    fetch(comBase('/api/perfil'))
       .then((r) => r.json())
       .then((d) => {
         const dela = regiaoDoPais(d?.briefing?.pais);
@@ -134,7 +135,7 @@ export default function UltimaHoraPage() {
   useEffect(() => {
     if (!regiaoLida) return;
     setACarregar(true);
-    fetch(`/api/ultima-hora?regiao=${regiao}`)
+    fetch(comBase(`/api/ultima-hora?regiao=${regiao}`))
       .then((r) => r.json())
       .then((d) => setAssuntos(d.assuntos ?? []))
       .finally(() => setACarregar(false));
@@ -142,8 +143,8 @@ export default function UltimaHoraPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/templates').then((r) => r.json()),
-      fetch('/api/photos').then((r) => r.json()),
+      fetch(comBase('/api/templates')).then((r) => r.json()),
+      fetch(comBase('/api/photos')).then((r) => r.json()),
     ]).then(([t, p]) => {
       setTemplates(t.templates ?? []);
       setFotos(p.photos ?? []);
@@ -155,7 +156,7 @@ export default function UltimaHoraPage() {
     setAProcurar(modo);
     setErro(null);
     try {
-      const d = await fetch('/api/ultima-hora', {
+      const d = await fetch(comBase('/api/ultima-hora'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantos: 5, regiao, modo, palavras }),
@@ -177,7 +178,7 @@ export default function UltimaHoraPage() {
   }
 
   async function apagar(id: string) {
-    await fetch(`/api/ultima-hora?id=${id}`, { method: 'DELETE' });
+    await fetch(comBase(`/api/ultima-hora?id=${id}`), { method: 'DELETE' });
     setAssuntos((a) => a.filter((x) => x.id !== id));
     setAApagar(null);
   }
@@ -195,7 +196,7 @@ export default function UltimaHoraPage() {
     // os três grupos vão ao mesmo tempo e cada um aparece mal chega —
     // ver os primeiros três em quatro segundos vale mais do que ver nove em dez
     const pedidos = [0, 1, 2].map(async (grupo) => {
-      const d = await fetch('/api/ganchos', {
+      const d = await fetch(comBase('/api/ganchos'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +223,7 @@ export default function UltimaHoraPage() {
     setOcupado('A escrever o carrossel…');
     setErro(null);
     try {
-      const d = await fetch('/api/ultima-hora/escrever', {
+      const d = await fetch(comBase('/api/ultima-hora/escrever'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +249,7 @@ export default function UltimaHoraPage() {
   async function imagensDaNoticia(): Promise<string | null> {
     if (!comImagens || !alvo) return null;
     try {
-      const d = await fetch('/api/ultima-hora/imagem', {
+      const d = await fetch(comBase('/api/ultima-hora/imagem'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: alvo.assunto.id, tipo: 'cartao' }),
@@ -268,7 +269,7 @@ export default function UltimaHoraPage() {
     setErro(null);
     try {
       const foto = await imagensDaNoticia();
-      const d = await fetch('/api/carousels', {
+      const d = await fetch(comBase('/api/carousels'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -314,7 +315,7 @@ export default function UltimaHoraPage() {
     if (!escritos) return;
     setOcupado('A guardar nos rascunhos…');
     try {
-      const d = await fetch('/api/carousels', {
+      const d = await fetch(comBase('/api/carousels'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

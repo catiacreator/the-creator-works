@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { comBase } from '@/lib/caminho';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,11 +25,11 @@ export default function LoginPage() {
   async function devLogin() {
     setBusy(true);
     setError(null);
-    const res = await fetch('/api/dev/login', { method: 'POST' });
+    const res = await fetch(comBase('/api/dev/login'), { method: 'POST' });
     const data = await res.json();
     setBusy(false);
     if (data.error) return setError(data.error);
-    window.location.href = '/';
+    window.location.href = comBase('/');
   }
 
   async function google() {
@@ -37,7 +38,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}${comBase('/auth/callback')}` },
     });
     // se der erro fica-se aqui; se não, o browser é redirecionado para o Google
     if (error) {
@@ -62,7 +63,7 @@ export default function LoginPage() {
       );
       return;
     }
-    window.location.href = '/';
+    window.location.href = comBase('/');
   }
 
   /** Manda o email de recuperação, que aterra na página de definir palavra-passe. */
@@ -72,7 +73,7 @@ export default function LoginPage() {
     setError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/palavra-passe`,
+      redirectTo: `${window.location.origin}${comBase('/auth/callback?next=/palavra-passe')}`,
     });
     setBusy(false);
     if (error) setError(error.message);
@@ -108,7 +109,7 @@ export default function LoginPage() {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}${comBase('/auth/callback')}`,
       },
     });
     setBusy(false);
@@ -120,12 +121,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* eslint-disable @next/next/no-img-element */}
         <img
-          src="/the-creator-works.png"
+          src={comBase('/the-creator-works.png')}
           alt="The Creator Works"
           className="mb-2 h-9 w-auto dark:hidden"
         />
         <img
-          src="/the-creator-works-escuro.png"
+          src={comBase('/the-creator-works-escuro.png')}
           alt="The Creator Works"
           className="mb-2 hidden h-9 w-auto dark:block"
         />
@@ -171,7 +172,7 @@ export default function LoginPage() {
         {error && (
           <p className="mb-4 text-center text-[12.5px] text-muted">
             Continua a dar o mesmo?{' '}
-            <a href="/sair" className="underline underline-offset-2 hover:text-ink">
+            <a href={comBase('/sair')} className="underline underline-offset-2 hover:text-ink">
               Fecha a sessão que está aberta
             </a>{' '}
             e tenta de novo.
@@ -259,7 +260,7 @@ export default function LoginPage() {
           parar aqui, pede o link acima — vai para o email com que compraste.
           <br />
           Ainda não compraste?{' '}
-          <a href="/assinar" className="underline-offset-2 hover:text-ink hover:underline">
+          <a href={comBase('/assinar')} className="underline-offset-2 hover:text-ink hover:underline">
             É por aqui
           </a>
           .

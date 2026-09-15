@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { enderecoDaApp } from '@/lib/caminho';
 import { cookies } from 'next/headers';
 import crypto from 'node:crypto';
 import { getUser } from '@/lib/supabase/server';
@@ -6,13 +7,13 @@ import { authorizeUrl, makePkce } from '@/lib/canva';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getUser();
-  if (!user) return NextResponse.redirect(new URL('/login', process.env.NEXT_PUBLIC_APP_URL!));
+  if (!user) return NextResponse.redirect(`${enderecoDaApp(request)}/login`);
 
   if (!process.env.CANVA_CLIENT_ID) {
     return NextResponse.redirect(
-      new URL('/definicoes?erro=canva-nao-configurado', process.env.NEXT_PUBLIC_APP_URL!),
+      `${enderecoDaApp(request)}/definicoes?erro=canva-nao-configurado`,
     );
   }
 

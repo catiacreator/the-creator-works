@@ -4,6 +4,20 @@ import { supabaseConfigured } from '@/lib/env';
 import { RECADO_CADUCADO, RECADO_SEM_ACESSO, estadoDoAcesso } from '@/lib/acesso';
 import { ePorta } from '@/lib/portas';
 
+/**
+ * Um endereço desta app, com o prefixo onde ela vive.
+ *
+ * `new URL('/login', request.url)` perdia o `/creator-works` e mandava a
+ * pessoa para a raiz do domínio — que agora é o CarouselSnap. O `nextUrl`
+ * sabe do basePath e volta a pô-lo quando se escreve o endereço.
+ */
+function paraDentro(request: NextRequest, caminho: string, procura = '') {
+  const url = request.nextUrl.clone();
+  url.pathname = caminho;
+  url.search = procura ? `?${procura}` : '';
+  return url;
+}
+
 /** Mantém a sessão do Supabase fresca em cada pedido. */
 export async function middleware(request: NextRequest) {
   // Sem Supabase ligado não há sessão possível: manda tudo para /configurar
@@ -17,7 +31,7 @@ export async function middleware(request: NextRequest) {
       );
     }
     if (pathname === '/configurar') return NextResponse.next();
-    return NextResponse.redirect(new URL('/configurar', request.url));
+    return NextResponse.redirect(paraDentro(request, '/configurar'));
   }
 
   // As portas passam sempre, e antes de tudo o resto.
@@ -82,7 +96,7 @@ export async function middleware(request: NextRequest) {
       }
       // o webhook do Stripe e a saída da conta continuam a passar
       if (pathname === '/renovar' || pathname === '/login') return response;
-      return NextResponse.redirect(new URL('/renovar', request.url));
+      return NextResponse.redirect(paraDentro(request, '/renovar'));
     }
 
     // Não sabemos — a base de dados não respondeu. Deixa-se passar a sessão
@@ -106,7 +120,7 @@ export async function middleware(request: NextRequest) {
       }
       if (pathname === '/login') return response;
       return NextResponse.redirect(
-        new URL(`/login?erro=${encodeURIComponent(RECADO_SEM_ACESSO)}`, request.url),
+        paraDentro(request, '/login', `erro=${encodeURIComponent(RECADO_SEM_ACESSO)}`),
       );
     }
   }
@@ -115,5 +129,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    // a raiz da app, sem barra a seguir ao /creator-works: o padrão de baixo
+    // exige a barra e deixava-a passar sem middleware
+    '/',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

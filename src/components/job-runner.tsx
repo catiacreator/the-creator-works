@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { comBase } from '@/lib/caminho';
 
 /**
  * Enquanto a app estiver aberta, vai puxando a fila.
@@ -19,7 +20,7 @@ export function JobRunner() {
 
     async function tick() {
       try {
-        const res = await fetch('/api/jobs/run?limit=2', { method: 'POST' });
+        const res = await fetch(comBase('/api/jobs/run?limit=2'), { method: 'POST' });
         const data = (await res.json()) as { processed?: number; remaining?: number };
         if (!alive) return;
         setRemaining(data.remaining ?? 0);

@@ -1,5 +1,10 @@
 # Pôr The Creator Works no ar
 
+> **Nota:** a app passou a viver em `https://carouselsnap.app/creator-works`,
+> no mesmo domínio do CarouselSnap. Os passos abaixo continuam certos para
+> criar o projeto na Vercel; o domínio e os endereços estão em
+> `docs/um-so-dominio.md`.
+
 O repositório já está em `github.com/catiacreator/the-creator-works` (privado).
 Falta o que só tu podes fazer: a conta, as chaves e o domínio.
 
@@ -18,7 +23,8 @@ Falta o que só tu podes fazer: a conta, as chaves e o domínio.
    - `TOKEN_ENCRYPTION_KEY`
    - `ANTHROPIC_API_KEY`
    - `AI_PROVIDER` → `claude`
-   - `NEXT_PUBLIC_APP_URL` → `https://thecreatorworks.com`
+   - `NEXT_PUBLIC_APP_URL` → `https://carouselsnap.app/creator-works`
+   - `CAROUSELSNAP_ORIGEM` → o endereço `…lovable.app` onde o CarouselSnap está publicado
 
    Só se as usares:
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (Drive)
@@ -35,17 +41,18 @@ Falta o que só tu podes fazer: a conta, as chaves e o domínio.
 No painel do Supabase, projeto `catiacreator's Project`:
 
 **Authentication → URL Configuration**
-- *Site URL*: `https://thecreatorworks.com`
-- *Redirect URLs*: acrescenta `https://thecreatorworks.com/auth/callback`
+- *Site URL*: `https://carouselsnap.app/creator-works`
+- *Redirect URLs*: acrescenta `https://carouselsnap.app/creator-works/auth/callback`
   (e o endereço `…vercel.app/auth/callback`, para poderes testar antes do domínio)
 
 Sem isto o link de entrada por email leva-te ao sítio errado.
 
 ## 3. Apontar o domínio
 
-Na Vercel: **Project → Settings → Domains → Add** → `thecreatorworks.com`.
+Na Vercel: **Project → Settings → Domains → Add** → `carouselsnap.app` (e mantém
+o `thecreatorworks.com`, para os links antigos redirecionarem).
 A Vercel mostra dois registos para criares no Hostinger, em
-**Domínios → thecreatorworks.com → DNS**:
+**Domínios → carouselsnap.app → DNS**:
 
 - um registo **A** para `@`, com o endereço IP que a Vercel te der
 - um registo **CNAME** para `www`, com o destino que a Vercel te der
@@ -55,7 +62,7 @@ O DNS costuma demorar entre dez minutos e algumas horas a espalhar-se.
 
 ## 4. Depois de estar no ar
 
-- Entra em `thecreatorworks.com`, pede o link por email e confirma que entras.
+- Entra em `carouselsnap.app/creator-works`, pede o link por email e confirma que entras.
 - Faz um carrossel de ponta a ponta: Carrosséis Creator → estilo → descarregar.
 - Vê a Última hora: é a parte que demora mais (a busca leva 40 a 60 segundos).
   Se der erro de tempo esgotado, é o limite do plano da Vercel — diz-me e eu
