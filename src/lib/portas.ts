@@ -32,6 +32,8 @@
 export const PORTAS = [
   /** a porta do CarouselSnap: um bilhete assinado */
   '/entrar',
+  /** onde aterra quem vem do CarouselSnap: entrar ou criar conta */
+  '/bem-vindo',
   /** a saída, para quem o middleware não reconhece e não chega às Definições */
   '/sair',
   /** a porta de serviço da admin: um código que só ela tem */
@@ -39,6 +41,8 @@ export const PORTAS = [
   '/api/admin-login',
   /** o resgate de um código de convite, onde nasce uma conta */
   '/acesso',
+  /** criar conta sem código nenhum */
+  '/registar',
   /** a página que diz onde é a entrada, e onde se assina */
   '/assinar',
   /** onde a Hotmart devolve quem acabou de pagar, antes de a conta existir */

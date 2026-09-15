@@ -110,7 +110,10 @@ async function naoEntra(origem: string, porque: string, email?: string) {
     return NextResponse.redirect(origem);
   }
 
-  return NextResponse.redirect(`${origem}/assinar?porta=1`);
+  // Não é a página de vendas: quem vem do Snap já pagou, e mostrar-lhe um
+  // preço é dizer-lhe que o dinheiro dela não conta. Vai para as duas
+  // portas — entrar, ou criar conta.
+  return NextResponse.redirect(`${origem}/bem-vindo`);
 }
 
 async function abrir(request: Request) {

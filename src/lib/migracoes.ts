@@ -55,6 +55,9 @@ const DE_ONDE: Record<string, string> = {
 
   // 029 — o parâmetro e a coluna chamavam-se os dois `bilhete`
   gastar_bilhete: '029_bilhete_ambiguo.sql',
+
+  // 030 — registar-se sem código
+  registar_me: '030_registo_aberto.sql',
 };
 
 /**
